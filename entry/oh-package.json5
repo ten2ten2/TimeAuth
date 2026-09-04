@@ -1,0 +1,10 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "TimeAuth entry module",
+  "main": "",
+  "author": "ten2ten2",
+  "license": "UNLICENSED",
+  "dependencies": {}
+}
+

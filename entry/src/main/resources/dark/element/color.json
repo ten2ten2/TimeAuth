@@ -1,0 +1,19 @@
+{
+  "color": [
+    { "name": "background", "value": "#0E1014" },
+    { "name": "surface", "value": "#191C22" },
+    { "name": "surface_secondary", "value": "#22262E" },
+    { "name": "surface_elevated", "value": "#20242B" },
+    { "name": "text_primary", "value": "#F4F6F8" },
+    { "name": "text_secondary", "value": "#A8AFBA" },
+    { "name": "border", "value": "#2B3039" },
+    { "name": "brand", "value": "#82ADFF" },
+    { "name": "brand_soft", "value": "#20345D" },
+    { "name": "warning", "value": "#FFB766" },
+    { "name": "danger", "value": "#FF7770" },
+    { "name": "success", "value": "#63D49A" },
+    { "name": "scrim", "value": "#99000000" },
+    { "name": "start_window_background", "value": "#0E1014" }
+  ]
+}
+

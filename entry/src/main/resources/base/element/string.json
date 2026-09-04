@@ -1,0 +1,17 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "TimeAuth 验证码与密码保险库"
+    },
+    {
+      "name": "entry_ability_desc",
+      "value": "TimeAuth 主界面"
+    },
+    {
+      "name": "entry_ability_label",
+      "value": "TimeAuth"
+    }
+  ]
+}
+
