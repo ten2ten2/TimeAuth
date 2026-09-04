@@ -3,6 +3,7 @@
     { "name": "module_desc", "value": "TimeAuth authenticator and password vault" },
     { "name": "entry_ability_desc", "value": "TimeAuth main screen" },
     { "name": "entry_ability_label", "value": "TimeAuth" },
+    { "name": "brand_name", "value": "TimeAuth" },
     { "name": "preview_badge", "value": "UI/UX PREVIEW" },
     { "name": "preview_mode", "value": "Preview mode" },
     { "name": "common_close", "value": "Close" },

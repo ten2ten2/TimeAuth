@@ -1,4 +1,4 @@
-# TimeAuth UI/UX framework
+# 时钥 / 時鑰 / TimeAuth UI/UX framework
 
 ## Product structure
 
@@ -14,11 +14,11 @@ The preview starts with a three-step onboarding flow and a mock unlock state. Af
 
 ## Theme
 
-Colors are semantic resources with matching `base` and `dark` values. The default preference follows the system. Explicit light and dark overrides are exposed in the Settings preview.
+Colors are semantic resources with matching `base` and `dark` values. The default preference follows the system. Explicit light and dark overrides are exposed in Settings and persist across launches. The launcher icon stays ink black with a warm-ivory symbol; the in-app brand mark and launch window switch between the exact inverse light and dark variants.
 
 ## Language
 
-The UI supports Simplified Chinese (`zh-Hans`), Traditional Chinese (`zh-Hant`), English, and a persistent system-following preference. English is the base resource and therefore the fallback for unsupported system languages. All product chrome and accessibility labels use localized resources; account names and other user-owned content are not translated.
+The UI supports Simplified Chinese (`zh-Hans`), Traditional Chinese (`zh-Hant`), English, and a persistent system-following preference. The localized product names are `时钥`, `時鑰`, and `TimeAuth`. English is the base resource and therefore the fallback for unsupported system languages. All product chrome and accessibility labels use localized resources; account names and other user-owned content are not translated.
 
 ## Responsive behavior
 

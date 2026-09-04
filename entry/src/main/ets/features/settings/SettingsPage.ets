@@ -1,12 +1,12 @@
-import { ConfigurationConstant } from '@kit.AbilityKit';
 import { PageHeader } from '../../components/PageHeader';
+import { colorModeForTheme, saveThemePreference } from '../../design/ThemeManager';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 import { applyLanguagePreference } from '../../localization/LanguageManager';
 import { LanguagePreference, ThemePreference } from '../../models/AppModels';
 
 @Component
 export struct SettingsPage {
-  @State private themePreference: ThemePreference = ThemePreference.SYSTEM;
+  @StorageLink('timeauth.themePreference') private themePreference: ThemePreference = ThemePreference.SYSTEM;
   @State private biometricLock: boolean = true;
   @State private hideTaskPreview: boolean = true;
   @State private blockScreenshots: boolean = true;
@@ -16,18 +16,8 @@ export struct SettingsPage {
 
   private setTheme(preference: ThemePreference): void {
     this.themePreference = preference;
-    if (preference === ThemePreference.LIGHT) {
-      getContext(this).getApplicationContext()
-        .setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT);
-      return;
-    }
-    if (preference === ThemePreference.DARK) {
-      getContext(this).getApplicationContext()
-        .setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
-      return;
-    }
-    getContext(this).getApplicationContext()
-      .setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+    saveThemePreference(getContext(this), preference);
+    getContext(this).getApplicationContext().setColorMode(colorModeForTheme(preference));
   }
 
   private setLanguage(preference: LanguagePreference): void {

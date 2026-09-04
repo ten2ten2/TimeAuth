@@ -1,3 +1,4 @@
+import { BrandMark } from '../../components/BrandMark';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 
 @Component
@@ -38,10 +39,13 @@ export struct OnboardingPage {
   build() {
     Column() {
       Row() {
-        Text('TimeAuth')
-          .fontSize(AppTypography.section)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
+        Row({ space: AppSpacing.xs }) {
+          BrandMark({ size: 28 })
+          Text($r('app.string.brand_name'))
+            .fontSize(AppTypography.section)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+        }
         Blank()
         Text($r('app.string.preview_badge'))
           .fontSize(10)

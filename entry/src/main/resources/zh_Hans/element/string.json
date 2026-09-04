@@ -1,8 +1,9 @@
 {
   "string": [
-    { "name": "module_desc", "value": "TimeAuth 验证码与密码保险库" },
-    { "name": "entry_ability_desc", "value": "TimeAuth 主界面" },
-    { "name": "entry_ability_label", "value": "TimeAuth" },
+    { "name": "module_desc", "value": "时钥验证码与密码保险库" },
+    { "name": "entry_ability_desc", "value": "时钥主界面" },
+    { "name": "entry_ability_label", "value": "时钥" },
+    { "name": "brand_name", "value": "时钥" },
     { "name": "preview_badge", "value": "UI/UX 预览" },
     { "name": "preview_mode", "value": "预览模式" },
     { "name": "common_close", "value": "关闭" },
@@ -18,7 +19,7 @@
     { "name": "nav_generator", "value": "生成器" },
     { "name": "nav_settings", "value": "设置" },
     { "name": "onboarding_title_local", "value": "安全，从本地开始" },
-    { "name": "onboarding_message_local", "value": "TimeAuth 默认离线工作，不需要注册账号。UI 预览阶段不会保存任何敏感信息。" },
+    { "name": "onboarding_message_local", "value": "时钥默认离线工作，不需要注册账号。UI 预览阶段不会保存任何敏感信息。" },
     { "name": "onboarding_title_separate", "value": "验证与密码，彼此隔离" },
     { "name": "onboarding_message_separate", "value": "验证码保险库和密码保险库将使用不同的密钥，并允许你分别控制解锁和备份。" },
     { "name": "onboarding_title_control", "value": "你始终掌控自己的数据" },
@@ -26,7 +27,7 @@
     { "name": "onboarding_previous", "value": "上一步" },
     { "name": "onboarding_continue", "value": "继续" },
     { "name": "onboarding_get_started", "value": "开始使用" },
-    { "name": "unlock_title", "value": "解锁 TimeAuth" },
+    { "name": "unlock_title", "value": "解锁时钥" },
     { "name": "unlock_description", "value": "真实生物识别将在安全实现阶段接入。当前按钮只用于验证解锁流程。" },
     { "name": "unlock_password_placeholder", "value": "输入备用解锁密码" },
     { "name": "unlock_mock_password", "value": "模拟密码解锁" },
@@ -121,7 +122,7 @@
     { "name": "settings_import_codes_detail", "value": "从兼容格式迁移" },
     { "name": "settings_local_data", "value": "本地数据" },
     { "name": "settings_local_data_detail", "value": "当前仅使用 Mock 数据" },
-    { "name": "settings_about", "value": "关于 TimeAuth" },
+    { "name": "settings_about", "value": "关于时钥" },
     { "name": "settings_about_detail", "value": "版本、隐私与开源许可" }
   ]
 }

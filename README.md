@@ -1,6 +1,6 @@
-# TimeAuth
+# 时钥 / 時鑰 / TimeAuth
 
-TimeAuth is a HarmonyOS-native security companion for one-time passwords, local password management, and secure password generation.
+TimeAuth（简体中文“时钥”、繁体中文“時鑰”）is a HarmonyOS-native security companion for one-time passwords, local password management, and secure password generation.
 
 ## Current milestone
 
@@ -24,7 +24,11 @@ No real secret, password, cryptographic generation, persistence, camera scanning
 
 ## Language behavior
 
-The default preference follows the system. TimeAuth provides `zh-Hans`, `zh-Hant`, and English resources. English lives in the base resource directory, so unsupported system languages fall back to English. The selection is available under Settings and persists across launches.
+The default preference follows the system. TimeAuth provides `zh-Hans`, `zh-Hant`, and English resources. English lives in the base resource directory, so unsupported system languages fall back to English. The localized product names are `时钥`, `時鑰`, and `TimeAuth`. The selection is available under Settings and persists across launches.
+
+## Brand and theme behavior
+
+The launcher icon remains the ink-black (`#171717`) version in every system theme so it keeps a stable identity. In-app brand marks and the launch window use ink black on warm ivory (`#F5F2EA`) in light mode, and warm ivory on ink black in dark mode. The System, Light, and Dark preferences persist across launches.
 
 ## Planned next milestone
 

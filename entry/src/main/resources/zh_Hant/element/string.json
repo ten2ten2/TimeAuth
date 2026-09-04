@@ -1,8 +1,9 @@
 {
   "string": [
-    { "name": "module_desc", "value": "TimeAuth 驗證碼與密碼保險庫" },
-    { "name": "entry_ability_desc", "value": "TimeAuth 主介面" },
-    { "name": "entry_ability_label", "value": "TimeAuth" },
+    { "name": "module_desc", "value": "時鑰驗證碼與密碼保險庫" },
+    { "name": "entry_ability_desc", "value": "時鑰主介面" },
+    { "name": "entry_ability_label", "value": "時鑰" },
+    { "name": "brand_name", "value": "時鑰" },
     { "name": "preview_badge", "value": "UI/UX 預覽" },
     { "name": "preview_mode", "value": "預覽模式" },
     { "name": "common_close", "value": "關閉" },
@@ -18,7 +19,7 @@
     { "name": "nav_generator", "value": "產生器" },
     { "name": "nav_settings", "value": "設定" },
     { "name": "onboarding_title_local", "value": "安全，從本機開始" },
-    { "name": "onboarding_message_local", "value": "TimeAuth 預設離線運作，不需要註冊帳號。UI 預覽階段不會儲存任何敏感資訊。" },
+    { "name": "onboarding_message_local", "value": "時鑰預設離線運作，不需要註冊帳號。UI 預覽階段不會儲存任何敏感資訊。" },
     { "name": "onboarding_title_separate", "value": "驗證與密碼，彼此隔離" },
     { "name": "onboarding_message_separate", "value": "驗證碼保險庫和密碼保險庫將使用不同的金鑰，並允許你分別控制解鎖和備份。" },
     { "name": "onboarding_title_control", "value": "你始終掌控自己的資料" },
@@ -26,7 +27,7 @@
     { "name": "onboarding_previous", "value": "上一步" },
     { "name": "onboarding_continue", "value": "繼續" },
     { "name": "onboarding_get_started", "value": "開始使用" },
-    { "name": "unlock_title", "value": "解鎖 TimeAuth" },
+    { "name": "unlock_title", "value": "解鎖時鑰" },
     { "name": "unlock_description", "value": "真實生物辨識將在安全實作階段接入。目前按鈕只用於驗證解鎖流程。" },
     { "name": "unlock_password_placeholder", "value": "輸入備用解鎖密碼" },
     { "name": "unlock_mock_password", "value": "模擬密碼解鎖" },
@@ -121,7 +122,7 @@
     { "name": "settings_import_codes_detail", "value": "從相容格式遷移" },
     { "name": "settings_local_data", "value": "本機資料" },
     { "name": "settings_local_data_detail", "value": "目前僅使用 Mock 資料" },
-    { "name": "settings_about", "value": "關於 TimeAuth" },
+    { "name": "settings_about", "value": "關於時鑰" },
     { "name": "settings_about_detail", "value": "版本、隱私與開源授權" }
   ]
 }

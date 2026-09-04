@@ -1,4 +1,5 @@
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../design/Tokens';
+import { BrandMark } from './BrandMark';
 
 @Component
 export struct BottomNavigation {
@@ -86,16 +87,8 @@ export struct NavigationRail {
   build() {
     Column({ space: AppSpacing.xs }) {
       Row({ space: AppSpacing.sm }) {
-        Text('T')
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Color.White)
-          .textAlign(TextAlign.Center)
-          .width(42)
-          .height(42)
-          .backgroundColor($r('app.color.brand'))
-          .borderRadius(AppRadius.medium)
-        Text('TimeAuth')
+        BrandMark({ size: 42 })
+        Text($r('app.string.brand_name'))
           .fontSize(AppTypography.section)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))

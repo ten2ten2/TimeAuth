@@ -13,7 +13,6 @@
     { "name": "danger", "value": "#C62828" },
     { "name": "success", "value": "#197A4A" },
     { "name": "scrim", "value": "#66000000" },
-    { "name": "start_window_background", "value": "#F6F7F9" }
+    { "name": "start_window_background", "value": "#F5F2EA" }
   ]
 }
-

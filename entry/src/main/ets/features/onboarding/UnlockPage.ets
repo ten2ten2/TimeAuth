@@ -1,3 +1,4 @@
+import { BrandMark } from '../../components/BrandMark';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 
 @Component
@@ -8,10 +9,13 @@ export struct UnlockPage {
   build() {
     Column() {
       Row() {
-        Text('TimeAuth')
-          .fontSize(AppTypography.section)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
+        Row({ space: AppSpacing.xs }) {
+          BrandMark({ size: 28 })
+          Text($r('app.string.brand_name'))
+            .fontSize(AppTypography.section)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+        }
         Blank()
         Text($r('app.string.preview_mode'))
           .fontSize(AppTypography.caption)
@@ -22,15 +26,7 @@ export struct UnlockPage {
       Blank()
 
       Column({ space: AppSpacing.lg }) {
-        Text('⌾')
-          .fontSize(36)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Color.White)
-          .textAlign(TextAlign.Center)
-          .width(88)
-          .height(88)
-          .backgroundColor($r('app.color.brand'))
-          .borderRadius(28)
+        BrandMark({ size: 88 })
 
         Column({ space: AppSpacing.xs }) {
           Text($r('app.string.unlock_title'))

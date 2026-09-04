@@ -19,7 +19,7 @@
         "description": "$string:entry_ability_desc",
         "icon": "$media:app_icon",
         "label": "$string:entry_ability_label",
-        "startWindowIcon": "$media:app_icon",
+        "startWindowIcon": "$media:brand_logo",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
         "skills": [
@@ -36,4 +36,3 @@
     ]
   }
 }
-
