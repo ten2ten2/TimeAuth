@@ -5,34 +5,34 @@ export struct OnboardingPage {
   @State private pageIndex: number = 0;
   onComplete: () => void = () => {};
 
-  private title(): string {
+  private title(): ResourceStr {
     if (this.pageIndex === 0) {
-      return '安全，从本地开始';
+      return $r('app.string.onboarding_title_local');
     }
     if (this.pageIndex === 1) {
-      return '验证与密码，彼此隔离';
+      return $r('app.string.onboarding_title_separate');
     }
-    return '你始终掌控自己的数据';
+    return $r('app.string.onboarding_title_control');
   }
 
-  private message(): string {
+  private message(): ResourceStr {
     if (this.pageIndex === 0) {
-      return 'TimeAuth 默认离线工作，不需要注册账号。UI 预览阶段不会保存任何敏感信息。';
+      return $r('app.string.onboarding_message_local');
     }
     if (this.pageIndex === 1) {
-      return '验证码保险库和密码保险库将使用不同的密钥，并允许你分别控制解锁和备份。';
+      return $r('app.string.onboarding_message_separate');
     }
-    return '基础导入、加密导出与恢复不会成为付费墙，后续接入真实数据时仍遵循这一原则。';
+    return $r('app.string.onboarding_message_control');
   }
 
   private symbol(): string {
     if (this.pageIndex === 0) {
-      return '盾';
+      return '◈';
     }
     if (this.pageIndex === 1) {
-      return '双';
+      return '⇄';
     }
-    return '钥';
+    return '◆';
   }
 
   build() {
@@ -43,7 +43,7 @@ export struct OnboardingPage {
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
         Blank()
-        Text('UI/UX PREVIEW')
+        Text($r('app.string.preview_badge'))
           .fontSize(10)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.warning'))
@@ -104,7 +104,7 @@ export struct OnboardingPage {
 
       Row({ space: AppSpacing.sm }) {
         if (this.pageIndex > 0) {
-          Button('上一步')
+          Button($r('app.string.onboarding_previous'))
             .type(ButtonType.Capsule)
             .height(52)
             .fontColor($r('app.color.brand'))
@@ -115,7 +115,8 @@ export struct OnboardingPage {
             })
         }
 
-        Button(this.pageIndex === 2 ? '开始使用' : '继续')
+        Button(this.pageIndex === 2 ? $r('app.string.onboarding_get_started') :
+          $r('app.string.onboarding_continue'))
           .type(ButtonType.Capsule)
           .height(52)
           .fontColor(Color.White)
@@ -144,4 +145,3 @@ export struct OnboardingPage {
     .backgroundColor($r('app.color.background'))
   }
 }
-

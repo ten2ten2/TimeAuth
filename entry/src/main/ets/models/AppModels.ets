@@ -45,3 +45,9 @@ export enum ThemePreference {
   DARK = 'DARK'
 }
 
+export enum LanguagePreference {
+  SYSTEM = 'SYSTEM',
+  SIMPLIFIED_CHINESE = 'SIMPLIFIED_CHINESE',
+  TRADITIONAL_CHINESE = 'TRADITIONAL_CHINESE',
+  ENGLISH = 'ENGLISH'
+}

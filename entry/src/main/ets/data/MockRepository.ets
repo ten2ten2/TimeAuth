@@ -55,7 +55,7 @@ export class MockTimeAuthRepository implements TimeAuthRepository {
       },
       {
         id: 'vault-email',
-        title: '工作邮箱',
+        title: 'Work email',
         username: 'demo@company.example',
         website: 'mail.example.com',
         passwordPreview: 'Preview-Not-A-Secret',
@@ -65,8 +65,8 @@ export class MockTimeAuthRepository implements TimeAuthRepository {
       },
       {
         id: 'vault-recovery',
-        title: '恢复码（演示）',
-        username: '8 项',
+        title: 'Recovery codes (demo)',
+        username: '8 items',
         website: '',
         passwordPreview: '',
         kind: VaultItemKind.SECURE_NOTE,
@@ -78,4 +78,3 @@ export class MockTimeAuthRepository implements TimeAuthRepository {
 }
 
 export const mockRepository: TimeAuthRepository = new MockTimeAuthRepository();
-

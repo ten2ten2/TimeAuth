@@ -1,7 +1,8 @@
 import { ConfigurationConstant } from '@kit.AbilityKit';
 import { PageHeader } from '../../components/PageHeader';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
-import { ThemePreference } from '../../models/AppModels';
+import { applyLanguagePreference } from '../../localization/LanguageManager';
+import { LanguagePreference, ThemePreference } from '../../models/AppModels';
 
 @Component
 export struct SettingsPage {
@@ -10,6 +11,8 @@ export struct SettingsPage {
   @State private hideTaskPreview: boolean = true;
   @State private blockScreenshots: boolean = true;
   @State private clearClipboard: boolean = true;
+  @StorageLink('timeauth.languagePreference') private languagePreference: LanguagePreference =
+    LanguagePreference.SYSTEM;
 
   private setTheme(preference: ThemePreference): void {
     this.themePreference = preference;
@@ -27,8 +30,13 @@ export struct SettingsPage {
       .setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
   }
 
+  private setLanguage(preference: LanguagePreference): void {
+    this.languagePreference = preference;
+    applyLanguagePreference(preference);
+  }
+
   @Builder
-  ThemeButton(value: ThemePreference, label: string, symbol: string) {
+  ThemeButton(value: ThemePreference, label: ResourceStr, symbol: string) {
     Button({ type: ButtonType.Normal }) {
       Column({ space: AppSpacing.xs }) {
         Text(symbol)
@@ -55,7 +63,40 @@ export struct SettingsPage {
   }
 
   @Builder
-  SettingToggle(title: string, description: string, value: boolean, onChange: (value: boolean) => void) {
+  LanguageButton(value: LanguagePreference, label: ResourceStr) {
+    Button({ type: ButtonType.Normal }) {
+      Row({ space: AppSpacing.sm }) {
+        Text(label)
+          .fontSize(AppTypography.label)
+          .fontWeight(this.languagePreference === value ? FontWeight.Medium : FontWeight.Regular)
+          .fontColor(this.languagePreference === value ? $r('app.color.brand') :
+            $r('app.color.text_primary'))
+          .layoutWeight(1)
+          .textAlign(TextAlign.Start)
+        Text(this.languagePreference === value ? '✓' : '')
+          .fontSize(AppTypography.body)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.brand'))
+          .width(22)
+      }
+      .width('100%')
+      .padding({ left: AppSpacing.md, right: AppSpacing.sm })
+    }
+    .width('100%')
+    .height(52)
+    .padding(0)
+    .backgroundColor(this.languagePreference === value ? $r('app.color.brand_soft') :
+      $r('app.color.surface_secondary'))
+    .borderRadius(AppRadius.medium)
+    .border({ width: this.languagePreference === value ? 2 : 0, color: $r('app.color.brand') })
+    .onClick(() => {
+      this.setLanguage(value);
+    })
+  }
+
+  @Builder
+  SettingToggle(title: ResourceStr, description: ResourceStr, value: boolean,
+    onChange: (value: boolean) => void) {
     Row({ space: AppSpacing.md }) {
       Column({ space: 3 }) {
         Text(title)
@@ -80,7 +121,7 @@ export struct SettingsPage {
   }
 
   @Builder
-  NavigationRow(title: string, description: string, badge: string) {
+  NavigationRow(title: ResourceStr, description: ResourceStr, badge: ResourceStr) {
     Row({ space: AppSpacing.md }) {
       Column({ space: 3 }) {
         Text(title)
@@ -92,7 +133,7 @@ export struct SettingsPage {
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
-      if (badge.length > 0) {
+      if (badge !== '') {
         Text(badge)
           .fontSize(AppTypography.caption)
           .fontColor($r('app.color.brand'))
@@ -109,21 +150,48 @@ export struct SettingsPage {
     Scroll() {
       Column({ space: AppSpacing.md }) {
         PageHeader({
-          title: '设置',
-          subtitle: '安全开关为交互预览；主题切换已连接系统颜色模式。'
+          title: $r('app.string.settings_title'),
+          subtitle: $r('app.string.settings_subtitle')
         })
 
         Column({ space: AppSpacing.sm }) {
-          Text('外观')
+          Text($r('app.string.settings_appearance'))
             .fontSize(AppTypography.section)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
             .width('100%')
 
           Row({ space: AppSpacing.xs }) {
-            this.ThemeButton(ThemePreference.SYSTEM, '跟随系统', '◐')
-            this.ThemeButton(ThemePreference.LIGHT, '浅色', '○')
-            this.ThemeButton(ThemePreference.DARK, '深色', '●')
+            this.ThemeButton(ThemePreference.SYSTEM, $r('app.string.theme_system'), '◐')
+            this.ThemeButton(ThemePreference.LIGHT, $r('app.string.theme_light'), '○')
+            this.ThemeButton(ThemePreference.DARK, $r('app.string.theme_dark'), '●')
+          }
+          .width('100%')
+        }
+        .width('100%')
+        .padding(AppSpacing.lg)
+        .backgroundColor($r('app.color.surface'))
+        .borderRadius(AppRadius.large)
+        .border({ width: 1, color: $r('app.color.border') })
+
+        Column({ space: AppSpacing.sm }) {
+          Text($r('app.string.settings_language'))
+            .fontSize(AppTypography.section)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+            .width('100%')
+          Text($r('app.string.settings_language_description'))
+            .fontSize(AppTypography.caption)
+            .fontColor($r('app.color.text_secondary'))
+            .width('100%')
+
+          Column({ space: AppSpacing.xs }) {
+            this.LanguageButton(LanguagePreference.SYSTEM, $r('app.string.language_system'))
+            this.LanguageButton(LanguagePreference.ENGLISH, $r('app.string.language_english'))
+            this.LanguageButton(LanguagePreference.SIMPLIFIED_CHINESE,
+              $r('app.string.language_simplified_chinese'))
+            this.LanguageButton(LanguagePreference.TRADITIONAL_CHINESE,
+              $r('app.string.language_traditional_chinese'))
           }
           .width('100%')
         }
@@ -134,25 +202,29 @@ export struct SettingsPage {
         .border({ width: 1, color: $r('app.color.border') })
 
         Column() {
-          Text('安全')
+          Text($r('app.string.settings_security'))
             .fontSize(AppTypography.section)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
             .width('100%')
             .margin({ bottom: AppSpacing.sm })
-          this.SettingToggle('生物识别解锁', '进入应用时验证设备所有者', this.biometricLock, (value: boolean) => {
+          this.SettingToggle($r('app.string.settings_biometric'), $r('app.string.settings_biometric_detail'),
+            this.biometricLock, (value: boolean) => {
             this.biometricLock = value;
           })
           Divider().color($r('app.color.border'))
-          this.SettingToggle('隐藏后台预览', '切换应用后遮挡敏感内容', this.hideTaskPreview, (value: boolean) => {
+          this.SettingToggle($r('app.string.settings_hide_preview'),
+            $r('app.string.settings_hide_preview_detail'), this.hideTaskPreview, (value: boolean) => {
             this.hideTaskPreview = value;
           })
           Divider().color($r('app.color.border'))
-          this.SettingToggle('阻止敏感页面截屏', '真实能力将在安全阶段接入', this.blockScreenshots, (value: boolean) => {
+          this.SettingToggle($r('app.string.settings_block_screenshots'),
+            $r('app.string.settings_block_screenshots_detail'), this.blockScreenshots, (value: boolean) => {
             this.blockScreenshots = value;
           })
           Divider().color($r('app.color.border'))
-          this.SettingToggle('自动清理剪贴板', '复制30秒后清除', this.clearClipboard, (value: boolean) => {
+          this.SettingToggle($r('app.string.settings_clear_clipboard'),
+            $r('app.string.settings_clear_clipboard_detail'), this.clearClipboard, (value: boolean) => {
             this.clearClipboard = value;
           })
         }
@@ -163,17 +235,20 @@ export struct SettingsPage {
         .border({ width: 1, color: $r('app.color.border') })
 
         Column() {
-          Text('数据')
+          Text($r('app.string.settings_data'))
             .fontSize(AppTypography.section)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
             .width('100%')
             .margin({ bottom: AppSpacing.sm })
-          this.NavigationRow('备份与恢复', '创建或导入加密备份', '免费')
+          this.NavigationRow($r('app.string.settings_backup'), $r('app.string.settings_backup_detail'),
+            $r('app.string.common_free'))
           Divider().color($r('app.color.border'))
-          this.NavigationRow('导入验证码', '从兼容格式迁移', '')
+          this.NavigationRow($r('app.string.settings_import_codes'),
+            $r('app.string.settings_import_codes_detail'), '')
           Divider().color($r('app.color.border'))
-          this.NavigationRow('本地数据', '当前仅使用 Mock 数据', '预览')
+          this.NavigationRow($r('app.string.settings_local_data'), $r('app.string.settings_local_data_detail'),
+            $r('app.string.common_preview'))
         }
         .width('100%')
         .padding(AppSpacing.lg)
@@ -182,7 +257,8 @@ export struct SettingsPage {
         .border({ width: 1, color: $r('app.color.border') })
 
         Column() {
-          this.NavigationRow('关于 TimeAuth', '版本、隐私与开源许可', '1.0.0-preview')
+          this.NavigationRow($r('app.string.settings_about'), $r('app.string.settings_about_detail'),
+            '1.0.0-preview')
         }
         .width('100%')
         .padding({ left: AppSpacing.lg, right: AppSpacing.lg })
@@ -206,4 +282,3 @@ export struct SettingsPage {
     .backgroundColor($r('app.color.background'))
   }
 }
-

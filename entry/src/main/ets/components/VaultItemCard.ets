@@ -30,7 +30,7 @@ export struct VaultItemCard {
               .textOverflow({ overflow: TextOverflow.Ellipsis })
 
             if (this.item.linkedOtpIssuer !== undefined) {
-              Text('已关联验证码')
+              Text($r('app.string.vault_linked_code'))
                 .fontSize(10)
                 .fontColor($r('app.color.success'))
             }
@@ -63,7 +63,7 @@ export struct VaultItemCard {
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-          Button(this.isRevealed ? '隐藏' : '显示')
+          Button(this.isRevealed ? $r('app.string.common_hide') : $r('app.string.common_show'))
             .type(ButtonType.Normal)
             .height(36)
             .fontSize(AppTypography.label)
@@ -73,7 +73,7 @@ export struct VaultItemCard {
               this.isRevealed = !this.isRevealed;
             })
 
-          Button('复制')
+          Button($r('app.string.common_copy'))
             .type(ButtonType.Capsule)
             .height(36)
             .fontSize(AppTypography.label)
@@ -93,4 +93,3 @@ export struct VaultItemCard {
     .border({ width: 1, color: $r('app.color.border') })
   }
 }
-

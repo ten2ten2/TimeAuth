@@ -16,6 +16,10 @@ The preview starts with a three-step onboarding flow and a mock unlock state. Af
 
 Colors are semantic resources with matching `base` and `dark` values. The default preference follows the system. Explicit light and dark overrides are exposed in the Settings preview.
 
+## Language
+
+The UI supports Simplified Chinese (`zh-Hans`), Traditional Chinese (`zh-Hant`), English, and a persistent system-following preference. English is the base resource and therefore the fallback for unsupported system languages. All product chrome and accessibility labels use localized resources; account names and other user-owned content are not translated.
+
 ## Responsive behavior
 
 - Compact: bottom navigation and 16 vp page padding.

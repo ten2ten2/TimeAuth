@@ -3,8 +3,8 @@ import { AppRadius, AppSpacing, AppTypography } from '../design/Tokens';
 @Component
 export struct EmptyState {
   @Prop symbol: string = '＋';
-  @Prop title: string = '';
-  @Prop message: string = '';
+  @Prop title: ResourceStr = '';
+  @Prop message: ResourceStr = '';
 
   build() {
     Column({ space: AppSpacing.sm }) {
@@ -33,4 +33,3 @@ export struct EmptyState {
     .padding({ top: 48, bottom: 48, left: 32, right: 32 })
   }
 }
-

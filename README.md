@@ -8,6 +8,7 @@ Phase 1 implements the UI/UX framework only:
 
 - responsive phone, tablet, and foldable navigation shell;
 - semantic light and dark color resources;
+- Simplified Chinese, Traditional Chinese, English, and system-following language preferences;
 - reusable ArkUI components;
 - authenticator, password vault, generator, and settings screens;
 - mock data behind a repository interface.
@@ -21,6 +22,10 @@ No real secret, password, cryptographic generation, persistence, camera scanning
 3. Configure automatic signing for the `entry` module.
 4. Run the `entry` module on a phone, tablet, foldable emulator, or device.
 
+## Language behavior
+
+The default preference follows the system. TimeAuth provides `zh-Hans`, `zh-Hant`, and English resources. English lives in the base resource directory, so unsupported system languages fall back to English. The selection is available under Settings and persists across launches.
+
 ## Planned next milestone
 
 Build one complete local TOTP vertical slice: validate input, protect a vault key with HUKS, encrypt and persist the item, generate RFC 6238 codes, copy safely, lock, and restore after restart.
@@ -28,4 +33,3 @@ Build one complete local TOTP vertical slice: validate input, protect a vault ke
 ## Security notice
 
 The repository contains UI preview data only. Never commit real OTP secrets, Steam shared secrets, credentials, signing material, or exported vaults.
-

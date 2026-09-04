@@ -10,7 +10,8 @@ import { VaultItem } from '../../models/AppModels';
 export struct PasswordVaultPage {
   @State private searchText: string = '';
   @State private showAddMenu: boolean = false;
-  @State private feedbackMessage: string = '';
+  @State private feedbackVisible: boolean = false;
+  @State private copyFeedback: boolean = false;
   private items: VaultItem[] = mockRepository.getVaultItems();
 
   private filteredItems(): VaultItem[] {
@@ -23,34 +24,35 @@ export struct PasswordVaultPage {
       item.username.toLowerCase().includes(normalizedQuery));
   }
 
-  private showFeedback(message: string): void {
-    this.feedbackMessage = message;
+  private showFeedback(isCopy: boolean): void {
+    this.copyFeedback = isCopy;
+    this.feedbackVisible = true;
     setTimeout(() => {
-      this.feedbackMessage = '';
+      this.feedbackVisible = false;
     }, 2200);
   }
 
   @Builder
   AddMenu() {
     Row({ space: AppSpacing.sm }) {
-      Button('＋ 登录账号')
+      Button($r('app.string.vault_add_login'))
         .type(ButtonType.Capsule)
         .height(48)
         .fontColor(Color.White)
         .backgroundColor($r('app.color.brand'))
         .layoutWeight(1)
         .onClick(() => {
-          this.showFeedback('新建登录账号：将在本地密码库阶段接入');
+          this.showFeedback(false);
           this.showAddMenu = false;
         })
-      Button('＋ 安全笔记')
+      Button($r('app.string.vault_add_note'))
         .type(ButtonType.Capsule)
         .height(48)
         .fontColor($r('app.color.brand'))
         .backgroundColor($r('app.color.brand_soft'))
         .layoutWeight(1)
         .onClick(() => {
-          this.showFeedback('新建安全笔记：将在本地密码库阶段接入');
+          this.showFeedback(false);
           this.showAddMenu = false;
         })
     }
@@ -67,8 +69,8 @@ export struct PasswordVaultPage {
         Column({ space: AppSpacing.md }) {
           Row({ space: AppSpacing.md }) {
             PageHeader({
-              title: '密码库',
-              subtitle: '独立于验证码保险库；显示内容为 Mock 数据。'
+              title: $r('app.string.vault_title'),
+              subtitle: $r('app.string.vault_subtitle')
             })
               .layoutWeight(1)
 
@@ -79,7 +81,7 @@ export struct PasswordVaultPage {
               .fontSize(28)
               .fontColor(Color.White)
               .backgroundColor($r('app.color.brand'))
-              .accessibilityText('新建密码项目')
+              .accessibilityText($r('app.string.vault_new_item_accessibility'))
               .onClick(() => {
                 this.showAddMenu = !this.showAddMenu;
               })
@@ -87,25 +89,25 @@ export struct PasswordVaultPage {
           .width('100%')
           .alignItems(VerticalAlign.Top)
 
-          SearchField({ value: $searchText, placeholder: '搜索登录账号或安全笔记' })
+          SearchField({ value: $searchText, placeholder: $r('app.string.vault_search_placeholder') })
 
           if (this.showAddMenu) {
             this.AddMenu()
           }
 
           Row({ space: AppSpacing.sm }) {
-            Text('全部')
+            Text($r('app.string.vault_filter_all'))
               .fontSize(AppTypography.label)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.brand'))
               .padding({ left: 14, right: 14, top: 8, bottom: 8 })
               .backgroundColor($r('app.color.brand_soft'))
               .borderRadius(AppRadius.pill)
-            Text('收藏')
+            Text($r('app.string.vault_filter_favorites'))
               .fontSize(AppTypography.label)
               .fontColor($r('app.color.text_secondary'))
               .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-            Text('安全笔记')
+            Text($r('app.string.vault_filter_notes'))
               .fontSize(AppTypography.label)
               .fontColor($r('app.color.text_secondary'))
               .padding({ left: 14, right: 14, top: 8, bottom: 8 })
@@ -115,15 +117,15 @@ export struct PasswordVaultPage {
           if (this.filteredItems().length === 0) {
             EmptyState({
               symbol: '⌕',
-              title: '没有匹配的项目',
-              message: '尝试搜索其他名称或用户名。'
+              title: $r('app.string.vault_empty_title'),
+              message: $r('app.string.vault_empty_message')
             })
           } else {
             ForEach(this.filteredItems(), (item: VaultItem) => {
               VaultItemCard({
                 item: item,
                 onCopyPreview: (title: string) => {
-                  this.showFeedback(`${title}：模拟复制成功，未写入系统剪贴板`);
+                  this.showFeedback(true);
                 }
               })
             }, (item: VaultItem) => item.id)
@@ -143,8 +145,9 @@ export struct PasswordVaultPage {
       .width('100%')
       .height('100%')
 
-      if (this.feedbackMessage.length > 0) {
-        Text(this.feedbackMessage)
+      if (this.feedbackVisible) {
+        Text(this.copyFeedback ? $r('app.string.vault_copy_feedback') :
+          $r('app.string.vault_feature_later_feedback'))
           .fontSize(AppTypography.label)
           .fontColor(Color.White)
           .padding({ left: AppSpacing.md, right: AppSpacing.md, top: AppSpacing.sm, bottom: AppSpacing.sm })
@@ -158,4 +161,3 @@ export struct PasswordVaultPage {
     .backgroundColor($r('app.color.background'))
   }
 }
-

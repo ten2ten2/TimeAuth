@@ -3,14 +3,14 @@ import { AppRadius, AppSpacing, AppTypography } from '../design/Tokens';
 @Component
 export struct SearchField {
   @Link value: string;
-  @Prop placeholder: string = '搜索';
+  @Prop placeholder: ResourceStr = $r('app.string.common_search');
 
   build() {
     Row({ space: AppSpacing.sm }) {
       Text('⌕')
         .fontSize(22)
         .fontColor($r('app.color.text_secondary'))
-        .accessibilityText('搜索')
+        .accessibilityText($r('app.string.common_search'))
 
       TextInput({ text: this.value, placeholder: this.placeholder })
         .layoutWeight(1)
@@ -32,7 +32,7 @@ export struct SearchField {
           .fontSize(20)
           .fontColor($r('app.color.text_secondary'))
           .backgroundColor($r('app.color.surface_secondary'))
-          .accessibilityText('清除搜索内容')
+          .accessibilityText($r('app.string.common_clear_search'))
           .onClick(() => {
             this.value = '';
           })
@@ -46,4 +46,3 @@ export struct SearchField {
     .border({ width: 1, color: $r('app.color.border') })
   }
 }
-

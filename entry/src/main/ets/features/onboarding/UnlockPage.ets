@@ -13,7 +13,7 @@ export struct UnlockPage {
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
         Blank()
-        Text('预览模式')
+        Text($r('app.string.preview_mode'))
           .fontSize(AppTypography.caption)
           .fontColor($r('app.color.warning'))
       }
@@ -22,7 +22,7 @@ export struct UnlockPage {
       Blank()
 
       Column({ space: AppSpacing.lg }) {
-        Text('锁')
+        Text('⌾')
           .fontSize(36)
           .fontWeight(FontWeight.Bold)
           .fontColor(Color.White)
@@ -33,11 +33,11 @@ export struct UnlockPage {
           .borderRadius(28)
 
         Column({ space: AppSpacing.xs }) {
-          Text('解锁 TimeAuth')
+          Text($r('app.string.unlock_title'))
             .fontSize(AppTypography.title)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
-          Text('真实生物识别将在安全实现阶段接入。当前按钮只用于验证解锁流程。')
+          Text($r('app.string.unlock_description'))
             .fontSize(AppTypography.label)
             .fontColor($r('app.color.text_secondary'))
             .lineHeight(21)
@@ -46,7 +46,7 @@ export struct UnlockPage {
         .width('100%')
 
         if (this.showFallback) {
-          TextInput({ placeholder: '输入备用解锁密码' })
+          TextInput({ placeholder: $r('app.string.unlock_password_placeholder') })
             .type(InputType.Password)
             .height(52)
             .fontColor($r('app.color.text_primary'))
@@ -57,7 +57,8 @@ export struct UnlockPage {
             .padding({ left: AppSpacing.md, right: AppSpacing.md })
         }
 
-        Button(this.showFallback ? '模拟密码解锁' : '模拟生物识别解锁')
+        Button(this.showFallback ? $r('app.string.unlock_mock_password') :
+          $r('app.string.unlock_mock_biometric'))
           .type(ButtonType.Capsule)
           .width('100%')
           .height(52)
@@ -67,7 +68,8 @@ export struct UnlockPage {
             this.onUnlock();
           })
 
-        Button(this.showFallback ? '使用生物识别' : '使用备用密码')
+        Button(this.showFallback ? $r('app.string.unlock_use_biometric') :
+          $r('app.string.unlock_use_password'))
           .type(ButtonType.Normal)
           .height(48)
           .fontColor($r('app.color.brand'))
@@ -85,7 +87,7 @@ export struct UnlockPage {
 
       Blank()
 
-      Text('没有真实认证或密码校验发生')
+      Text($r('app.string.unlock_no_real_auth'))
         .fontSize(AppTypography.caption)
         .fontColor($r('app.color.text_secondary'))
     }
@@ -100,4 +102,3 @@ export struct UnlockPage {
     .backgroundColor($r('app.color.background'))
   }
 }
-

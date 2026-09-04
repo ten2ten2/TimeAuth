@@ -2,8 +2,8 @@ import { AppSpacing, AppTypography } from '../design/Tokens';
 
 @Component
 export struct PageHeader {
-  @Prop title: string = '';
-  @Prop subtitle: string = '';
+  @Prop title: ResourceStr = '';
+  @Prop subtitle: ResourceStr = '';
 
   build() {
     Column({ space: AppSpacing.xs }) {
@@ -13,7 +13,7 @@ export struct PageHeader {
         .fontColor($r('app.color.text_primary'))
         .width('100%')
 
-      if (this.subtitle.length > 0) {
+      if (this.subtitle !== '') {
         Text(this.subtitle)
           .fontSize(AppTypography.label)
           .fontColor($r('app.color.text_secondary'))
@@ -25,4 +25,3 @@ export struct PageHeader {
     .alignItems(HorizontalAlign.Start)
   }
 }
-

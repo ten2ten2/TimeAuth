@@ -17,7 +17,7 @@ export struct OtpCard {
       .height(48)
       .backgroundColor(this.item.accentColor)
       .borderRadius(AppRadius.medium)
-      .accessibilityText(`${this.item.issuer} 图标`)
+      .accessibilityText($r('app.string.otp_icon_accessibility', this.item.issuer))
   }
 
   @Builder
@@ -38,7 +38,7 @@ export struct OtpCard {
         .fontWeight(FontWeight.Medium)
         .fontColor(this.item.remainingSeconds <= 5 ? $r('app.color.warning') : $r('app.color.text_secondary'))
     }
-    .accessibilityText(`剩余 ${this.item.remainingSeconds} 秒`)
+    .accessibilityText($r('app.string.otp_remaining_seconds', `${this.item.remainingSeconds}`))
   }
 
   build() {
@@ -88,15 +88,15 @@ export struct OtpCard {
           .letterSpacing(1.5)
           .fontColor(this.item.remainingSeconds <= 5 ? $r('app.color.warning') : $r('app.color.text_primary'))
           .layoutWeight(1)
-          .accessibilityText(`${this.item.issuer} 验证码 ${this.item.code}`)
+          .accessibilityText($r('app.string.otp_code_accessibility', this.item.issuer, this.item.code))
 
-        Button('复制')
+        Button($r('app.string.common_copy'))
           .type(ButtonType.Capsule)
           .height(40)
           .fontSize(AppTypography.label)
           .fontColor($r('app.color.brand'))
           .backgroundColor($r('app.color.brand_soft'))
-          .accessibilityText(`复制 ${this.item.issuer} 验证码`)
+          .accessibilityText($r('app.string.otp_copy_accessibility', this.item.issuer))
           .onClick(() => {
             this.onCopy(this.item.code, this.item.issuer);
           })
@@ -110,4 +110,3 @@ export struct OtpCard {
     .border({ width: 1, color: $r('app.color.border') })
   }
 }
-

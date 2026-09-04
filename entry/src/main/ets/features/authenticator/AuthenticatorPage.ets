@@ -10,7 +10,8 @@ import { OtpItem } from '../../models/AppModels';
 export struct AuthenticatorPage {
   @State private searchText: string = '';
   @State private showAddMenu: boolean = false;
-  @State private feedbackMessage: string = '';
+  @State private feedbackVisible: boolean = false;
+  @State private copyFeedback: boolean = false;
   private items: OtpItem[] = mockRepository.getOtpItems();
 
   private filteredItems(): OtpItem[] {
@@ -23,10 +24,11 @@ export struct AuthenticatorPage {
       item.account.toLowerCase().includes(normalizedQuery));
   }
 
-  private showFeedback(message: string): void {
-    this.feedbackMessage = message;
+  private showFeedback(isCopy: boolean): void {
+    this.copyFeedback = isCopy;
+    this.feedbackVisible = true;
     setTimeout(() => {
-      this.feedbackMessage = '';
+      this.feedbackVisible = false;
     }, 2200);
   }
 
@@ -34,12 +36,12 @@ export struct AuthenticatorPage {
   AddMenu() {
     Column({ space: AppSpacing.xs }) {
       Row() {
-        Text('添加验证码')
+        Text($r('app.string.auth_add_code'))
           .fontSize(AppTypography.section)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
           .layoutWeight(1)
-        Button('关闭')
+        Button($r('app.string.common_close'))
           .type(ButtonType.Normal)
           .height(40)
           .fontColor($r('app.color.brand'))
@@ -50,10 +52,10 @@ export struct AuthenticatorPage {
       }
       .width('100%')
 
-      this.AddMenuRow('▣', '扫描二维码', '在需要时申请相机权限')
-      this.AddMenuRow('图', '从相册识别', '选择二维码图片')
-      this.AddMenuRow('文', '手动输入', '输入服务名称和密钥')
-      this.AddMenuRow('S', 'Steam 验证码', '导入已有共享密钥')
+      this.AddMenuRow('▣', $r('app.string.auth_scan_qr'), $r('app.string.auth_scan_qr_detail'))
+      this.AddMenuRow('▧', $r('app.string.auth_import_photo'), $r('app.string.auth_import_photo_detail'))
+      this.AddMenuRow('⌨', $r('app.string.auth_manual_entry'), $r('app.string.auth_manual_entry_detail'))
+      this.AddMenuRow('S', $r('app.string.auth_steam_code'), $r('app.string.auth_steam_code_detail'))
     }
     .width('100%')
     .padding(AppSpacing.md)
@@ -63,7 +65,7 @@ export struct AuthenticatorPage {
   }
 
   @Builder
-  AddMenuRow(symbol: string, title: string, detail: string) {
+  AddMenuRow(symbol: string, title: ResourceStr, detail: ResourceStr) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: AppSpacing.sm }) {
         Text(symbol)
@@ -96,7 +98,7 @@ export struct AuthenticatorPage {
     .padding(0)
     .backgroundColor(Color.Transparent)
     .onClick(() => {
-      this.showFeedback(`${title}：将在后续功能阶段接入`);
+      this.showFeedback(false);
       this.showAddMenu = false;
     })
   }
@@ -107,8 +109,8 @@ export struct AuthenticatorPage {
         Column({ space: AppSpacing.md }) {
           Row({ space: AppSpacing.md }) {
             PageHeader({
-              title: '验证器',
-              subtitle: '所有内容均为 UI 预览数据，当前不会生成或保存真实验证码。'
+              title: $r('app.string.auth_title'),
+              subtitle: $r('app.string.auth_subtitle')
             })
               .layoutWeight(1)
 
@@ -119,7 +121,7 @@ export struct AuthenticatorPage {
               .fontSize(28)
               .fontColor(Color.White)
               .backgroundColor($r('app.color.brand'))
-              .accessibilityText('添加验证码')
+              .accessibilityText($r('app.string.auth_add_code'))
               .onClick(() => {
                 this.showAddMenu = !this.showAddMenu;
               })
@@ -127,7 +129,7 @@ export struct AuthenticatorPage {
           .width('100%')
           .alignItems(VerticalAlign.Top)
 
-          SearchField({ value: $searchText, placeholder: '搜索服务或账号' })
+          SearchField({ value: $searchText, placeholder: $r('app.string.auth_search_placeholder') })
 
           if (this.showAddMenu) {
             this.AddMenu()
@@ -136,15 +138,15 @@ export struct AuthenticatorPage {
           if (this.filteredItems().length === 0) {
             EmptyState({
               symbol: '⌕',
-              title: '没有匹配的验证码',
-              message: '尝试搜索其他服务名称或账号。'
+              title: $r('app.string.auth_empty_title'),
+              message: $r('app.string.auth_empty_message')
             })
           } else {
             ForEach(this.filteredItems(), (item: OtpItem) => {
               OtpCard({
                 item: item,
                 onCopy: (code: string, issuer: string) => {
-                  this.showFeedback(`${issuer}：模拟复制成功，未写入系统剪贴板`);
+                  this.showFeedback(true);
                 }
               })
             }, (item: OtpItem) => item.id)
@@ -165,8 +167,9 @@ export struct AuthenticatorPage {
       .height('100%')
       .align(Alignment.Top)
 
-      if (this.feedbackMessage.length > 0) {
-        Text(this.feedbackMessage)
+      if (this.feedbackVisible) {
+        Text(this.copyFeedback ? $r('app.string.auth_copy_feedback') :
+          $r('app.string.auth_feature_later_feedback'))
           .fontSize(AppTypography.label)
           .fontColor(Color.White)
           .padding({ left: AppSpacing.md, right: AppSpacing.md, top: AppSpacing.sm, bottom: AppSpacing.sm })
@@ -181,4 +184,3 @@ export struct AuthenticatorPage {
     .backgroundColor($r('app.color.background'))
   }
 }
-

@@ -6,7 +6,7 @@ export struct BottomNavigation {
   onSelect: (index: number) => void = () => {};
 
   @Builder
-  NavItem(index: number, symbol: string, label: string) {
+  NavItem(index: number, symbol: string, label: ResourceStr) {
     Button({ type: ButtonType.Normal }) {
       Column({ space: AppSpacing.xxs }) {
         Text(symbol)
@@ -35,10 +35,10 @@ export struct BottomNavigation {
 
   build() {
     Row({ space: AppSpacing.xs }) {
-      this.NavItem(0, '码', '验证器')
-      this.NavItem(1, '钥', '密码库')
-      this.NavItem(2, '生', '生成器')
-      this.NavItem(3, '设', '设置')
+      this.NavItem(0, '⏱', $r('app.string.nav_authenticator'))
+      this.NavItem(1, '◆', $r('app.string.nav_vault'))
+      this.NavItem(2, '✦', $r('app.string.nav_generator'))
+      this.NavItem(3, '⚙', $r('app.string.nav_settings'))
     }
     .width('100%')
     .height(80)
@@ -54,7 +54,7 @@ export struct NavigationRail {
   onSelect: (index: number) => void = () => {};
 
   @Builder
-  RailItem(index: number, symbol: string, label: string) {
+  RailItem(index: number, symbol: string, label: ResourceStr) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: AppSpacing.sm }) {
         Text(symbol)
@@ -103,14 +103,14 @@ export struct NavigationRail {
       .width('100%')
       .padding({ bottom: AppSpacing.lg })
 
-      this.RailItem(0, '码', '验证器')
-      this.RailItem(1, '钥', '密码库')
-      this.RailItem(2, '生', '生成器')
-      this.RailItem(3, '设', '设置')
+      this.RailItem(0, '⏱', $r('app.string.nav_authenticator'))
+      this.RailItem(1, '◆', $r('app.string.nav_vault'))
+      this.RailItem(2, '✦', $r('app.string.nav_generator'))
+      this.RailItem(3, '⚙', $r('app.string.nav_settings'))
 
       Blank()
 
-      Text('UI/UX PREVIEW')
+      Text($r('app.string.preview_badge'))
         .fontSize(10)
         .fontWeight(FontWeight.Bold)
         .fontColor($r('app.color.text_secondary'))
@@ -125,4 +125,3 @@ export struct NavigationRail {
     .alignItems(HorizontalAlign.Start)
   }
 }
-

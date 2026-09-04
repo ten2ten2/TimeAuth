@@ -11,7 +11,7 @@ export struct GeneratorPage {
   @State private includeSymbols: boolean = true;
   @State private avoidAmbiguous: boolean = true;
   @State private previewIndex: number = 0;
-  @State private feedbackMessage: string = '';
+  @State private feedbackVisible: boolean = false;
 
   private previewValue(): string {
     if (this.mode === GeneratorMode.PASSPHRASE) {
@@ -23,15 +23,15 @@ export struct GeneratorPage {
     return this.previewIndex % 2 === 0 ? 'N7!qL2@vP9#sT4$xW8%m' : 'C4@rK8!nQ2#yM7%pZ6&w';
   }
 
-  private showFeedback(message: string): void {
-    this.feedbackMessage = message;
+  private showFeedback(): void {
+    this.feedbackVisible = true;
     setTimeout(() => {
-      this.feedbackMessage = '';
+      this.feedbackVisible = false;
     }, 2200);
   }
 
   @Builder
-  ModeButton(value: GeneratorMode, label: string) {
+  ModeButton(value: GeneratorMode, label: ResourceStr) {
     Button(label)
       .type(ButtonType.Normal)
       .height(44)
@@ -47,7 +47,8 @@ export struct GeneratorPage {
   }
 
   @Builder
-  OptionToggle(title: string, description: string, value: boolean, onChange: (value: boolean) => void) {
+  OptionToggle(title: ResourceStr, description: ResourceStr, value: boolean,
+    onChange: (value: boolean) => void) {
     Row({ space: AppSpacing.md }) {
       Column({ space: 3 }) {
         Text(title)
@@ -75,14 +76,14 @@ export struct GeneratorPage {
       Scroll() {
         Column({ space: AppSpacing.md }) {
           PageHeader({
-            title: '密码生成器',
-            subtitle: '调整参数并预览交互；当前展示值不是密码学安全随机结果。'
+            title: $r('app.string.generator_title'),
+            subtitle: $r('app.string.generator_subtitle')
           })
 
           Row({ space: AppSpacing.xs }) {
-            this.ModeButton(GeneratorMode.PASSWORD, '随机密码')
-            this.ModeButton(GeneratorMode.PASSPHRASE, '密码短语')
-            this.ModeButton(GeneratorMode.PIN, 'PIN')
+            this.ModeButton(GeneratorMode.PASSWORD, $r('app.string.generator_mode_password'))
+            this.ModeButton(GeneratorMode.PASSPHRASE, $r('app.string.generator_mode_passphrase'))
+            this.ModeButton(GeneratorMode.PIN, $r('app.string.generator_mode_pin'))
           }
           .width('100%')
           .padding(AppSpacing.xs)
@@ -92,7 +93,7 @@ export struct GeneratorPage {
 
           Column({ space: AppSpacing.md }) {
             Row() {
-              Text('开发预览')
+              Text($r('app.string.generator_dev_preview'))
                 .fontSize(AppTypography.caption)
                 .fontWeight(FontWeight.Bold)
                 .fontColor($r('app.color.warning'))
@@ -100,8 +101,10 @@ export struct GeneratorPage {
                 .backgroundColor($r('app.color.surface_secondary'))
                 .borderRadius(AppRadius.pill)
               Blank()
-              Text(this.mode === GeneratorMode.PASSWORD ? `${this.length} 位` :
-                this.mode === GeneratorMode.PASSPHRASE ? '5 个单词' : '6 位')
+              Text(this.mode === GeneratorMode.PASSWORD ?
+                $r('app.string.generator_character_count', `${this.length}`) :
+                this.mode === GeneratorMode.PASSPHRASE ? $r('app.string.generator_five_words') :
+                  $r('app.string.generator_six_digits'))
                 .fontSize(AppTypography.label)
                 .fontColor($r('app.color.text_secondary'))
             }
@@ -116,7 +119,7 @@ export struct GeneratorPage {
               .maxLines(3)
 
             Row({ space: AppSpacing.sm }) {
-              Button('重新生成')
+              Button($r('app.string.generator_regenerate'))
                 .type(ButtonType.Capsule)
                 .height(44)
                 .fontColor($r('app.color.brand'))
@@ -125,14 +128,14 @@ export struct GeneratorPage {
                 .onClick(() => {
                   this.previewIndex += 1;
                 })
-              Button('模拟复制')
+              Button($r('app.string.generator_mock_copy'))
                 .type(ButtonType.Capsule)
                 .height(44)
                 .fontColor(Color.White)
                 .backgroundColor($r('app.color.brand'))
                 .layoutWeight(1)
                 .onClick(() => {
-                  this.showFeedback('原型阶段不会把预览值写入剪贴板');
+                  this.showFeedback();
                 })
             }
             .width('100%')
@@ -146,7 +149,7 @@ export struct GeneratorPage {
           if (this.mode === GeneratorMode.PASSWORD) {
             Column({ space: AppSpacing.md }) {
               Row() {
-                Text('长度')
+                Text($r('app.string.generator_length'))
                   .fontSize(AppTypography.body)
                   .fontWeight(FontWeight.Medium)
                   .fontColor($r('app.color.text_primary'))
@@ -167,16 +170,20 @@ export struct GeneratorPage {
                 })
 
               Divider().color($r('app.color.border'))
-              this.OptionToggle('大写字母', '包含 A–Z', this.includeUppercase, (value: boolean) => {
+              this.OptionToggle($r('app.string.generator_uppercase'),
+                $r('app.string.generator_uppercase_detail'), this.includeUppercase, (value: boolean) => {
                 this.includeUppercase = value;
               })
-              this.OptionToggle('数字', '包含 0–9', this.includeNumbers, (value: boolean) => {
+              this.OptionToggle($r('app.string.generator_numbers'),
+                $r('app.string.generator_numbers_detail'), this.includeNumbers, (value: boolean) => {
                 this.includeNumbers = value;
               })
-              this.OptionToggle('特殊字符', '包含常用符号', this.includeSymbols, (value: boolean) => {
+              this.OptionToggle($r('app.string.generator_symbols'),
+                $r('app.string.generator_symbols_detail'), this.includeSymbols, (value: boolean) => {
                 this.includeSymbols = value;
               })
-              this.OptionToggle('排除易混淆字符', '例如 0、O、1、l、I', this.avoidAmbiguous, (value: boolean) => {
+              this.OptionToggle($r('app.string.generator_avoid_ambiguous'),
+                $r('app.string.generator_avoid_ambiguous_detail'), this.avoidAmbiguous, (value: boolean) => {
                 this.avoidAmbiguous = value;
               })
             }
@@ -187,14 +194,15 @@ export struct GeneratorPage {
             .border({ width: 1, color: $r('app.color.border') })
           } else {
             Column({ space: AppSpacing.sm }) {
-              Text(this.mode === GeneratorMode.PASSPHRASE ? '密码短语选项' : 'PIN 选项')
+              Text(this.mode === GeneratorMode.PASSPHRASE ?
+                $r('app.string.generator_passphrase_options') : $r('app.string.generator_pin_options'))
                 .fontSize(AppTypography.section)
                 .fontWeight(FontWeight.Bold)
                 .fontColor($r('app.color.text_primary'))
                 .width('100%')
               Text(this.mode === GeneratorMode.PASSPHRASE ?
-                '单词数量、分隔符、大小写与随机数字将在生成器功能阶段接入。' :
-                '位数、排除连续数字和排除重复数字将在生成器功能阶段接入。')
+                $r('app.string.generator_passphrase_options_detail') :
+                $r('app.string.generator_pin_options_detail'))
                 .fontSize(AppTypography.label)
                 .fontColor($r('app.color.text_secondary'))
                 .lineHeight(21)
@@ -220,8 +228,8 @@ export struct GeneratorPage {
       .width('100%')
       .height('100%')
 
-      if (this.feedbackMessage.length > 0) {
-        Text(this.feedbackMessage)
+      if (this.feedbackVisible) {
+        Text($r('app.string.generator_copy_feedback'))
           .fontSize(AppTypography.label)
           .fontColor(Color.White)
           .padding({ left: AppSpacing.md, right: AppSpacing.md, top: AppSpacing.sm, bottom: AppSpacing.sm })
@@ -235,4 +243,3 @@ export struct GeneratorPage {
     .backgroundColor($r('app.color.background'))
   }
 }
-
