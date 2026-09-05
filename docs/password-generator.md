@@ -56,7 +56,7 @@ From the repository root, with Node.js 22.13 or newer:
 node --test tests/*.test.cjs
 ```
 
-All 96 host tests passed:
+All 100 host tests passed:
 
 | Area | Passing tests |
 | --- | --- |
@@ -64,7 +64,7 @@ All 96 host tests passed:
 | Passphrase engine and wordlist | 10 |
 | PIN engine | 7 |
 | Settings and session | 19 |
-| Tab lifecycle and interaction methods | 17 |
+| Tab lifecycle and interaction methods | 21 |
 | Clipboard | 23 |
 | Onboarding persistence | 5 |
 
@@ -130,8 +130,12 @@ Device acceptance: in airplane mode, first enter PIN and confirm six digits. Con
 ## Result press feedback
 
 - The shown/hidden result and its copy hint form one native Button with custom content. Its background uses the existing surface colors: 80 ms into the pressed state and 120 ms back to normal. No scaling or positional animation is applied to the digits or text.
-- Touch handlers only manage press feedback and cancellation. The native click callback owns copying, so touch-up and click cannot each write the clipboard. The existing in-flight guard prevents repeated clicks from creating concurrent writes, while the copy target stays visually stable during the pending operation.
-- Movement beyond 8 vp on either axis, leaving the measured result bounds, multi-touch, touch cancellation, scroll start, rule edits, regeneration and tab disappearance cancel the current press. A cancelled touchscreen gesture cannot copy even if a late click callback arrives. No event propagation is stopped, so the parent Scroll can handle vertical gestures.
+- Touch handlers only manage visual feedback. The native `onClick(callback, 8)` recognizer owns the click movement threshold and competes with the parent Scroll; touch-up never copies. The existing in-flight guard prevents repeated clicks from creating concurrent writes, while the copy target stays visually stable during the pending operation.
+- Movement beyond 8 vp on either axis, leaving the measured result bounds, multi-touch, touch cancellation, scroll start, rule edits, regeneration and tab disappearance reset the visual press. Finger movement is measured in window coordinates so a result resizing after regeneration cannot look like finger motion. No event propagation is stopped.
+- Visual feedback cannot veto a recognized native click: touch samples may be empty, resampled, or delivered separately from click recognition. There is no persistent touch-cancel flag to carry into the next result. Up/Cancel always reset the visual state, and a new Down starts fresh even if the last visual Up was missing. See the official [touch-event contract](https://github.com/openharmony/docs/blob/master/en/application-dev/reference/apis-arkui/arkui-ts/ts-universal-events-touch.md) and [native click movement threshold](https://github.com/openharmony/docs/blob/master/en/application-dev/reference/apis-arkui/arkui-ts/ts-universal-events-click.md).
+- The tab's active flag is observable state because the result button's enabled state depends on it. Returning to an existing tab must refresh eligibility even when the retained result and rules have not changed.
 - Mouse, keyboard and accessibility clicks retain the same result-validity, active-tab and clipboard checks. The original string is copied, including PIN leading zeros and passphrase separators; visual spacing never enters the clipboard.
 
-Device acceptance: press/release shown and hidden results in all three modes, in light/dark themes; confirm the subtle background transition, stable text, and exactly one success message after the copy succeeds. Start a vertical scroll on the result, move outside and back in, use two fingers, and leave the tab while pressed: none should copy or leave the background stuck. Confirm long passwords and 10-word passphrases fit and scroll inside the page, and that keyboard/screen-reader activation can copy with no dedicated Copy button. Check the top-left strength label for Password/Passphrase, no header gap on PIN, and the shared Regenerate / Show-Hide action row. Native animation, layout, gesture arbitration and accessibility still require HAP/device verification.
+Host regressions cover repeated option edits followed by regeneration and copying in all three modes, empty release samples, a prior cancelled press, click-before-release/missing visual release, and result reflow under a stationary finger. They invoke component methods; they do not emulate native gesture recognition or ArkUI state subscriptions.
+
+Device acceptance: press/release shown and hidden results in all three modes, in light/dark themes; confirm the subtle background transition, stable text, and exactly one success message after the copy succeeds. Repeatedly change length, character types, word count, separator and PIN length, regenerate, then immediately tap to copy; paste into a disposable field and confirm the latest result. Repeat after scrolling and switching away/back with a retained result. Start a vertical scroll on the result, drag outside and back in, use two fingers, and leave the tab while pressed; verify native gesture cancellation without unintended copies or a stuck background. Confirm long passwords and 10-word passphrases fit and scroll inside the page, and that keyboard/screen-reader activation can copy with no dedicated Copy button. Check the top-left strength label for Password/Passphrase, no header gap on PIN, and the shared Regenerate / Show-Hide action row. Native animation, layout, gesture arbitration and accessibility still require HAP/device verification.

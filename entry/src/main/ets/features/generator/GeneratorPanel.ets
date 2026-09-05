@@ -27,13 +27,12 @@ export struct GeneratorPanel {
   private resultPointerId: number = -1;
   private resultPressX: number = 0;
   private resultPressY: number = 0;
-  private resultTapCancelled: boolean = false;
   private resultWidth: number = 0;
   private resultHeight: number = 0;
   @State private feedback: Resource | undefined = undefined;
   private feedbackTimer: number = -1;
   private preferenceTimer: number = -1;
-  private active: boolean = false;
+  @State private active: boolean = false;
   private appeared: boolean = false;
   private restored: boolean = false;
   private copyRequest: number = 0;
@@ -236,28 +235,26 @@ export struct GeneratorPanel {
   }
 
   private cancelResultPress(): void {
-    this.resultTapCancelled = this.resultTapCancelled || this.resultPointerId >= 0;
     this.resultPressed = false;
     this.resultPointerId = -1;
   }
 
   private onResultTouch(event: TouchEvent): void {
-    if (event.type === TouchType.Cancel) {
-      this.resultTapCancelled = true;
+    // Touch samples drive animation only. They may be empty or resampled independently
+    // of native click recognition, so they must never disable a recognized click.
+    if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
       this.cancelResultPress();
       return;
     }
     if (event.type === TouchType.Down) {
-      if (!this.canCopy() || event.touches.length !== 1 || this.resultPointerId >= 0) {
-        this.resultTapCancelled = true;
+      if (!this.canCopy() || event.touches.length !== 1) {
         this.cancelResultPress();
         return;
       }
-      const point: TouchObject = event.touches[0];
+      const point: TouchObject = event.changedTouches[0] ?? event.touches[0];
       this.resultPointerId = point.id;
-      this.resultPressX = point.x;
-      this.resultPressY = point.y;
-      this.resultTapCancelled = false;
+      this.resultPressX = point.windowX;
+      this.resultPressY = point.windowY;
       this.resultPressed = true;
       return;
     }
@@ -270,7 +267,9 @@ export struct GeneratorPanel {
       this.cancelResultPress();
       return;
     }
-    const moved: boolean = Math.abs(point.x - this.resultPressX) > 8 || Math.abs(point.y - this.resultPressY) > 8;
+    // Regeneration can resize/reposition the result; use window coordinates for movement.
+    const moved: boolean = Math.abs(point.windowX - this.resultPressX) > 8 ||
+      Math.abs(point.windowY - this.resultPressY) > 8;
     const outside: boolean = point.x < 0 || point.y < 0 ||
       (this.resultWidth > 0 && point.x > this.resultWidth) ||
       (this.resultHeight > 0 && point.y > this.resultHeight);
@@ -278,18 +277,10 @@ export struct GeneratorPanel {
       this.cancelResultPress();
       return;
     }
-    if (event.type === TouchType.Up) {
-      this.resultPointerId = -1;
-      this.resultPressed = false;
-    }
-    // Native Button/Scroll gesture recognition owns click delivery; touch-up never copies.
   }
 
-  private onResultClick(event: ClickEvent): void {
-    if (event.source === SourceType.TouchScreen && this.resultTapCancelled) {
-      return;
-    }
-    this.resultPressed = false;
+  private onResultClick(): void {
+    this.cancelResultPress();
     this.copyValue();
   }
 
@@ -482,7 +473,8 @@ export struct GeneratorPanel {
           this.resultHeight = Number(area.height);
         })
         .onTouch((event: TouchEvent) => { this.onResultTouch(event); })
-        .onClick((event: ClickEvent) => { this.onResultClick(event); })
+        // The native recognizer owns movement/scroll cancellation and non-touch activation.
+        .onClick(() => { this.onResultClick(); }, 8)
         if (this.mode !== GeneratorMode.PIN) {
           Text($r('app.string.generator_strength_detail', `${Math.floor(this.entropyBits)}`))
             .fontSize(AppTypography.caption)
