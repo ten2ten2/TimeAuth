@@ -1,5 +1,6 @@
 {
   "string": [
+    { "name": "onboarding_save_failed", "value": "無法儲存首次使用設定，請重試。" },
     { "name": "module_desc", "value": "時鑰驗證器及密碼庫" },
     { "name": "entry_ability_desc", "value": "時鑰主畫面" },
     { "name": "entry_ability_label", "value": "時鑰" },

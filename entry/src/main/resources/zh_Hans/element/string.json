@@ -1,5 +1,6 @@
 {
   "string": [
+    { "name": "onboarding_save_failed", "value": "无法保存首次使用设置，请重试。" },
     { "name": "module_desc", "value": "时钥验证码与密码库" },
     { "name": "entry_ability_desc", "value": "时钥主界面" },
     { "name": "entry_ability_label", "value": "时钥" },

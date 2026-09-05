@@ -6,7 +6,7 @@ The Generator tab creates real random passwords locally. Authenticator codes, va
 
 | Control | Behavior |
 | --- | --- |
-| Length | Integer from 8 to 128; default 16. Drag the slider thumb or edit the number field; tapping or starting a drag on the track does not change the value. Existing saved lengths are preserved. |
+| Length | Integer from 8 to 128; default 16. Drag the slider thumb or edit the number field; tapping or starting a drag on the track does not change the value. Existing saved lengths are preserved. The Reset to 16 button restores only the length and updates the saved rules; generating a replacement password still requires Regenerate. |
 | Character types | Lowercase letters, uppercase letters, numbers, and symbols can be enabled independently. All four are enabled by default. At least one type is required. |
 | Avoid ambiguous characters | Enabled by default; removes exactly `0`, `O`, `1`, `I`, and `l`. |
 | Use every selected type | Enabled by default; requires at least one character from every enabled type. |
@@ -54,13 +54,14 @@ From the repository root, with Node.js 22.13 or newer:
 node --test tests/*.test.cjs
 ```
 
-All 45 host tests passed:
+All 50 host tests passed:
 
 | Area | Passing tests |
 | --- | --- |
 | Generator engine | 15 |
 | Settings and session | 7 |
 | Clipboard | 23 |
+| Onboarding persistence | 5 |
 
 Host checks exercise generator rules and failure behavior with test random sources, settings/session behavior, and clipboard lifecycle handling with mocked platform APIs. They cannot establish that ArkTS compiles, that the native random source works, or that OS clipboard and screen-protection behavior matches the application policy.
 

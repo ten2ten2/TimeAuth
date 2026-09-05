@@ -1,5 +1,6 @@
 {
   "string": [
+    { "name": "onboarding_save_failed", "value": "Could not save setup. Please try again." },
     { "name": "module_desc", "value": "TimeAuth authenticator and password vault" },
     { "name": "entry_ability_desc", "value": "TimeAuth main screen" },
     { "name": "entry_ability_label", "value": "TimeAuth" },

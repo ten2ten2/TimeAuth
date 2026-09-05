@@ -1,5 +1,6 @@
 {
   "string": [
+    { "name": "generator_reset_length", "value": "恢复 16 位" },
     { "name": "generator_offline", "value": "离线生成" },
     { "name": "generator_lowercase", "value": "小写字母" },
     { "name": "generator_lowercase_detail", "value": "包含 a–z" },

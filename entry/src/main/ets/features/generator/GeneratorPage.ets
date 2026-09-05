@@ -397,10 +397,23 @@ export struct GeneratorPage {
           this.lengthInput = `${this.options.length}`;
           this.optionsChanged();
         })
-      Text($r('app.string.generator_length_hint'))
-        .fontSize(AppTypography.caption)
-        .fontColor($r('app.color.text_secondary'))
-        .width('100%')
+      Row({ space: AppSpacing.sm }) {
+        Text($r('app.string.generator_length_hint'))
+          .fontSize(AppTypography.caption)
+          .fontColor($r('app.color.text_secondary'))
+          .layoutWeight(1)
+        Button($r('app.string.generator_reset_length'))
+          .height(AppLayout.minimumTouchTarget)
+          .fontSize(AppTypography.label)
+          .fontColor($r('app.color.brand'))
+          .backgroundColor($r('app.color.brand_soft'))
+          .onClick(() => {
+            this.options.length = new GeneratorOptions().length;
+            this.lengthInput = `${this.options.length}`;
+            this.optionsChanged();
+          })
+      }
+      .width('100%')
       Divider().color($r('app.color.border'))
 
       GeneratorOptionToggle({

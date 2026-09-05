@@ -71,3 +71,18 @@ See [password-generator.md](password-generator.md) for the real password generat
 | Return from recents | Cover is removed only after the app is active/resumed again. |
 
 If recent-app protection still fails on a device, inspect HiLog entries containing `[ScreenSecurity]` together with the device model and HarmonyOS version.
+
+
+## First launch and resetting test data
+
+The final Get started button saves `timeauth.onboarding.completed.v1` in ArkData preferences and waits for a successful flush before opening Unlock. Future launches read this flag and start at Unlock, retaining the sensitive-page screen policy. Viewing or abandoning the welcome flow does not mark it complete. A save failure keeps the welcome flow visible with a retry message. Existing installations will finish the flow once after this update.
+
+For a clean-device test, close TimeAuth completely and run the following on the connected development computer with `hdc` available:
+
+```sh
+hdc shell bm clean -d -n moe.tenten.timeauth
+```
+
+This deletes the app's local data, including preferences and onboarding completion; clearing only the cache (`-c`) does not reset preferences. Reopen the app: the welcome flow should appear and the generator should default to 16. Complete onboarding, close and reopen the process, and confirm that Unlock appears without the welcome flow. Also verify that tapping Reset to 16 retains all other generator rules and persists 16 across restart.
+
+Reference: [Official bm clean documentation](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/tools/bm-tool.md#清理命令clean).

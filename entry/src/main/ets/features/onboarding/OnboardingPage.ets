@@ -4,6 +4,8 @@ import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/To
 @Component
 export struct OnboardingPage {
   @State private pageIndex: number = 0;
+  @Prop saving: boolean = false;
+  @Prop saveFailed: boolean = false;
   private swiperController: SwiperController = new SwiperController();
   onComplete: () => void = () => {};
 
@@ -134,6 +136,15 @@ export struct OnboardingPage {
         })
       }
 
+      if (this.saveFailed) {
+        Text($r('app.string.onboarding_save_failed'))
+          .fontSize(AppTypography.caption)
+          .fontColor($r('app.color.danger'))
+          .textAlign(TextAlign.Center)
+          .width('100%')
+          .padding({ top: AppSpacing.sm })
+      }
+
       Row({ space: AppSpacing.sm }) {
         if (this.pageIndex > 0) {
           Button($r('app.string.onboarding_previous'))
@@ -149,6 +160,7 @@ export struct OnboardingPage {
 
         Button(this.pageIndex === 2 ? $r('app.string.onboarding_get_started') :
           $r('app.string.onboarding_continue'))
+          .enabled(!this.saving)
           .type(ButtonType.Capsule)
           .height(52)
           .fontColor(Color.White)

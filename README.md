@@ -20,6 +20,7 @@ TimeAuth is proprietary, closed-source software. All rights reserved. Third-part
 
 | Area | Status |
 | --- | --- |
+| First launch | Completing the welcome flow is saved locally; subsequent launches start at Unlock. |
 | App shell | Implemented: onboarding, mock unlock, Authenticator, Vault, Generator, Settings, About, responsive phone/tablet/2-in-1 navigation. |
 | Appearance | Implemented: System / Light / Dark, ArkData persistence, native color-mode API. |
 | Language | Implemented: System / Simplified Chinese / Traditional Chinese (Taiwan) / Traditional Chinese (Hong Kong) / English, with locale-specific resources and English fallback. |
@@ -55,7 +56,7 @@ Automatic clipboard clearing is best effort. TimeAuth checks the clipboard sourc
 
 See [docs/ui-ux-framework.md](docs/ui-ux-framework.md) for UI rules, preference behavior and the focused real-device acceptance checklist.
 
-See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 45 host tests passed: 15 generator-engine, 7 settings/session, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
+See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 50 host tests passed: 15 generator-engine, 7 settings/session, 5 onboarding-persistence, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
 
 ## Next milestone
 

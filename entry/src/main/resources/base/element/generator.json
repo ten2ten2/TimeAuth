@@ -1,5 +1,6 @@
 {
   "string": [
+    { "name": "generator_reset_length", "value": "Reset to 16" },
     { "name": "generator_offline", "value": "OFFLINE" },
     { "name": "generator_lowercase", "value": "Lowercase letters" },
     { "name": "generator_lowercase_detail", "value": "Include a–z" },
