@@ -1,6 +1,5 @@
 import { common } from '@kit.AbilityKit';
 import { preferences } from '@kit.ArkData';
-import { BusinessError } from '@kit.BasicServicesKit';
 import { i18n } from '@kit.LocalizationKit';
 import { LanguagePreference } from '../models/AppModels';
 
@@ -32,17 +31,16 @@ export function readLanguagePreference(context: common.Context): LanguagePrefere
   return LanguagePreference.SYSTEM;
 }
 
-export function saveLanguagePreference(context: common.Context, preference: LanguagePreference): void {
+export async function saveLanguagePreference(context: common.Context,
+  preference: LanguagePreference): Promise<boolean> {
   try {
     const store: preferences.Preferences = getStore(context);
     store.putSync(LANGUAGE_PREFERENCE_STORAGE_KEY, preference);
-    store.flush((error: BusinessError) => {
-      if (error) {
-        console.error(`Failed to persist TimeAuth language preference: ${JSON.stringify(error)}`);
-      }
-    });
+    await store.flush();
+    return true;
   } catch (error) {
     console.error(`Failed to save TimeAuth language preference: ${JSON.stringify(error)}`);
+    return false;
   }
 }
 
