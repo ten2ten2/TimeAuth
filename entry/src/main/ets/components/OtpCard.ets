@@ -18,6 +18,11 @@ export struct OtpCard {
     return match === undefined ? '#626A76' : match.backgroundColor;
   }
 
+  private serviceIconOffsetY(): number {
+    const match: ServiceIconMatch | undefined = this.serviceIconMatch();
+    return match !== undefined && match.key === ServiceIconKey.APPLE ? -1 : 0;
+  }
+
   private serviceIconResource(): Resource {
     const match: ServiceIconMatch | undefined = this.serviceIconMatch();
     if (match === undefined) {
@@ -57,6 +62,7 @@ export struct OtpCard {
           .height(28)
           .objectFit(ImageFit.Contain)
           .fillColor(Color.White)
+          .translate({ y: this.serviceIconOffsetY() })
           .draggable(false)
           .accessibilityLevel('no')
       }
