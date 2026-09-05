@@ -1,4 +1,5 @@
 import { common } from '@kit.AbilityKit';
+import { SelectDialog } from '@kit.ArkUI';
 import { PageHeader } from '../../components/PageHeader';
 import { applyThemePreference, saveThemePreference } from '../../design/ThemeManager';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
@@ -18,17 +19,133 @@ export struct SettingsPage {
   @StorageLink('timeauth.themePreference') private themePreference: ThemePreference = ThemePreference.SYSTEM;
   @State private hideTaskPreview: boolean = true;
   @State private clearClipboard: boolean = true;
+  @State private themeDialogIndex: number = 0;
+  @State private languageDialogIndex: number = 0;
   @StorageLink('timeauth.languagePreference') private languagePreference: LanguagePreference =
     LanguagePreference.SYSTEM;
 
+  private themeDialogController: CustomDialogController = new CustomDialogController({
+    builder: SelectDialog({
+      title: $r('app.string.settings_appearance'),
+      selectedIndex: this.themeDialogIndex,
+      radioContent: [
+        {
+          title: $r('app.string.theme_system'),
+          action: () => {
+            this.themeDialogIndex = 0;
+            this.themeDialogController.close();
+            this.setTheme(ThemePreference.SYSTEM);
+          }
+        },
+        {
+          title: $r('app.string.theme_light'),
+          action: () => {
+            this.themeDialogIndex = 1;
+            this.themeDialogController.close();
+            this.setTheme(ThemePreference.LIGHT);
+          }
+        },
+        {
+          title: $r('app.string.theme_dark'),
+          action: () => {
+            this.themeDialogIndex = 2;
+            this.themeDialogController.close();
+            this.setTheme(ThemePreference.DARK);
+          }
+        }
+      ]
+    }),
+    autoCancel: true
+  });
+
+  private languageDialogController: CustomDialogController = new CustomDialogController({
+    builder: SelectDialog({
+      title: $r('app.string.settings_language'),
+      selectedIndex: this.languageDialogIndex,
+      radioContent: [
+        {
+          title: $r('app.string.language_system'),
+          action: () => {
+            this.languageDialogIndex = 0;
+            this.languageDialogController.close();
+            this.setLanguage(LanguagePreference.SYSTEM);
+          }
+        },
+        {
+          title: $r('app.string.language_simplified_chinese'),
+          action: () => {
+            this.languageDialogIndex = 1;
+            this.languageDialogController.close();
+            this.setLanguage(LanguagePreference.SIMPLIFIED_CHINESE);
+          }
+        },
+        {
+          title: $r('app.string.language_traditional_chinese'),
+          action: () => {
+            this.languageDialogIndex = 2;
+            this.languageDialogController.close();
+            this.setLanguage(LanguagePreference.TRADITIONAL_CHINESE);
+          }
+        },
+        {
+          title: $r('app.string.language_english'),
+          action: () => {
+            this.languageDialogIndex = 3;
+            this.languageDialogController.close();
+            this.setLanguage(LanguagePreference.ENGLISH);
+          }
+        }
+      ]
+    }),
+    autoCancel: true
+  });
+
   aboutToAppear(): void {
     const context: common.Context | undefined = this.getUIContext().getHostContext();
-    if (context === undefined) {
-      return;
+    if (context !== undefined) {
+      const settings: SecuritySettings = readSecuritySettings(context);
+      this.hideTaskPreview = settings.hideTaskPreview;
+      this.clearClipboard = settings.clearClipboard;
     }
-    const settings: SecuritySettings = readSecuritySettings(context);
-    this.hideTaskPreview = settings.hideTaskPreview;
-    this.clearClipboard = settings.clearClipboard;
+    this.syncDialogSelections();
+  }
+
+  private themePreferenceIndex(): number {
+    if (this.themePreference === ThemePreference.LIGHT) {
+      return 1;
+    }
+    if (this.themePreference === ThemePreference.DARK) {
+      return 2;
+    }
+    return 0;
+  }
+
+  private languagePreferenceIndex(): number {
+    if (this.languagePreference === LanguagePreference.SIMPLIFIED_CHINESE) {
+      return 1;
+    }
+    if (this.languagePreference === LanguagePreference.TRADITIONAL_CHINESE) {
+      return 2;
+    }
+    if (this.languagePreference === LanguagePreference.ENGLISH) {
+      return 3;
+    }
+    return 0;
+  }
+
+  private syncDialogSelections(): void {
+    this.themeDialogIndex = this.themePreferenceIndex();
+    this.languageDialogIndex = this.languagePreferenceIndex();
+  }
+
+  private openThemeDialog(): void {
+    this.themeDialogIndex = this.themePreferenceIndex();
+    this.themeDialogController.open();
+  }
+
+  private openLanguageDialog(): void {
+    this.languageDialogIndex = this.languagePreferenceIndex();
+    this.languageDialogController.open();
   }
 
   private setTheme(preference: ThemePreference): void {
@@ -92,111 +209,42 @@ export struct SettingsPage {
   }
 
   @Builder
-  ThemeSelectionRow() {
-    Row({ space: AppSpacing.sm }) {
-      Text($r('app.string.settings_appearance'))
-        .fontSize(AppTypography.body)
-        .fontColor($r('app.color.text_primary'))
-        .lineHeight(22)
-        .layoutWeight(1)
+  PreferenceSelectionRow(title: ResourceStr, value: ResourceStr, onClick: () => void) {
+    Button({ type: ButtonType.Normal }) {
+      Row({ space: AppSpacing.sm }) {
+        Text(title)
+          .fontSize(AppTypography.body)
+          .fontColor($r('app.color.text_primary'))
+          .lineHeight(22)
+          .layoutWeight(1)
+          .textAlign(TextAlign.Start)
 
-      Row({ space: AppSpacing.xs }) {
-        Text(this.currentThemeLabel())
-          .fontSize(AppTypography.label)
-          .fontColor($r('app.color.text_secondary'))
-          .lineHeight(20)
-          .textAlign(TextAlign.End)
-        Text('⌄')
-          .fontSize(18)
-          .fontColor($r('app.color.text_secondary'))
-          .width(20)
-          .height(20)
-          .lineHeight(20)
-          .textAlign(TextAlign.Center)
+        Row({ space: AppSpacing.xs }) {
+          Text(value)
+            .fontSize(AppTypography.label)
+            .fontColor($r('app.color.text_secondary'))
+            .lineHeight(20)
+            .textAlign(TextAlign.End)
+          Text('›')
+            .fontSize(22)
+            .fontColor($r('app.color.text_secondary'))
+            .width(20)
+            .height(24)
+            .lineHeight(24)
+            .textAlign(TextAlign.Center)
+        }
+        .alignItems(VerticalAlign.Center)
       }
+      .width('100%')
+      .height(56)
+      .padding({ left: AppSpacing.md, right: AppSpacing.sm })
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .height(56)
-    .padding({ left: AppSpacing.md, right: AppSpacing.sm })
-    .alignItems(VerticalAlign.Center)
-    .bindMenu([
-      {
-        value: $r('app.string.theme_system'),
-        action: () => {
-          this.setTheme(ThemePreference.SYSTEM);
-        }
-      },
-      {
-        value: $r('app.string.theme_light'),
-        action: () => {
-          this.setTheme(ThemePreference.LIGHT);
-        }
-      },
-      {
-        value: $r('app.string.theme_dark'),
-        action: () => {
-          this.setTheme(ThemePreference.DARK);
-        }
-      }
-    ])
-  }
-
-  @Builder
-  LanguageSelectionRow() {
-    Row({ space: AppSpacing.sm }) {
-      Text($r('app.string.settings_language'))
-        .fontSize(AppTypography.body)
-        .fontColor($r('app.color.text_primary'))
-        .lineHeight(22)
-        .layoutWeight(1)
-
-      Row({ space: AppSpacing.xs }) {
-        Text(this.currentLanguageLabel())
-          .fontSize(AppTypography.label)
-          .fontColor($r('app.color.text_secondary'))
-          .lineHeight(20)
-          .textAlign(TextAlign.End)
-        Text('⌄')
-          .fontSize(18)
-          .fontColor($r('app.color.text_secondary'))
-          .width(20)
-          .height(20)
-          .lineHeight(20)
-          .textAlign(TextAlign.Center)
-      }
-      .alignItems(VerticalAlign.Center)
-    }
-    .width('100%')
-    .height(56)
-    .padding({ left: AppSpacing.md, right: AppSpacing.sm })
-    .alignItems(VerticalAlign.Center)
-    .bindMenu([
-      {
-        value: $r('app.string.language_system'),
-        action: () => {
-          this.setLanguage(LanguagePreference.SYSTEM);
-        }
-      },
-      {
-        value: $r('app.string.language_english'),
-        action: () => {
-          this.setLanguage(LanguagePreference.ENGLISH);
-        }
-      },
-      {
-        value: $r('app.string.language_simplified_chinese'),
-        action: () => {
-          this.setLanguage(LanguagePreference.SIMPLIFIED_CHINESE);
-        }
-      },
-      {
-        value: $r('app.string.language_traditional_chinese'),
-        action: () => {
-          this.setLanguage(LanguagePreference.TRADITIONAL_CHINESE);
-        }
-      }
-    ])
+    .padding(0)
+    .backgroundColor(Color.Transparent)
+    .onClick(onClick)
   }
 
   @Builder
@@ -313,11 +361,15 @@ export struct SettingsPage {
         })
 
         Column() {
-          this.ThemeSelectionRow()
+          this.PreferenceSelectionRow($r('app.string.settings_appearance'), this.currentThemeLabel(), () => {
+            this.openThemeDialog();
+          })
           Divider()
             .color($r('app.color.border'))
             .margin({ left: AppSpacing.md, right: AppSpacing.md })
-          this.LanguageSelectionRow()
+          this.PreferenceSelectionRow($r('app.string.settings_language'), this.currentLanguageLabel(), () => {
+            this.openLanguageDialog();
+          })
         }
         .width('100%')
         .backgroundColor($r('app.color.surface'))
