@@ -1,9 +1,17 @@
 import { common } from '@kit.AbilityKit';
 import { SelectDialog } from '@kit.ArkUI';
 import { PageHeader } from '../../components/PageHeader';
-import { applyThemePreference, saveThemePreference } from '../../design/ThemeManager';
+import {
+  applyThemePreference,
+  readThemePreference,
+  saveThemePreference
+} from '../../design/ThemeManager';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
-import { applyLanguagePreference } from '../../localization/LanguageManager';
+import {
+  applyLanguagePreference,
+  readLanguagePreference,
+  saveLanguagePreference
+} from '../../localization/LanguageManager';
 import { LanguagePreference, ThemePreference } from '../../models/AppModels';
 import { cancelPendingSensitiveClipboardClear } from '../../security/SecureClipboard';
 import {
@@ -16,13 +24,12 @@ import {
 @Component
 export struct SettingsPage {
   onOpenAbout: () => void = () => {};
-  @StorageLink('timeauth.themePreference') private themePreference: ThemePreference = ThemePreference.SYSTEM;
+  @State private themePreference: ThemePreference = ThemePreference.SYSTEM;
+  @State private languagePreference: LanguagePreference = LanguagePreference.SYSTEM;
   @State private hideTaskPreview: boolean = true;
   @State private clearClipboard: boolean = true;
   @State private themeDialogIndex: number = 0;
   @State private languageDialogIndex: number = 0;
-  @StorageLink('timeauth.languagePreference') private languagePreference: LanguagePreference =
-    LanguagePreference.SYSTEM;
 
   private themeDialogController: CustomDialogController = new CustomDialogController({
     builder: SelectDialog({
@@ -32,25 +39,19 @@ export struct SettingsPage {
         {
           title: $r('app.string.theme_system'),
           action: () => {
-            this.themeDialogIndex = 0;
-            this.themeDialogController.close();
-            this.setTheme(ThemePreference.SYSTEM);
+            this.selectTheme(ThemePreference.SYSTEM, 0);
           }
         },
         {
           title: $r('app.string.theme_light'),
           action: () => {
-            this.themeDialogIndex = 1;
-            this.themeDialogController.close();
-            this.setTheme(ThemePreference.LIGHT);
+            this.selectTheme(ThemePreference.LIGHT, 1);
           }
         },
         {
           title: $r('app.string.theme_dark'),
           action: () => {
-            this.themeDialogIndex = 2;
-            this.themeDialogController.close();
-            this.setTheme(ThemePreference.DARK);
+            this.selectTheme(ThemePreference.DARK, 2);
           }
         }
       ]
@@ -66,33 +67,25 @@ export struct SettingsPage {
         {
           title: $r('app.string.language_system'),
           action: () => {
-            this.languageDialogIndex = 0;
-            this.languageDialogController.close();
-            this.setLanguage(LanguagePreference.SYSTEM);
+            this.selectLanguage(LanguagePreference.SYSTEM, 0);
           }
         },
         {
           title: $r('app.string.language_simplified_chinese'),
           action: () => {
-            this.languageDialogIndex = 1;
-            this.languageDialogController.close();
-            this.setLanguage(LanguagePreference.SIMPLIFIED_CHINESE);
+            this.selectLanguage(LanguagePreference.SIMPLIFIED_CHINESE, 1);
           }
         },
         {
           title: $r('app.string.language_traditional_chinese'),
           action: () => {
-            this.languageDialogIndex = 2;
-            this.languageDialogController.close();
-            this.setLanguage(LanguagePreference.TRADITIONAL_CHINESE);
+            this.selectLanguage(LanguagePreference.TRADITIONAL_CHINESE, 2);
           }
         },
         {
           title: $r('app.string.language_english'),
           action: () => {
-            this.languageDialogIndex = 3;
-            this.languageDialogController.close();
-            this.setLanguage(LanguagePreference.ENGLISH);
+            this.selectLanguage(LanguagePreference.ENGLISH, 3);
           }
         }
       ]
@@ -103,6 +96,8 @@ export struct SettingsPage {
   aboutToAppear(): void {
     const context: common.Context | undefined = this.getUIContext().getHostContext();
     if (context !== undefined) {
+      this.themePreference = readThemePreference(context);
+      this.languagePreference = readLanguagePreference(context);
       const settings: SecuritySettings = readSecuritySettings(context);
       this.hideTaskPreview = settings.hideTaskPreview;
       this.clearClipboard = settings.clearClipboard;
@@ -148,18 +143,27 @@ export struct SettingsPage {
     this.languageDialogController.open();
   }
 
-  private setTheme(preference: ThemePreference): void {
+  private selectTheme(preference: ThemePreference, index: number): void {
     this.themePreference = preference;
+    this.themeDialogIndex = index;
     const context: common.Context | undefined = this.getUIContext().getHostContext();
-    if (context === undefined) {
-      return;
+    if (context !== undefined) {
+      saveThemePreference(context, preference);
     }
-    saveThemePreference(context, preference);
-    applyThemePreference(context, preference);
+    this.themeDialogController.close();
+    if (context !== undefined) {
+      applyThemePreference(context, preference);
+    }
   }
 
-  private setLanguage(preference: LanguagePreference): void {
+  private selectLanguage(preference: LanguagePreference, index: number): void {
     this.languagePreference = preference;
+    this.languageDialogIndex = index;
+    const context: common.Context | undefined = this.getUIContext().getHostContext();
+    if (context !== undefined) {
+      saveLanguagePreference(context, preference);
+    }
+    this.languageDialogController.close();
     applyLanguagePreference(preference);
   }
 
@@ -403,7 +407,7 @@ export struct SettingsPage {
         Column() {
           this.SectionTitle($r('app.string.settings_data'))
           this.StatusRow($r('app.string.settings_backup'), $r('app.string.settings_backup_detail'),
-            $r('app.string.common_free'))
+            $r('app.string.common_preview'))
           Divider()
             .color($r('app.color.border'))
             .margin({ left: AppSpacing.md, right: AppSpacing.md })
