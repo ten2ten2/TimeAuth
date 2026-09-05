@@ -28,12 +28,18 @@ Supported application languages:
 
 - Follow system
 - Simplified Chinese (`zh-Hans`)
-- Traditional Chinese (`zh-Hant`)
+- Traditional Chinese, Taiwan usage (`zh-Hant`)
 - English (`en`)
 
-English is the base resource and fallback for unsupported system languages.
+English is the base resource and fallback for unsupported system languages. The Traditional Chinese resource uses Taiwan terminology and wording rather than a generic Mainland-to-Traditional conversion.
 
 When Follow system is selected, the stored preference remains `SYSTEM`. TimeAuth resolves the current OS language and refreshes it on startup, foreground entry and locale-change events. Explicit language selections do not follow later OS language changes.
+
+## About
+
+About shows the installed application version, privacy/security information, proprietary-license information, platform notices and the minimum supported HarmonyOS version. It does not expose a source-code repository or public-source link.
+
+Privacy and license details use ArkUI `CustomContentDialog`, keeping the HarmonyOS dialog shell, motion and button layout while allowing longer scrollable text. The application is currently proprietary and closed source; platform and third-party components remain under their own terms.
 
 ## Screen security
 
@@ -66,8 +72,8 @@ Sensitive values copied by TimeAuth are restricted to the local device. When aut
 | Test | Expected result |
 | --- | --- |
 | Dark → Light → Dark in Settings | Actual appearance, right-side value and reopened dialog selection stay in sync. |
-| English → 简体中文 → 繁體中文 | Current page, navigation labels and Settings value switch consistently. |
-| App English → Follow system while OS is Chinese | App switches to Chinese immediately; Settings still shows Follow system. |
+| English → 简体中文 → 繁體中文（台灣） | Current page, navigation labels and Settings value switch consistently. |
+| App English → Follow system while OS is Chinese | App switches to the current supported system Chinese variant immediately; Settings still shows Follow system. |
 | Follow system, then change OS language | App follows after returning to the foreground. |
 | Explicit English, then change OS language | App remains English. |
 | Kill and reopen | Saved theme/language match the actual UI. |
