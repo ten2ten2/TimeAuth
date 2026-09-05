@@ -12,6 +12,9 @@ enum PreviewStage {
 @Component
 export struct AppRoot {
   @State private stage: PreviewStage = PreviewStage.ONBOARDING;
+  private stageTransition: TransitionEffect = TransitionEffect.OPACITY
+    .animation({ duration: 180, curve: Curve.EaseOut })
+    .combine(TransitionEffect.translate({ y: 6 }));
 
   private applyScreenSecurity(page: ScreenSecurityPage): void {
     const context = this.getUIContext().getHostContext();
@@ -25,23 +28,42 @@ export struct AppRoot {
   }
 
   build() {
-    if (this.stage === PreviewStage.ONBOARDING) {
-      OnboardingPage({
-        onComplete: () => {
-          this.applyScreenSecurity(ScreenSecurityPage.UNLOCK);
-          this.stage = PreviewStage.LOCKED;
+    Stack() {
+      if (this.stage === PreviewStage.ONBOARDING) {
+        Column() {
+          OnboardingPage({
+            onComplete: () => {
+              this.applyScreenSecurity(ScreenSecurityPage.UNLOCK);
+              this.stage = PreviewStage.LOCKED;
+            }
+          })
         }
-      })
-    } else if (this.stage === PreviewStage.LOCKED) {
-      UnlockPage({
-        onUnlock: () => {
-          this.applyScreenSecurity(ScreenSecurityPage.AUTHENTICATOR);
-          this.stage = PreviewStage.UNLOCKED;
+        .width('100%')
+        .height('100%')
+        .transition(this.stageTransition)
+      } else if (this.stage === PreviewStage.LOCKED) {
+        Column() {
+          UnlockPage({
+            onUnlock: () => {
+              this.applyScreenSecurity(ScreenSecurityPage.AUTHENTICATOR);
+              this.stage = PreviewStage.UNLOCKED;
+            }
+          })
         }
-      })
-    } else {
-      AppShell()
+        .width('100%')
+        .height('100%')
+        .transition(this.stageTransition)
+      } else {
+        Column() {
+          AppShell()
+        }
+        .width('100%')
+        .height('100%')
+        .transition(this.stageTransition)
+      }
     }
+    .width('100%')
+    .height('100%')
+    .clip(true)
   }
 }
-
