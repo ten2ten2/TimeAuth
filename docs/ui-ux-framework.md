@@ -1,67 +1,79 @@
-# UI architecture and regression checks
+# TimeAuth UI / UX notes
 
-## Shell and interaction
+## Navigation and layout
 
-The app begins with onboarding and a mock unlock screen. The main destinations are Authenticator, Vault, Generator and Settings. About is a secondary Settings destination. Compact devices use bottom navigation and 16 vp padding; expanded devices use a 216 vp rail with content constrained to 920 vp.
+Primary destinations are Authenticator, Vault, Generator and Settings. About is a secondary Settings page.
 
-Use full-row touch targets for preferences and native `SelectDialog` for mutually exclusive choices. Selected values must update without navigating away. Preview-only features are status rows, not fake active toggles or dead navigation. Keep irreversible actions away from casual swipes, and do not expose secrets without explicit action.
+- Compact layouts use bottom navigation and 16 vp page padding.
+- Expanded layouts use a 216 vp side rail and a constrained content column.
+- Primary navigation icons use monochrome local SVG assets with theme-aware tinting.
 
-## Settings state: why the previous labels were stale
+## Settings interaction
 
-`@Builder` arguments are passed by value by default. Passing `currentThemeLabel()` or `currentLanguageLabel()` into a multi-argument builder does not make the builder's `Text(value)` reactive. Changing the storage decorator or waiting for `flush()` does not address this rendering defect.
+Appearance and Language use full-row `SelectDialog` selection:
 
-`PreferenceSelectionRow` now receives only static row identity. Its `Text` reads `this.themePreference` / `this.languagePreference` in its own render scope. Security toggles follow the same rule. Dialog indices are derived from these preferences instead of being maintained as duplicate state. Concurrent selections are blocked while a save is pending. Save failures restore the Preferences cache; application failures are surfaced and trigger a rollback attempt.
+- current value is shown on the right;
+- the whole row is clickable;
+- choices are mutually exclusive;
+- the selected value updates immediately in the row;
+- persistence and native application happen separately.
 
-The durable source remains ArkData Preferences. `EntryAbility` applies native theme/language after `loadContent`. `Index` mounts the shell and the transient privacy cover. The cover's AppStorage booleans are in-memory UI notifications only, not another preference database.
+Preview-only features are status rows rather than fake toggles or dead navigation items.
 
-## System language
+ArkData Preferences is the persistent source of truth for theme, language and security settings. UI components use local reactive state for rendering; the application applies native configuration after content is loaded.
 
-`i18n.System.setAppPreferredLanguage('default')` is documented to take effect on a cold start. For immediate system following, TimeAuth keeps `SYSTEM` as its own persisted choice but resolves the current OS language with `getSystemLanguage()` before applying a concrete supported tag. It listens for `COMMON_EVENT_LOCALE_CHANGED` and also refreshes on foreground entry and launch. The native preferred-language and application-context language are updated consistently after the page loads.
+## Language behavior
 
-Explicit selections never follow later OS changes. Chinese script/region variants map to `zh-Hans` or `zh-Hant`; unsupported languages map to English. Translation resources and reactive UI correctness are separate from functional device acceptance.
+Supported application languages:
 
-## Window protection
+- Follow system
+- Simplified Chinese (`zh-Hans`)
+- Traditional Chinese (`zh-Hant`)
+- English (`en`)
 
-Capture-allowed foreground pages: Onboarding, Settings, About. All other pages default to sensitive. The separate recent-apps switch adds protection to allowed pages when the app is inactive; disabling it must not weaken sensitive-page protection.
+English is the base resource and fallback for unsupported system languages.
 
-The main window is obtained explicitly in `EntryAbility`, before loading content. API 20 `windowStageLifecycleEvent` supplies lifecycle state; main-window `windowEvent` supplies focus state. `onBackground()` supplies an additional ability-level guard. The old `windowStageEvent` focus listener has been removed.
+When Follow system is selected, the stored preference remains `SYSTEM`. TimeAuth resolves the current OS language and refreshes it on startup, foreground entry and locale-change events. Explicit language selections do not follow later OS language changes.
 
-Before awaiting a native privacy request, the root hides the real shell (including its accessibility descendants) behind an opaque cover. Preference dialogs close on coverage so they cannot remain above it. The shell stays mounted, preserving its route state. There is no fade exposing content during the transition. Native requests are serialized/coalesced and the acknowledged `isPrivacyMode` is checked. Callbacks from a destroyed window cannot change a replacement window's state.
+## Screen security
 
-When navigating from a sensitive page to an allowed page, privacy is not relaxed until a frame callback indicates that the replacement page has rendered. Restoration requires foreground, focus and RESUMED state. A native failure keeps sensitive content hidden and shows an error. Setup/frame errors are not silently reported as protection success.
+Foreground capture policy:
 
-**This is a software implementation, not device acceptance evidence.** An operating-system task snapshot can be cached or captured at a platform-specific point in the transition. Only a real device test establishes whether the content was hidden in that transition. The app card/icon may remain visible; only its content is intended to be blank/masked. `setSnapshotSkip` is system-only and is not used.
+- allowed: Onboarding, Settings, About;
+- protected: Unlock, Authenticator, Vault, Generator and unknown screens.
 
-## Device acceptance checklist
+The recent-app preview switch adds protection to capture-allowed pages while the app is inactive. Sensitive pages stay protected regardless of that switch.
 
-Use a freshly installed build from the tested commit. Close the old running instance first; do not uninstall or clear user data just to test. Record device model, OS/API and build commit. Exercise both gesture navigation and the recent-apps button when the device supports them.
+Protection uses:
+
+- the actual main window;
+- API 20 `windowStageLifecycleEvent`;
+- main-window focus events;
+- UIAbility foreground/background callbacks;
+- native window privacy mode;
+- an opaque root cover shown before native privacy changes complete.
+
+The root cover keeps page state mounted while hiding pixels and accessibility descendants. Preference dialogs are closed when the cover appears. Native privacy requests are serialized so an older request cannot override a newer protection state.
+
+Task snapshots are ultimately produced by the operating system. Real-device testing is therefore required; code-level checks cannot prove that every device captures the task card at the same lifecycle point.
+
+## Clipboard
+
+Sensitive values copied by TimeAuth are restricted to the local device. When automatic clearing is enabled, TimeAuth schedules a 30-second clear and avoids deleting newer clipboard data written afterward.
+
+## Real-device acceptance checklist
 
 | Test | Expected result |
 | --- | --- |
-| Dark -> Light -> Dark without leaving Settings | Actual colors, right-side value and reopened dialog selection match after each change. |
-| English -> 简体中文 -> 繁體中文 | Current page, navigation, value and reopened dialog language are consistent. |
-| OS 简体中文; app English -> System | Switches to Simplified Chinese immediately; value remains “跟随系统”. |
-| System selected; change OS language, then return | Follows the new OS language without killing the app. |
-| Explicit English selected; change OS language | App remains English. |
-| System selected; OS language not supported | App UI falls back to English. |
-| Kill/reopen application | Saved choice and actual native appearance/language agree. |
-| Hide preview ON; enter recents directly from Settings/About/Onboarding | Card content blank/masked or covered; no old page visible after transition. |
-| Enter recents with a preference dialog open | Neither page nor dialog remains exposed. |
-| Return from recents | No premature reveal; normal screen restores once active/resumed. |
-| Foreground Settings with hide preview ON | Screenshots still work. Sensitive pages remain screenshot/recording-blocked. |
-| Hide preview OFF; enter recents from a sensitive page | Sensitive content still protected. |
-| Rapid app switching and page switching | No delayed “privacy off” request defeats the newer protection request. |
+| Dark → Light → Dark in Settings | Actual appearance, right-side value and reopened dialog selection stay in sync. |
+| English → 简体中文 → 繁體中文 | Current page, navigation labels and Settings value switch consistently. |
+| App English → Follow system while OS is Chinese | App switches to Chinese immediately; Settings still shows Follow system. |
+| Follow system, then change OS language | App follows after returning to the foreground. |
+| Explicit English, then change OS language | App remains English. |
+| Kill and reopen | Saved theme/language match the actual UI. |
+| Hide recent-app preview ON, enter recents from Settings/About/Onboarding | Task card content is masked/covered. |
+| Enter recents with a preference dialog open | Dialog and page content are not exposed. |
+| Return from recents | Cover is removed only after the app is active/resumed again. |
+| Hide recent-app preview OFF on a sensitive page | Sensitive page remains protected. |
 
-Current validation for this revision: mocked/source regression tests were run; HarmonyOS build, live ArkUI rendering and the device checklist remain to be run in DevEco/on hardware.
-
-For remaining recents failures, inspect HiLog entries containing `[ScreenSecurity]`: they record page identity, lifecycle/focus/foreground, hide-preview setting, cover state, acknowledged privacy state and errors, without recording secrets. This distinguishes missing callbacks, failed native requests and a cached/compositor snapshot instead of guessing about timing again.
-
-## Reference contracts
-
-- OpenHarmony docs: `ui/state-management/arkts-builder.md`, by-value vs direct state reads.
-- Localization Kit: `js-apis-i18n.md`, `setAppPreferredLanguage`.
-- Ability Kit: `js-apis-inner-application-applicationContext.md`, `setLanguage` and `setColorMode` prerequisites.
-- Basic Services Kit: `COMMON_EVENT_LOCALE_CHANGED` and `commonEventManager` subscription lifecycle.
-- ArkUI: `Window.setWindowPrivacyMode`, `Window.on('windowEvent')`, `WindowStage.on('windowStageLifecycleEvent')`, and `FrameCallback.onIdle`.
-
-The feature-status boundary is maintained in README rather than duplicated here. UI/security resources do not turn mock OTP/vault/generator content into real encrypted data.
+If recent-app protection still fails on a device, inspect HiLog entries containing `[ScreenSecurity]` together with the device model and HarmonyOS version.
