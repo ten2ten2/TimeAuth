@@ -12,7 +12,7 @@ The preview list contains one mock entry for every service in the first icon bat
 
 - Known issuers are matched locally using normalized, case-insensitive aliases and render a bundled monochrome SVG on a service-specific background color.
 - Matching includes common forms such as `Aliyun`, `Google Workspace`, `Microsoft Entra`, `Amazon Web Services`, `Proton Mail` and `ChatGPT`.
-- Unknown issuers fall back to the issuer's first character on the item's existing accent color. No network request is made to resolve or download icons.
+- Unknown issuers fall back to the issuer's first character on a neutral surface. No network request is made to resolve or download icons.
 - Service icons are decorative. The card's existing accessibility text continues to expose issuer, account and code rather than a separate logo label.
 - See `THIRD_PARTY_NOTICES.md` for icon-source and trademark notes.
 
@@ -30,7 +30,7 @@ The preview list contains one mock entry for every service in the first icon bat
 Run from the repository root with Node.js 22.13+:
 
 ```sh
-node --test tests/authenticator-interactions.test.cjs tests/authenticator-swipe-icons.test.cjs tests/authenticator-service-icons.test.cjs
+node --test tests/authenticator-interactions.test.cjs tests/authenticator-action-icons.test.cjs tests/authenticator-service-icons.test.cjs
 ```
 
 The suites execute the pure preview store and the page's non-rendering controller methods with mocked ArkUI/clipboard APIs; they also check UI source contracts, local SVG resources and locale parity. They do **not** compile ArkTS UI DSL, render native widgets, emulate native gestures or prove device behavior. Run the existing `node --test tests/*.test.cjs` suite too when a complete checkout is available.

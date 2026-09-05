@@ -15,7 +15,7 @@ export struct OtpCard {
 
   private serviceIconBackground(): string {
     const match: ServiceIconMatch | undefined = this.serviceIconMatch();
-    return match === undefined ? this.item.accentColor : match.backgroundColor;
+    return match === undefined ? '#626A76' : match.backgroundColor;
   }
 
   private serviceIconResource(): Resource {
@@ -69,11 +69,11 @@ export struct OtpCard {
       Text(serviceInitial(this.item.issuer))
         .fontSize(AppTypography.section)
         .fontWeight(FontWeight.Bold)
-        .fontColor(Color.White)
+        .fontColor($r('app.color.text_secondary'))
         .textAlign(TextAlign.Center)
         .width(48)
         .height(48)
-        .backgroundColor(this.item.accentColor)
+        .backgroundColor($r('app.color.surface_secondary'))
         .borderRadius(AppRadius.medium)
         .accessibilityLevel('no')
     }
