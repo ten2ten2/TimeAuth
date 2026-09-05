@@ -5,6 +5,7 @@ import { VaultItemCard } from '../../components/VaultItemCard';
 import { mockRepository } from '../../data/MockRepository';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 import { VaultItem } from '../../models/AppModels';
+import { copySensitiveText } from '../../security/SecureClipboard';
 
 @Component
 export struct PasswordVaultPage {
@@ -12,6 +13,7 @@ export struct PasswordVaultPage {
   @State private showAddMenu: boolean = false;
   @State private feedbackVisible: boolean = false;
   @State private copyFeedback: boolean = false;
+  @State private copySucceeded: boolean = true;
   private items: VaultItem[] = mockRepository.getVaultItems();
 
   private filteredItems(): VaultItem[] {
@@ -24,8 +26,9 @@ export struct PasswordVaultPage {
       item.username.toLowerCase().includes(normalizedQuery));
   }
 
-  private showFeedback(isCopy: boolean): void {
+  private showFeedback(isCopy: boolean, copySucceeded: boolean = true): void {
     this.copyFeedback = isCopy;
+    this.copySucceeded = copySucceeded;
     this.feedbackVisible = true;
     setTimeout(() => {
       this.feedbackVisible = false;
@@ -124,8 +127,15 @@ export struct PasswordVaultPage {
             ForEach(this.filteredItems(), (item: VaultItem) => {
               VaultItemCard({
                 item: item,
-                onCopyPreview: (title: string) => {
-                  this.showFeedback(true);
+                onCopyPassword: (password: string, title: string) => {
+                  const context = this.getUIContext().getHostContext();
+                  if (context === undefined) {
+                    this.showFeedback(true, false);
+                    return;
+                  }
+                  copySensitiveText(context, password).then((success: boolean) => {
+                    this.showFeedback(true, success);
+                  });
                 }
               })
             }, (item: VaultItem) => item.id)
@@ -146,7 +156,8 @@ export struct PasswordVaultPage {
       .height('100%')
 
       if (this.feedbackVisible) {
-        Text(this.copyFeedback ? $r('app.string.vault_copy_feedback') :
+        Text(this.copyFeedback ?
+          (this.copySucceeded ? $r('app.string.security_copy_success') : $r('app.string.security_copy_failed')) :
           $r('app.string.vault_feature_later_feedback'))
           .fontSize(AppTypography.label)
           .fontColor(Color.White)

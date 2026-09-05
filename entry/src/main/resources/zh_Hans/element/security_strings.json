@@ -1,0 +1,11 @@
+{
+  "string": [
+    { "name": "settings_subtitle_security_active", "value": "主题、语言和当前可用的安全保护会立即生效；生物识别仍为预览功能。" },
+    { "name": "settings_biometric_preview_detail", "value": "仅预览；真实生物识别将在加密密码库解锁阶段接入。" },
+    { "name": "settings_hide_preview_active_detail", "value": "在应用进入最近任务前保护窗口内容。" },
+    { "name": "settings_block_screenshots_active_detail", "value": "开启后阻止截屏和录屏。" },
+    { "name": "settings_clear_clipboard_active_detail", "value": "时钥复制的敏感内容会在 30 秒后自动清除。" },
+    { "name": "security_copy_success", "value": "已复制到系统剪贴板" },
+    { "name": "security_copy_failed", "value": "无法写入系统剪贴板" }
+  ]
+}

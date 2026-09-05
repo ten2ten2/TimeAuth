@@ -1,0 +1,11 @@
+{
+  "string": [
+    { "name": "settings_subtitle_security_active", "value": "Theme, language, and available security protections apply immediately; biometrics remains a preview." },
+    { "name": "settings_biometric_preview_detail", "value": "Preview only; real authentication will be added with encrypted vault unlock." },
+    { "name": "settings_hide_preview_active_detail", "value": "Protect the app window before it appears in recent apps." },
+    { "name": "settings_block_screenshots_active_detail", "value": "Prevent screenshots and screen recording while enabled." },
+    { "name": "settings_clear_clipboard_active_detail", "value": "Clear sensitive values copied by TimeAuth after 30 seconds." },
+    { "name": "security_copy_success", "value": "Copied to the system clipboard" },
+    { "name": "security_copy_failed", "value": "Could not copy to the system clipboard" }
+  ]
+}

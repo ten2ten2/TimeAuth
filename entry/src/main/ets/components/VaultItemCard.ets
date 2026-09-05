@@ -5,7 +5,7 @@ import { VaultItem, VaultItemKind } from '../models/AppModels';
 export struct VaultItemCard {
   @Prop item: VaultItem;
   @State isRevealed: boolean = false;
-  onCopyPreview: (title: string) => void = () => {};
+  onCopyPassword: (password: string, title: string) => void = () => {};
 
   build() {
     Column({ space: AppSpacing.sm }) {
@@ -80,7 +80,7 @@ export struct VaultItemCard {
             .fontColor($r('app.color.brand'))
             .backgroundColor($r('app.color.brand_soft'))
             .onClick(() => {
-              this.onCopyPreview(this.item.title);
+              this.onCopyPassword(this.item.passwordPreview, this.item.title);
             })
         }
         .width('100%')

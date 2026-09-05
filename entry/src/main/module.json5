@@ -12,6 +12,11 @@
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.PRIVACY_WINDOW"
+      }
+    ],
     "abilities": [
       {
         "name": "EntryAbility",

@@ -5,6 +5,7 @@ import { SearchField } from '../../components/SearchField';
 import { mockRepository } from '../../data/MockRepository';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 import { OtpItem } from '../../models/AppModels';
+import { copySensitiveText } from '../../security/SecureClipboard';
 
 @Component
 export struct AuthenticatorPage {
@@ -12,6 +13,7 @@ export struct AuthenticatorPage {
   @State private showAddMenu: boolean = false;
   @State private feedbackVisible: boolean = false;
   @State private copyFeedback: boolean = false;
+  @State private copySucceeded: boolean = true;
   private items: OtpItem[] = mockRepository.getOtpItems();
 
   private filteredItems(): OtpItem[] {
@@ -24,8 +26,9 @@ export struct AuthenticatorPage {
       item.account.toLowerCase().includes(normalizedQuery));
   }
 
-  private showFeedback(isCopy: boolean): void {
+  private showFeedback(isCopy: boolean, copySucceeded: boolean = true): void {
     this.copyFeedback = isCopy;
+    this.copySucceeded = copySucceeded;
     this.feedbackVisible = true;
     setTimeout(() => {
       this.feedbackVisible = false;
@@ -146,7 +149,14 @@ export struct AuthenticatorPage {
               OtpCard({
                 item: item,
                 onCopy: (code: string, issuer: string) => {
-                  this.showFeedback(true);
+                  const context = this.getUIContext().getHostContext();
+                  if (context === undefined) {
+                    this.showFeedback(true, false);
+                    return;
+                  }
+                  copySensitiveText(context, code).then((success: boolean) => {
+                    this.showFeedback(true, success);
+                  });
                 }
               })
             }, (item: OtpItem) => item.id)
@@ -168,7 +178,8 @@ export struct AuthenticatorPage {
       .align(Alignment.Top)
 
       if (this.feedbackVisible) {
-        Text(this.copyFeedback ? $r('app.string.auth_copy_feedback') :
+        Text(this.copyFeedback ?
+          (this.copySucceeded ? $r('app.string.security_copy_success') : $r('app.string.security_copy_failed')) :
           $r('app.string.auth_feature_later_feedback'))
           .fontSize(AppTypography.label)
           .fontColor(Color.White)

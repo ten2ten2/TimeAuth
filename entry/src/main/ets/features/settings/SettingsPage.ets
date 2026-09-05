@@ -1,8 +1,18 @@
+import { common } from '@kit.AbilityKit';
 import { PageHeader } from '../../components/PageHeader';
 import { applyThemePreference, saveThemePreference } from '../../design/ThemeManager';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 import { applyLanguagePreference } from '../../localization/LanguageManager';
 import { LanguagePreference, ThemePreference } from '../../models/AppModels';
+import { cancelPendingSensitiveClipboardClear } from '../../security/SecureClipboard';
+import {
+  applyWindowPrivacyMode,
+  readSecuritySettings,
+  saveBlockScreenshots,
+  saveClearClipboard,
+  saveHideTaskPreview,
+  SecuritySettings
+} from '../../security/SecuritySettingsManager';
 
 @Component
 export struct SettingsPage {
@@ -14,10 +24,21 @@ export struct SettingsPage {
   @StorageLink('timeauth.languagePreference') private languagePreference: LanguagePreference =
     LanguagePreference.SYSTEM;
 
+  aboutToAppear(): void {
+    const context: common.Context | undefined = this.getUIContext().getHostContext();
+    if (context === undefined) {
+      return;
+    }
+    const settings: SecuritySettings = readSecuritySettings(context);
+    this.hideTaskPreview = settings.hideTaskPreview;
+    this.blockScreenshots = settings.blockScreenshots;
+    this.clearClipboard = settings.clearClipboard;
+  }
+
   private setTheme(preference: ThemePreference): void {
     this.themePreference = preference;
-    const context = this.getUIContext().getHostContext();
-    if (!context) {
+    const context: common.Context | undefined = this.getUIContext().getHostContext();
+    if (context === undefined) {
       return;
     }
     saveThemePreference(context, preference);
@@ -27,6 +48,34 @@ export struct SettingsPage {
   private setLanguage(preference: LanguagePreference): void {
     this.languagePreference = preference;
     applyLanguagePreference(preference);
+  }
+
+  private setHideTaskPreview(value: boolean): void {
+    this.hideTaskPreview = value;
+    const context: common.Context | undefined = this.getUIContext().getHostContext();
+    if (context !== undefined) {
+      saveHideTaskPreview(context, value);
+    }
+  }
+
+  private setBlockScreenshots(value: boolean): void {
+    this.blockScreenshots = value;
+    const context: common.Context | undefined = this.getUIContext().getHostContext();
+    if (context !== undefined) {
+      saveBlockScreenshots(context, value);
+      applyWindowPrivacyMode(context, value);
+    }
+  }
+
+  private setClearClipboard(value: boolean): void {
+    this.clearClipboard = value;
+    const context: common.Context | undefined = this.getUIContext().getHostContext();
+    if (context !== undefined) {
+      saveClearClipboard(context, value);
+    }
+    if (!value) {
+      cancelPendingSensitiveClipboardClear();
+    }
   }
 
   private currentThemeLabel(): ResourceStr {
@@ -164,7 +213,7 @@ export struct SettingsPage {
   }
 
   @Builder
-  SettingToggle(title: ResourceStr, description: ResourceStr, value: boolean,
+  SettingToggle(title: ResourceStr, description: ResourceStr, value: boolean, enabled: boolean,
     onChange: (value: boolean) => void) {
     Row({ space: AppSpacing.md }) {
       Column({ space: 2 }) {
@@ -179,9 +228,12 @@ export struct SettingsPage {
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
+      .opacity(enabled ? 1 : 0.65)
 
       Toggle({ type: ToggleType.Switch, isOn: value })
         .selectedColor($r('app.color.brand'))
+        .enabled(enabled)
+        .opacity(enabled ? 1 : 0.45)
         .onChange((isOn: boolean) => {
           onChange(isOn);
         })
@@ -247,7 +299,7 @@ export struct SettingsPage {
       Column({ space: AppSpacing.sm }) {
         PageHeader({
           title: $r('app.string.settings_title'),
-          subtitle: $r('app.string.settings_subtitle')
+          subtitle: $r('app.string.settings_subtitle_security_active')
         })
 
         Column() {
@@ -264,30 +316,31 @@ export struct SettingsPage {
 
         Column() {
           this.SectionTitle($r('app.string.settings_security'))
-          this.SettingToggle($r('app.string.settings_biometric'), $r('app.string.settings_biometric_detail'),
-            this.biometricLock, (value: boolean) => {
+          this.SettingToggle($r('app.string.settings_biometric'),
+            $r('app.string.settings_biometric_preview_detail'), this.biometricLock, false, (value: boolean) => {
             this.biometricLock = value;
           })
           Divider()
             .color($r('app.color.border'))
             .margin({ left: AppSpacing.md, right: AppSpacing.md })
           this.SettingToggle($r('app.string.settings_hide_preview'),
-            $r('app.string.settings_hide_preview_detail'), this.hideTaskPreview, (value: boolean) => {
-            this.hideTaskPreview = value;
+            $r('app.string.settings_hide_preview_active_detail'), this.hideTaskPreview, true, (value: boolean) => {
+            this.setHideTaskPreview(value);
           })
           Divider()
             .color($r('app.color.border'))
             .margin({ left: AppSpacing.md, right: AppSpacing.md })
           this.SettingToggle($r('app.string.settings_block_screenshots'),
-            $r('app.string.settings_block_screenshots_detail'), this.blockScreenshots, (value: boolean) => {
-            this.blockScreenshots = value;
-          })
+            $r('app.string.settings_block_screenshots_active_detail'), this.blockScreenshots, true,
+            (value: boolean) => {
+              this.setBlockScreenshots(value);
+            })
           Divider()
             .color($r('app.color.border'))
             .margin({ left: AppSpacing.md, right: AppSpacing.md })
           this.SettingToggle($r('app.string.settings_clear_clipboard'),
-            $r('app.string.settings_clear_clipboard_detail'), this.clearClipboard, (value: boolean) => {
-            this.clearClipboard = value;
+            $r('app.string.settings_clear_clipboard_active_detail'), this.clearClipboard, true, (value: boolean) => {
+            this.setClearClipboard(value);
           })
         }
         .width('100%')

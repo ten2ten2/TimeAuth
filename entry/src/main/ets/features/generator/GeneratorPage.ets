@@ -1,6 +1,7 @@
 import { PageHeader } from '../../components/PageHeader';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 import { GeneratorMode } from '../../models/AppModels';
+import { copySensitiveText } from '../../security/SecureClipboard';
 
 @Component
 export struct GeneratorPage {
@@ -12,6 +13,7 @@ export struct GeneratorPage {
   @State private avoidAmbiguous: boolean = true;
   @State private previewIndex: number = 0;
   @State private feedbackVisible: boolean = false;
+  @State private copySucceeded: boolean = true;
 
   private previewValue(): string {
     if (this.mode === GeneratorMode.PASSPHRASE) {
@@ -23,7 +25,8 @@ export struct GeneratorPage {
     return this.previewIndex % 2 === 0 ? 'N7!qL2@vP9#sT4$xW8%m' : 'C4@rK8!nQ2#yM7%pZ6&w';
   }
 
-  private showFeedback(): void {
+  private showFeedback(copySucceeded: boolean): void {
+    this.copySucceeded = copySucceeded;
     this.feedbackVisible = true;
     setTimeout(() => {
       this.feedbackVisible = false;
@@ -128,14 +131,21 @@ export struct GeneratorPage {
                 .onClick(() => {
                   this.previewIndex += 1;
                 })
-              Button($r('app.string.generator_mock_copy'))
+              Button($r('app.string.common_copy'))
                 .type(ButtonType.Capsule)
                 .height(44)
                 .fontColor(Color.White)
                 .backgroundColor($r('app.color.brand'))
                 .layoutWeight(1)
                 .onClick(() => {
-                  this.showFeedback();
+                  const context = this.getUIContext().getHostContext();
+                  if (context === undefined) {
+                    this.showFeedback(false);
+                    return;
+                  }
+                  copySensitiveText(context, this.previewValue()).then((success: boolean) => {
+                    this.showFeedback(success);
+                  });
                 })
             }
             .width('100%')
@@ -229,7 +239,7 @@ export struct GeneratorPage {
       .height('100%')
 
       if (this.feedbackVisible) {
-        Text($r('app.string.generator_copy_feedback'))
+        Text(this.copySucceeded ? $r('app.string.security_copy_success') : $r('app.string.security_copy_failed'))
           .fontSize(AppTypography.label)
           .fontColor(Color.White)
           .padding({ left: AppSpacing.md, right: AppSpacing.md, top: AppSpacing.sm, bottom: AppSpacing.sm })
