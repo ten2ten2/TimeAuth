@@ -12,11 +12,11 @@ The Generator tab creates real random passwords, passphrases and PINs locally. A
 | Avoid ambiguous characters | Enabled by default; removes exactly `0`, `O`, `1`, `I`, and `l`. |
 | Use every selected type | Enabled by default; requires at least one character from every enabled type. |
 | Allowed symbols | Custom set of ASCII punctuation. Duplicate symbols count once. Letters, numbers, spaces, full-width punctuation, and other Unicode characters are rejected when symbols are enabled. An empty symbol set is invalid when symbols are enabled. Reset restores the default symbol set. |
-| Tap result | Tap the shown result or its hidden placeholder to copy the exact underlying value. Uses the same eligibility checks, feedback and clipboard protection as Copy; changed rules or invalid drafts block both actions. |
-| Show / hide | Toggles the displayed password without generating or changing it. |
+| Tap result | Tap the shown result or its hidden placeholder to copy the exact underlying value. A lightweight background press/release effect confirms interaction. Native button semantics also support keyboard and accessibility activation. Changed rules, invalid drafts and inactive tabs cannot copy. |
+| Show / hide | Secondary button beside Regenerate; toggles visibility without generating or changing the result. Disabled when there is no result. |
 | Regenerate | Explicitly applies the draft options and replaces the current result after successful generation. |
-| Copy | Copies the current valid result using the existing local-device clipboard service. Disabled while options are invalid or changed, or after generation fails. |
-| Strength | Displays an estimated entropy value and a qualitative label based on the generation rules. It is not a prediction of cracking time. |
+| Action row | Regenerate is the primary action; Show/Hide is the secondary action on the same row. There is no separate Copy button; the result area is the copy target. |
+| Strength | Password and Passphrase show their current result's qualitative strength at the top left, character count at the top right, and estimated entropy below the result. PIN has no metadata header or strength/entropy display. The fixed OFFLINE badge is removed. |
 | Remember settings | Persists generation preferences locally. Generated passwords and history are not persisted. |
 
 Editing options does not silently replace the current password. Changed options display a reminder to regenerate; copying stays disabled until a password matches the current options. An explicit missing random capability displays a device-not-supported message. A capability-query exception or random-provider failure displays a separate retry message. Both failure categories clear the current result, prevent copying, and survive page recreation until a subsequent generation succeeds. There is no fallback to demonstration strings or a noncryptographic random source.
@@ -56,7 +56,7 @@ From the repository root, with Node.js 22.13 or newer:
 node --test tests/*.test.cjs
 ```
 
-All 92 host tests passed:
+All 96 host tests passed:
 
 | Area | Passing tests |
 | --- | --- |
@@ -64,7 +64,7 @@ All 92 host tests passed:
 | Passphrase engine and wordlist | 10 |
 | PIN engine | 7 |
 | Settings and session | 19 |
-| Tab lifecycle and interaction methods | 13 |
+| Tab lifecycle and interaction methods | 17 |
 | Clipboard | 23 |
 | Onboarding persistence | 5 |
 
@@ -85,7 +85,7 @@ Use a development build with disposable generated values. Record the device mode
 7. **Clipboard:** copy and paste into a disposable local text field; confirm an exact match and success feedback. With automatic clearing enabled and the app allowed to run, verify clearing after approximately 30 seconds. Repeat but copy unrelated content from another app before the deadline; it must survive. Repeat with newer content from TimeAuth and with identical text copied again; the earlier cleanup must not clear a newer revision. Background the app beyond the deadline and return; verify pending cleanup is retried against the original deadline and current ownership metadata. Also verify the disabled-clearing setting. Test clipboard failures without exposing password values in diagnostics. Record actual process-termination behavior without treating cleanup after a forced kill as guaranteed.
 8. **Session and persistence:** switch to Settings and back, change theme, change locale, and background/foreground the app; the password, passphrase and PIN must each remain the same until explicitly regenerated while the process survives. Leave different draft rules in all three tabs, switch repeatedly, and confirm each draft and its copy-disabled state stay with the appropriate result. After a full process restart, confirm Password opens by default and each tab restores its last successfully saved rules when visited, while none of the previous results are restored. Update from the shared-settings version and verify the saved password length and phrase word count both migrate, even if one tab is edited before the other is first visited.
 9. **Sensitive screen:** attempt a screenshot and recording on Generator; inspect recent-app previews with the result both shown and hidden. Repeat with the optional extra preview setting off. Background content must stay protected; capture policy on Settings and About must retain its existing behavior.
-10. **Languages and layout:** check English, Simplified Chinese, Taiwan Traditional Chinese, Hong Kong Traditional Chinese, and Follow system. Check light, dark, and system themes, narrow phones, and large font settings. Error messages, advanced controls, and a 128-character result must fit without blocking Copy or Regenerate.
+10. **Languages and layout:** check English, Simplified Chinese, Taiwan Traditional Chinese, Hong Kong Traditional Chinese, and Follow system. Check light, dark, and system themes, narrow phones, and large font settings. Error messages, advanced controls, and a 128-character result must fit without blocking the copy target or the Regenerate / Show-Hide row.
 11. **Failure recovery:** in a local debug-only build, make the Rand capability query return false and confirm the device-not-supported message. Separately make the query throw or the random provider fail and confirm the retry message. In each case confirm that only the failing tab's result is cleared, copying is disabled there, and the error category persists across tab, language, and theme changes. Switching away and back must not implicitly retry a failed generation or clear the other tab's result. Restore the adapter and confirm regeneration recovers. Separately simulate preference read/write or flush failure; confirm a settings error is surfaced and no generated password is written as a fallback. Remove debug fault injection before shipping.
 
 Repeatedly generating different-looking values is not a proof of cryptographic randomness. Host verification checks selection logic; the native adapter and device behavior need the build and acceptance checks above.
@@ -125,3 +125,13 @@ Device acceptance: in airplane mode, first enter PIN and confirm six digits. Con
 - Every panel restores its own fixed mode, rules, retained result and failure state in `aboutToAppear`, even when initially inactive. Rendering the options card uses the panel's fixed mode. Automatic generation waits until that tab is selected and has neither a retained result nor a generation error.
 - Host regression cases cover inactive restoration, index changes before a lazy child appears, and the reported sequence: **PIN → Password → Authenticator → Generator → PIN**. The final PIN tab must show its retained numeric result, remain copyable and leave the Password result unchanged. Cold-start tests seed the old persisted PIN/passphrase selection keys and verify that Password still opens first.
 - Repeat that sequence on the physical device, including fast repeated switching and both themes. Host tests simulate lifecycle calls and link notifications; they do not execute native ArkUI binding or layout. HAP compilation and the native reproduction path still require DevEco Studio/device verification.
+
+
+## Result press feedback
+
+- The shown/hidden result and its copy hint form one native Button with custom content. Its background uses the existing surface colors: 80 ms into the pressed state and 120 ms back to normal. No scaling or positional animation is applied to the digits or text.
+- Touch handlers only manage press feedback and cancellation. The native click callback owns copying, so touch-up and click cannot each write the clipboard. The existing in-flight guard prevents repeated clicks from creating concurrent writes, while the copy target stays visually stable during the pending operation.
+- Movement beyond 8 vp on either axis, leaving the measured result bounds, multi-touch, touch cancellation, scroll start, rule edits, regeneration and tab disappearance cancel the current press. A cancelled touchscreen gesture cannot copy even if a late click callback arrives. No event propagation is stopped, so the parent Scroll can handle vertical gestures.
+- Mouse, keyboard and accessibility clicks retain the same result-validity, active-tab and clipboard checks. The original string is copied, including PIN leading zeros and passphrase separators; visual spacing never enters the clipboard.
+
+Device acceptance: press/release shown and hidden results in all three modes, in light/dark themes; confirm the subtle background transition, stable text, and exactly one success message after the copy succeeds. Start a vertical scroll on the result, move outside and back in, use two fingers, and leave the tab while pressed: none should copy or leave the background stuck. Confirm long passwords and 10-word passphrases fit and scroll inside the page, and that keyboard/screen-reader activation can copy with no dedicated Copy button. Check the top-left strength label for Password/Passphrase, no header gap on PIN, and the shared Regenerate / Show-Hide action row. Native animation, layout, gesture arbitration and accessibility still require HAP/device verification.

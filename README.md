@@ -57,7 +57,7 @@ Automatic clipboard clearing is best effort. TimeAuth checks the clipboard sourc
 
 See [docs/ui-ux-framework.md](docs/ui-ux-framework.md) for UI rules, preference behavior and the focused real-device acceptance checklist.
 
-See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 92 host tests passed: 15 password-engine, 10 passphrase, 7 PIN-engine, 19 settings/session, 13 tab lifecycle, 5 onboarding-persistence, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
+See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 96 host tests passed: 15 password-engine, 10 passphrase, 7 PIN-engine, 19 settings/session, 17 tab lifecycle/interaction, 5 onboarding-persistence, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
 
 ## Next milestone
 

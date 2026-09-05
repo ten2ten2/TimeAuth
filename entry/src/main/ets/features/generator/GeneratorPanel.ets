@@ -23,6 +23,13 @@ export struct GeneratorPanel {
   @State private advanced: boolean = false;
   @State private preferencesFailed: boolean = false;
   @State private copying: boolean = false;
+  @State private resultPressed: boolean = false;
+  private resultPointerId: number = -1;
+  private resultPressX: number = 0;
+  private resultPressY: number = 0;
+  private resultTapCancelled: boolean = false;
+  private resultWidth: number = 0;
+  private resultHeight: number = 0;
   @State private feedback: Resource | undefined = undefined;
   private feedbackTimer: number = -1;
   private preferenceTimer: number = -1;
@@ -102,6 +109,7 @@ export struct GeneratorPanel {
   }
 
   private deactivateTab(): void {
+    this.cancelResultPress();
     this.active = false;
     // An earlier clipboard completion must not show feedback after leaving/re-entering this tab.
     this.copyRequest++;
@@ -134,9 +142,14 @@ export struct GeneratorPanel {
     return this.value.length > 0 && this.generatedFor !== this.optionsSignature();
   }
 
+  private hasCopyableResult(): boolean {
+    return this.active && this.isSelectedTab() && this.value.length > 0 &&
+      this.generationFailure === GeneratorFailure.NONE && !this.rulesChanged() &&
+      this.validation() === GeneratorValidation.VALID;
+  }
+
   private canCopy(): boolean {
-    return this.value.length > 0 && this.generationFailure === GeneratorFailure.NONE && !this.rulesChanged() &&
-      this.validation() === GeneratorValidation.VALID && !this.copying;
+    return this.hasCopyableResult() && !this.copying;
   }
 
   private characterTypeCount(): number {
@@ -145,6 +158,7 @@ export struct GeneratorPanel {
   }
 
   private optionsChanged(): void {
+    this.cancelResultPress();
     getGeneratorSession(this.mode).options = copyGeneratorOptions(this.options);
     this.feedback = undefined;
     if (this.preferenceTimer >= 0) {
@@ -186,6 +200,7 @@ export struct GeneratorPanel {
   }
 
   private regenerate(notify: boolean = true): void {
+    this.cancelResultPress();
     if (this.validation() !== GeneratorValidation.VALID) {
       return;
     }
@@ -218,6 +233,64 @@ export struct GeneratorPanel {
       session.generationFailure = this.generationFailure;
       this.feedback = undefined;
     }
+  }
+
+  private cancelResultPress(): void {
+    this.resultTapCancelled = this.resultTapCancelled || this.resultPointerId >= 0;
+    this.resultPressed = false;
+    this.resultPointerId = -1;
+  }
+
+  private onResultTouch(event: TouchEvent): void {
+    if (event.type === TouchType.Cancel) {
+      this.resultTapCancelled = true;
+      this.cancelResultPress();
+      return;
+    }
+    if (event.type === TouchType.Down) {
+      if (!this.canCopy() || event.touches.length !== 1 || this.resultPointerId >= 0) {
+        this.resultTapCancelled = true;
+        this.cancelResultPress();
+        return;
+      }
+      const point: TouchObject = event.touches[0];
+      this.resultPointerId = point.id;
+      this.resultPressX = point.x;
+      this.resultPressY = point.y;
+      this.resultTapCancelled = false;
+      this.resultPressed = true;
+      return;
+    }
+    if (this.resultPointerId < 0) {
+      return;
+    }
+    const point: TouchObject | undefined = event.changedTouches.find((touch: TouchObject) =>
+      touch.id === this.resultPointerId);
+    if (point === undefined || event.touches.length > 1 || !this.canCopy()) {
+      this.cancelResultPress();
+      return;
+    }
+    const moved: boolean = Math.abs(point.x - this.resultPressX) > 8 || Math.abs(point.y - this.resultPressY) > 8;
+    const outside: boolean = point.x < 0 || point.y < 0 ||
+      (this.resultWidth > 0 && point.x > this.resultWidth) ||
+      (this.resultHeight > 0 && point.y > this.resultHeight);
+    if (moved || outside) {
+      this.cancelResultPress();
+      return;
+    }
+    if (event.type === TouchType.Up) {
+      this.resultPointerId = -1;
+      this.resultPressed = false;
+    }
+    // Native Button/Scroll gesture recognition owns click delivery; touch-up never copies.
+  }
+
+  private onResultClick(event: ClickEvent): void {
+    if (event.source === SourceType.TouchScreen && this.resultTapCancelled) {
+      return;
+    }
+    this.resultPressed = false;
+    this.copyValue();
   }
 
   private copyValue(): void {
@@ -324,21 +397,57 @@ export struct GeneratorPanel {
   }
 
   @Builder
+  ResultValue() {
+    if (this.mode === GeneratorMode.PIN) {
+      Text(this.revealed ? this.value : '•'.repeat(this.value.length))
+        .fontSize(28)
+        .minFontSize(18)
+        .maxFontSize(28)
+        .maxLines(1)
+        .fontFamily('monospace')
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.revealed ? $r('app.color.brand') : $r('app.color.text_primary'))
+        .letterSpacing(6)
+        .textAlign(TextAlign.Center)
+        .width('100%')
+        .copyOption(CopyOptions.None)
+    } else if (this.revealed) {
+      Text() {
+        ForEach(this.value.split(''), (character: string) => {
+          Span(character).fontColor(this.characterColor(character))
+        }, (character: string, index: number) => `${index}:${character}`)
+      }
+      .fontSize(24)
+      .fontFamily('monospace')
+      .fontWeight(FontWeight.Medium)
+      .wordBreak(WordBreak.BREAK_ALL)
+      .width('100%')
+      .copyOption(CopyOptions.None)
+    } else {
+      Text('••••••••••••')
+        .fontSize(24)
+        .fontColor($r('app.color.text_primary'))
+        .width('100%')
+        .copyOption(CopyOptions.None)
+    }
+  }
+
+  @Builder
   ResultCard() {
     Column({ space: AppSpacing.md }) {
-      Row({ space: AppSpacing.sm }) {
-        Text($r('app.string.generator_offline'))
-          .fontSize(AppTypography.caption)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.success'))
-          .layoutWeight(1)
-        if (this.value.length > 0) {
+      if (this.mode !== GeneratorMode.PIN && this.value.length > 0) {
+        Row({ space: AppSpacing.sm }) {
+          Text(this.strengthLabel())
+            .fontSize(AppTypography.label)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.strengthColor())
+            .layoutWeight(1)
           Text($r('app.string.generator_character_count', `${this.value.length}`))
             .fontSize(AppTypography.label)
             .fontColor($r('app.color.text_secondary'))
         }
+        .width('100%')
       }
-      .width('100%')
 
       if (this.value.length === 0) {
         Text(this.resultPlaceholder())
@@ -347,68 +456,33 @@ export struct GeneratorPanel {
             $r('app.color.danger') : $r('app.color.text_secondary'))
           .width('100%')
       } else {
-        if (this.mode === GeneratorMode.PIN) {
-          Text(this.revealed ? this.value : '•'.repeat(this.value.length))
-            .fontSize(28)
-            .minFontSize(18)
-            .maxFontSize(28)
-            .maxLines(1)
-            .fontFamily('monospace')
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.revealed ? $r('app.color.brand') : $r('app.color.text_primary'))
-            .letterSpacing(6)
-            .textAlign(TextAlign.Center)
-            .width('100%')
-            .copyOption(CopyOptions.None)
-            .onClick(() => { this.copyValue(); })
-        } else if (this.revealed) {
-          Text() {
-            ForEach(this.value.split(''), (character: string) => {
-              Span(character).fontColor(this.characterColor(character))
-            }, (character: string, index: number) => `${index}:${character}`)
+        Button({ type: ButtonType.Normal, stateEffect: false }) {
+          Column({ space: AppSpacing.xs }) {
+            this.ResultValue()
+            if (!this.rulesChanged() && this.validation() === GeneratorValidation.VALID) {
+              Text($r('app.string.generator_tap_to_copy'))
+                .fontSize(AppTypography.caption)
+                .fontColor($r('app.color.text_secondary'))
+                .textAlign(this.mode === GeneratorMode.PIN ? TextAlign.Center : TextAlign.Start)
+                .width('100%')
+            }
           }
-          .fontSize(24)
-          .fontFamily('monospace')
-          .fontWeight(FontWeight.Medium)
-          .wordBreak(WordBreak.BREAK_ALL)
           .width('100%')
-          .copyOption(CopyOptions.None)
-          .onClick(() => { this.copyValue(); })
-        } else {
-          Text('••••••••••••')
-            .fontSize(24)
-            .fontColor($r('app.color.text_primary'))
-            .width('100%')
-            .copyOption(CopyOptions.None)
-            .onClick(() => { this.copyValue(); })
-        }
-        if (!this.rulesChanged() && this.validation() === GeneratorValidation.VALID) {
-          Text($r('app.string.generator_tap_to_copy'))
-            .fontSize(AppTypography.caption)
-            .fontColor($r('app.color.text_secondary'))
-            .textAlign(this.mode === GeneratorMode.PIN ? TextAlign.Center : TextAlign.Start)
-            .width('100%')
-        }
-        Row({ space: AppSpacing.sm }) {
-          if (this.mode !== GeneratorMode.PIN) {
-            Text(this.strengthLabel())
-              .fontSize(AppTypography.label)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(this.strengthColor())
-              .layoutWeight(1)
-          } else {
-            Blank().layoutWeight(1)
-          }
-          Button(this.visibilityLabel())
-            .height(AppLayout.minimumTouchTarget)
-            .fontSize(AppTypography.label)
-            .fontColor($r('app.color.brand'))
-            .backgroundColor($r('app.color.brand_soft'))
-            .onClick(() => {
-              this.revealed = !this.revealed;
-            })
         }
         .width('100%')
+        .constraintSize({ minHeight: AppLayout.minimumTouchTarget })
+        .padding({ left: AppSpacing.xs, right: AppSpacing.xs, top: AppSpacing.sm, bottom: AppSpacing.sm })
+        .borderRadius(AppRadius.small)
+        .backgroundColor(this.resultPressed ? $r('app.color.surface_secondary') : $r('app.color.surface'))
+        .animation({ duration: this.resultPressed ? 80 : 120, curve: Curve.EaseOut })
+        .enabled(this.hasCopyableResult())
+        .accessibilityText($r('app.string.generator_tap_to_copy'))
+        .onAreaChange((_oldArea: Area, area: Area) => {
+          this.resultWidth = Number(area.width);
+          this.resultHeight = Number(area.height);
+        })
+        .onTouch((event: TouchEvent) => { this.onResultTouch(event); })
+        .onClick((event: ClickEvent) => { this.onResultClick(event); })
         if (this.mode !== GeneratorMode.PIN) {
           Text($r('app.string.generator_strength_detail', `${Math.floor(this.entropyBits)}`))
             .fontSize(AppTypography.caption)
@@ -428,22 +502,24 @@ export struct GeneratorPanel {
         Button($r('app.string.generator_regenerate'))
           .type(ButtonType.Capsule)
           .height(AppLayout.minimumTouchTarget)
-          .fontColor($r('app.color.brand'))
-          .backgroundColor($r('app.color.brand_soft'))
+          .fontColor($r('app.color.background'))
+          .backgroundColor($r('app.color.brand'))
           .layoutWeight(1)
           .enabled(this.validation() === GeneratorValidation.VALID)
           .onClick(() => {
             this.regenerate();
           })
-        Button($r('app.string.common_copy'))
+        Button(this.visibilityLabel())
           .type(ButtonType.Capsule)
           .height(AppLayout.minimumTouchTarget)
-          .fontColor($r('app.color.background'))
-          .backgroundColor($r('app.color.brand'))
+          .fontSize(AppTypography.label)
+          .fontColor($r('app.color.brand'))
+          .backgroundColor($r('app.color.brand_soft'))
           .layoutWeight(1)
-          .enabled(this.canCopy())
+          .enabled(this.value.length > 0)
           .onClick(() => {
-            this.copyValue();
+            this.cancelResultPress();
+            this.revealed = !this.revealed;
           })
       }
       .width('100%')
@@ -824,6 +900,7 @@ export struct GeneratorPanel {
       }
       .width('100%')
       .height('100%')
+      .onScrollStart(() => { this.cancelResultPress(); })
 
       if (this.feedback !== undefined) {
         Text(this.feedback)

@@ -74,7 +74,7 @@ before(async () => {
   const deps = { './GeneratorCore': coreUrl, './GeneratorSettings': settingsUrl,
     './GeneratorSession': sessionUrl, './PasswordGenerator': generatorUrl };
   Panel = (await import(url(replaceImports(componentMethods(read('GeneratorPanel.ets'), 'GeneratorPanel'), deps) +
-    '\nconst copySensitiveText = globalThis.__generatorTabsMock.copy;\nconst $r = name => name;'))).GeneratorPanel;
+    '\nconst copySensitiveText = globalThis.__generatorTabsMock.copy;\nconst $r = name => name;\nconst TouchType = { Down: 0, Up: 1, Move: 2, Cancel: 3 };\nconst SourceType = { TouchScreen: 1, Mouse: 2, Keyboard: 4, None: 0 };'))).GeneratorPanel;
   Page = (await import(url(replaceImports(componentMethods(read('GeneratorPage.ets'), 'GeneratorPage'), deps)))).GeneratorPage;
   Panel.prototype.getUIContext = Page.prototype.getUIContext = () => ({ getHostContext: () => ({}) });
   delete globalThis.__generatorTabsMock;
@@ -374,4 +374,83 @@ test('selection notifications before lazy child appearance use the current index
   assert.equal(generated.length, 1);
   pin.onSelectedIndexChanged();
   assert.equal(generated.length, 1);
+});
+
+
+function touch(target, type, x = 20, y = 20, extra = {}) {
+  const point = { id: 1, x, y };
+  target.onResultTouch({ type, touches: type === 1 || type === 3 ? [] : [point],
+    changedTouches: [point], ...extra });
+}
+
+test('press and release only change feedback state; native click copies the exact hidden or shown result once', async () => {
+  for (const mode of [core.GeneratorMode.PASSWORD, core.GeneratorMode.PASSPHRASE, core.GeneratorMode.PIN]) {
+    const current = panel(mode);
+    current.resultWidth = 240; current.resultHeight = 100;
+    for (const revealed of [true, false]) {
+      current.revealed = revealed;
+      const before = copies.length;
+      touch(current, 0);
+      assert.equal(current.resultPressed, true);
+      assert.equal(copies.length, before);
+      touch(current, 1);
+      assert.equal(current.resultPressed, false);
+      assert.equal(copies.length, before);
+      current.onResultClick({ source: 1 });
+      assert.equal(copies.length, before + 1);
+      assert.equal(copies.at(-1).value, current.value);
+      // A second click while the platform copy is pending cannot create another write.
+      current.onResultClick({ source: 1 });
+      assert.equal(copies.length, before + 1);
+      copies.at(-1).resolve(true); await settle();
+    }
+  }
+});
+
+test('movement, leaving the result, scrolling, multi-touch and cancellation cannot copy even on a late click', () => {
+  const current = panel(core.GeneratorMode.PIN);
+  current.resultWidth = 240; current.resultHeight = 100;
+  const cancelGestures = [
+    () => touch(current, 2, 20, 40),
+    () => touch(current, 2, -1, 20),
+    () => { current.resultWidth = 22; touch(current, 2, 23, 20); },
+    () => current.cancelResultPress(), // Scroll.onScrollStart
+    () => touch(current, 0, 20, 20, { touches: [{ id: 1, x: 20, y: 20 }, { id: 2, x: 30, y: 20 }] }),
+    () => touch(current, 3)
+  ];
+  for (const cancel of cancelGestures) {
+    current.resultWidth = 240;
+    touch(current, 0); assert.equal(current.resultPressed, true);
+    cancel(); assert.equal(current.resultPressed, false);
+    touch(current, 1); current.onResultClick({ source: 1 });
+    assert.equal(copies.length, 0);
+  }
+});
+
+test('changing rules or leaving a tab cancels the press and blocked results cannot copy', () => {
+  const current = panel(core.GeneratorMode.PIN);
+  touch(current, 0);
+  current.options.pinLength = 8; current.optionsChanged();
+  assert.equal(current.resultPressed, false);
+  current.onResultClick({ source: 1 });
+  current.onResultClick({ source: 4 });
+  assert.equal(copies.length, 0);
+  current.regenerate(false);
+  touch(current, 0); activate(current, false);
+  assert.equal(current.resultPressed, false);
+  current.onResultClick({ source: 1 });
+  current.onResultClick({ source: 4 });
+  assert.equal(copies.length, 0);
+});
+
+test('keyboard, mouse and accessibility activation remain usable without touch feedback', async () => {
+  const current = panel(core.GeneratorMode.PIN);
+  for (const source of [0, 2, 4]) {
+    touch(current, 0); touch(current, 3);
+    const before = copies.length;
+    current.onResultClick({ source });
+    assert.equal(copies.length, before + 1);
+    assert.equal(copies.at(-1).value, current.value);
+    copies.at(-1).resolve(true); await settle();
+  }
 });
