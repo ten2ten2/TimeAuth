@@ -4,10 +4,58 @@ import { GeneratorMode, GeneratorOptions, GeneratorValidation, validateGenerator
 
 const PREFERENCES_NAME: string = 'timeauth_preferences';
 const OPTIONS_KEY: string = 'timeauth.generator.options.v1';
+const MODE_KEY: string = 'timeauth.generator.mode.v1';
+
+function tabOptionsKey(mode: GeneratorMode): string {
+  return `timeauth.generator.options.${mode}.v2`;
+}
 
 export class GeneratorPreferencesResult {
   options: GeneratorOptions = new GeneratorOptions();
   succeeded: boolean = true;
+}
+
+export class GeneratorModePreferencesResult {
+  mode: GeneratorMode = GeneratorMode.PASSWORD;
+  succeeded: boolean = true;
+}
+
+export function readGeneratorMode(context: common.Context): GeneratorModePreferencesResult {
+  const result: GeneratorModePreferencesResult = new GeneratorModePreferencesResult();
+  try {
+    const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
+    const raw: preferences.ValueType = store.getSync(MODE_KEY, '');
+    if (raw === GeneratorMode.PASSWORD || raw === GeneratorMode.PASSPHRASE) {
+      result.mode = raw as GeneratorMode;
+    } else if (raw === '') {
+      const legacy: preferences.ValueType = store.getSync(OPTIONS_KEY, '');
+      if (typeof legacy === 'string' && legacy !== '') {
+        const saved: GeneratorOptions = JSON.parse(legacy) as GeneratorOptions;
+        if (saved !== null && saved.mode === GeneratorMode.PASSPHRASE) {
+          result.mode = GeneratorMode.PASSPHRASE;
+        }
+      }
+    } else {
+      result.succeeded = false;
+    }
+  } catch (_) {
+    result.succeeded = false;
+  }
+  return result;
+}
+
+export async function saveGeneratorMode(context: common.Context, mode: GeneratorMode): Promise<boolean> {
+  if (mode !== GeneratorMode.PASSWORD && mode !== GeneratorMode.PASSPHRASE) {
+    return false;
+  }
+  try {
+    const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
+    store.putSync(MODE_KEY, mode);
+    await store.flush();
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 // Keep a whitelist: a password/result must never enter the preferences payload.
@@ -30,11 +78,17 @@ export function copyGeneratorOptions(source: GeneratorOptions): GeneratorOptions
   return options;
 }
 
-export function readGeneratorOptions(context: common.Context): GeneratorPreferencesResult {
+export function readGeneratorOptions(context: common.Context,
+  mode: GeneratorMode = GeneratorMode.PASSWORD): GeneratorPreferencesResult {
   const result: GeneratorPreferencesResult = new GeneratorPreferencesResult();
+  result.options.mode = mode;
   try {
     const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
-    const raw: preferences.ValueType = store.getSync(OPTIONS_KEY, '');
+    // Migrate each tab lazily, so saving one tab cannot erase the other tab's legacy rules.
+    let raw: preferences.ValueType = store.getSync(tabOptionsKey(mode), '');
+    if (raw === '') {
+      raw = store.getSync(OPTIONS_KEY, '');
+    }
     if (raw === '') {
       return result;
     }
@@ -58,8 +112,10 @@ export function readGeneratorOptions(context: common.Context): GeneratorPreferen
       return result;
     }
     result.options = copyGeneratorOptions(saved);
+    result.options.mode = mode;
     if (validateGeneratorOptions(result.options) !== GeneratorValidation.VALID) {
       result.options = new GeneratorOptions();
+      result.options.mode = mode;
       result.succeeded = false;
     }
   } catch (_) {
@@ -75,7 +131,7 @@ export async function saveGeneratorOptions(context: common.Context, options: Gen
   }
   try {
     const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
-    store.putSync(OPTIONS_KEY, JSON.stringify(copyGeneratorOptions(options)));
+    store.putSync(tabOptionsKey(options.mode), JSON.stringify(copyGeneratorOptions(options)));
     await store.flush();
     return true;
   } catch (_) {

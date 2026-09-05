@@ -1,4 +1,4 @@
-import { GeneratorFailure, GeneratorOptions } from './GeneratorCore';
+import { GeneratorFailure, GeneratorMode, GeneratorOptions } from './GeneratorCore';
 
 export class GeneratorSession {
   initialized: boolean = false;
@@ -7,17 +7,38 @@ export class GeneratorSession {
   entropyBits: number = 0;
   generatedFor: string = '';
   generationFailure: GeneratorFailure = GeneratorFailure.NONE;
+  preferencesFailed: boolean = false;
+  preferenceRevision: number = 0;
+
+  constructor(mode: GeneratorMode = GeneratorMode.PASSWORD) {
+    this.options.mode = mode;
+  }
 }
 
 // Memory only. Survives page recreation and language/theme changes, never process restart.
-let session: GeneratorSession = new GeneratorSession();
+let passwordSession: GeneratorSession = new GeneratorSession(GeneratorMode.PASSWORD);
+let passphraseSession: GeneratorSession = new GeneratorSession(GeneratorMode.PASSPHRASE);
+let selectedMode: GeneratorMode | undefined = undefined;
 
-export function getGeneratorSession(): GeneratorSession {
-  return session;
+export function getGeneratorSession(mode: GeneratorMode = GeneratorMode.PASSWORD): GeneratorSession {
+  return mode === GeneratorMode.PASSPHRASE ? passphraseSession : passwordSession;
+}
+
+export function getSelectedGeneratorMode(): GeneratorMode | undefined {
+  return selectedMode;
+}
+
+export function setSelectedGeneratorMode(mode: GeneratorMode): void {
+  selectedMode = mode;
 }
 
 export function clearGeneratorSession(): void {
-  session.value = '';
-  session.generatedFor = '';
-  session = new GeneratorSession();
+  for (const session of [passwordSession, passphraseSession]) {
+    session.value = '';
+    session.generatedFor = '';
+    session.entropyBits = 0;
+  }
+  passwordSession = new GeneratorSession(GeneratorMode.PASSWORD);
+  passphraseSession = new GeneratorSession(GeneratorMode.PASSPHRASE);
+  selectedMode = undefined;
 }

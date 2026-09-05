@@ -1,6 +1,6 @@
 // Node 22.13+; run actual ArkTS modules with only ArkData/AbilityKit substituted.
 const assert = require('node:assert/strict');
-const { before, test } = require('node:test');
+const { before, beforeEach, test } = require('node:test');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { stripTypeScriptTypes } = require('node:module');
@@ -8,6 +8,7 @@ const directory = join(__dirname, '../entry/src/main/ets/features/generator');
 let core, settings, session;
 let stored = '';
 let writes = [];
+const tabStorage = new Map();
 let failRead = false;
 let failWrite = false;
 let failFlush = false;
@@ -25,13 +26,13 @@ before(async () => {
       if (failRead) throw new Error('private data must not be logged');
       return {
         getSync(key, fallback) {
-          assert.equal(key, 'timeauth.generator.options.v1');
-          return stored === undefined ? fallback : stored;
+          if (key === 'timeauth.generator.options.v1') return stored === undefined ? fallback : stored;
+          return tabStorage.has(key) ? tabStorage.get(key) : fallback;
         },
         putSync(key, value) {
           if (failWrite) throw new Error('write failed');
           writes.push({ key, value });
-          stored = value;
+          tabStorage.set(key, value);
         },
         async flush() {
           if (failFlush) throw new Error('flush failed');
@@ -50,6 +51,8 @@ before(async () => {
     .replace("'./GeneratorCore'", JSON.stringify(coreUrl))));
   delete globalThis.__generatorPreferencesMock;
 });
+
+beforeEach(() => { stored = undefined; writes = []; tabStorage.clear(); session.clearGeneratorSession(); });
 
 test('missing preferences use valid defaults', () => {
   stored = undefined;
@@ -103,14 +106,14 @@ test('passphrase mode and rules persist while generated values remain excluded',
   const configuration = Object.assign(new core.GeneratorOptions(), { mode: core.GeneratorMode.PASSPHRASE,
     wordCount: 10, separator: '_', capitalize: true, appendNumber: true, value: 'DO_NOT_PERSIST' });
   assert.equal(await settings.saveGeneratorOptions({}, configuration), true);
-  const result = settings.readGeneratorOptions({});
+  const result = settings.readGeneratorOptions({}, core.GeneratorMode.PASSPHRASE);
   assert.equal(result.succeeded, true);
   assert.equal(result.options.mode, core.GeneratorMode.PASSPHRASE);
   assert.equal(result.options.wordCount, 10);
   assert.equal(result.options.separator, '_');
   assert.equal(result.options.capitalize, true);
   assert.equal(result.options.appendNumber, true);
-  assert.equal(stored.includes('DO_NOT_PERSIST'), false);
+  assert.equal(writes.at(-1).value.includes('DO_NOT_PERSIST'), false);
 });
 
 test('malformed passphrase settings do not become active preferences', () => {
@@ -177,4 +180,98 @@ test('session survives repeated page access and explicit teardown discards the p
   assert.equal(fresh.value, '');
   assert.equal(fresh.options.length, 16);
   assert.equal(fresh.generationFailure, core.GeneratorFailure.NONE);
+});
+
+
+test('each tab migrates legacy settings independently even after the other tab has saved', async () => {
+  stored = JSON.stringify({ ...new core.GeneratorOptions(), mode: core.GeneratorMode.PASSPHRASE,
+    length: 31, symbols: '!@', wordCount: 8, separator: '_', capitalize: true });
+  const password = settings.readGeneratorOptions({}, core.GeneratorMode.PASSWORD).options;
+  assert.equal(password.mode, core.GeneratorMode.PASSWORD);
+  assert.equal(password.length, 31);
+  password.length = 64;
+  assert.equal(await settings.saveGeneratorOptions({}, password), true);
+  const phrase = settings.readGeneratorOptions({}, core.GeneratorMode.PASSPHRASE).options;
+  assert.equal(phrase.wordCount, 8);
+  assert.equal(phrase.separator, '_');
+  assert.equal(phrase.capitalize, true);
+  phrase.wordCount = 10;
+  await settings.saveGeneratorOptions({}, phrase);
+  assert.equal(settings.readGeneratorOptions({}, core.GeneratorMode.PASSWORD).options.length, 64);
+  assert.equal(settings.readGeneratorOptions({}, core.GeneratorMode.PASSPHRASE).options.wordCount, 10);
+  assert.equal(JSON.parse(stored).length, 31);
+});
+
+test('interleaved saves from stale tab snapshots never overwrite the other tab or selected mode', async () => {
+  const password = settings.readGeneratorOptions({}, core.GeneratorMode.PASSWORD).options;
+  const phrase = settings.readGeneratorOptions({}, core.GeneratorMode.PASSPHRASE).options;
+  password.length = 48;
+  phrase.wordCount = 9;
+  await Promise.all([settings.saveGeneratorOptions({}, password), settings.saveGeneratorOptions({}, phrase),
+    settings.saveGeneratorMode({}, core.GeneratorMode.PASSPHRASE)]);
+  password.length = 96;
+  await settings.saveGeneratorOptions({}, password);
+  assert.equal(settings.readGeneratorOptions({}, core.GeneratorMode.PASSWORD).options.length, 96);
+  assert.equal(settings.readGeneratorOptions({}, core.GeneratorMode.PASSPHRASE).options.wordCount, 9);
+  assert.equal(settings.readGeneratorMode({}).mode, core.GeneratorMode.PASSPHRASE);
+});
+
+test('invalid password drafts and damaged password storage do not block the phrase tab', async () => {
+  const phrase = Object.assign(new core.GeneratorOptions(), { mode: core.GeneratorMode.PASSPHRASE, wordCount: 7 });
+  await settings.saveGeneratorOptions({}, phrase);
+  const bad = Object.assign(new core.GeneratorOptions(), { length: 0 });
+  assert.equal(await settings.saveGeneratorOptions({}, bad), false);
+  tabStorage.set('timeauth.generator.options.password.v2', '{');
+  assert.equal(settings.readGeneratorOptions({}, core.GeneratorMode.PASSWORD).succeeded, false);
+  const read = settings.readGeneratorOptions({}, core.GeneratorMode.PASSPHRASE);
+  assert.equal(read.succeeded, true);
+  assert.equal(read.options.wordCount, 7);
+  tabStorage.set('timeauth.generator.options.passphrase.v2', '{');
+  const failed = settings.readGeneratorOptions({}, core.GeneratorMode.PASSPHRASE);
+  assert.equal(failed.succeeded, false);
+  assert.equal(failed.options.mode, core.GeneratorMode.PASSPHRASE);
+});
+
+test('selected tab migrates, persists separately and handles storage failures', async () => {
+  assert.equal(settings.readGeneratorMode({}).mode, core.GeneratorMode.PASSWORD);
+  stored = JSON.stringify({ ...new core.GeneratorOptions(), mode: core.GeneratorMode.PASSPHRASE });
+  assert.equal(settings.readGeneratorMode({}).mode, core.GeneratorMode.PASSPHRASE);
+  await settings.saveGeneratorMode({}, core.GeneratorMode.PASSWORD);
+  assert.equal(settings.readGeneratorMode({}).mode, core.GeneratorMode.PASSWORD);
+  assert.equal(await settings.saveGeneratorMode({}, 'pin'), false);
+  tabStorage.set('timeauth.generator.mode.v1', 42);
+  assert.equal(settings.readGeneratorMode({}).succeeded, false);
+  failRead = true;
+  assert.equal(settings.readGeneratorMode({}).succeeded, false);
+  assert.equal(await settings.saveGeneratorMode({}, core.GeneratorMode.PASSWORD), false);
+  failRead = false;
+  failFlush = true;
+  assert.equal(await settings.saveGeneratorMode({}, core.GeneratorMode.PASSPHRASE), false);
+  failFlush = false;
+});
+
+test('sessions isolate results, drafts and errors; teardown clears both retained result references', () => {
+  const password = session.getGeneratorSession(core.GeneratorMode.PASSWORD);
+  const phrase = session.getGeneratorSession(core.GeneratorMode.PASSPHRASE);
+  assert.notEqual(password, phrase);
+  assert.notEqual(password.options, phrase.options);
+  password.value = 'PASSWORD_ONLY';
+  password.options.length = 0;
+  password.generationFailure = core.GeneratorFailure.UNAVAILABLE;
+  phrase.value = 'PHRASE_ONLY';
+  phrase.generatedFor = 'phrase-rules';
+  phrase.entropyBits = 77.55;
+  assert.equal(phrase.options.mode, core.GeneratorMode.PASSPHRASE);
+  assert.equal(phrase.options.wordCount, 6);
+  assert.equal(phrase.generationFailure, core.GeneratorFailure.NONE);
+  session.setSelectedGeneratorMode(core.GeneratorMode.PASSPHRASE);
+  assert.equal(session.getSelectedGeneratorMode(), core.GeneratorMode.PASSPHRASE);
+  assert.equal(session.getGeneratorSession(core.GeneratorMode.PASSWORD).value, 'PASSWORD_ONLY');
+  session.clearGeneratorSession();
+  assert.equal(password.value, '');
+  assert.equal(phrase.value, '');
+  assert.equal(phrase.generatedFor, '');
+  assert.equal(phrase.entropyBits, 0);
+  assert.equal(session.getSelectedGeneratorMode(), undefined);
+  assert.notEqual(session.getGeneratorSession(core.GeneratorMode.PASSPHRASE), phrase);
 });
