@@ -16,8 +16,7 @@ export struct AppRoot {
   @State private savingOnboarding: boolean = false;
   @State private onboardingSaveFailed: boolean = false;
   private stageTransition: TransitionEffect = TransitionEffect.OPACITY
-    .animation({ duration: 180, curve: Curve.EaseOut })
-    .combine(TransitionEffect.translate({ y: 6 }));
+    .animation({ duration: 180, curve: Curve.EaseOut });
 
   private applyScreenSecurity(page: ScreenSecurityPage): void {
     const context = this.getUIContext().getHostContext();
