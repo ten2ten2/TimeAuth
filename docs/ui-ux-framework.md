@@ -48,7 +48,9 @@ Normal foreground page/tab navigation must not show the opaque privacy cover. Na
 
 ## Clipboard
 
-Sensitive values copied by TimeAuth are restricted to the local device. When automatic clearing is enabled, TimeAuth schedules a 30-second clear and avoids deleting newer clipboard data written afterward.
+Sensitive values copied by TimeAuth are restricted to the local device. When automatic clearing is enabled, TimeAuth schedules a best-effort 30-second clear guarded by both the clipboard source and the `getChangeCount()` revision; the revision also distinguishes newer copies from the same app or copies of identical text. Changed ownership metadata cancels cleanup, and unverifiable metadata prevents clearing. Pending deadlines are retried when the app returns to the foreground. Background restrictions can delay cleanup, and process termination can prevent it. The OS has no atomic compare-and-clear operation, so a cross-process race between verification and synchronous clearing remains possible.
+
+See [password-generator.md](password-generator.md) for the real password generator, the 40-test host verification result, and the generator/clipboard device acceptance checklist. Host platform APIs are mocked; native HAP and real-device validation remain outstanding.
 
 ## Real-device acceptance checklist
 

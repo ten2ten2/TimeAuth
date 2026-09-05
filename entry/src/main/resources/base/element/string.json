@@ -69,7 +69,7 @@
     { "name": "vault_linked_code", "value": "Authenticator linked" },
     { "name": "vault_feature_later_feedback", "value": "This item type will be added in the local vault phase" },
     { "name": "generator_title", "value": "Password generator" },
-    { "name": "generator_subtitle", "value": "Adjust options to preview the interaction. Current values are not cryptographically secure random results." },
+    { "name": "generator_subtitle", "value": "Generate a random password offline, then copy it when you are ready." },
     { "name": "generator_mode_password", "value": "Password" },
     { "name": "generator_mode_passphrase", "value": "Passphrase" },
     { "name": "generator_mode_pin", "value": "PIN" },
@@ -123,7 +123,7 @@
     { "name": "about_version_label", "value": "Version" },
     { "name": "about_privacy_title", "value": "Privacy & security" },
     { "name": "about_privacy_summary", "value": "What TimeAuth stores, protects, and never uploads" },
-    { "name": "about_privacy_body", "value": "Current build: no account or cloud sync is used. Theme, language, and security preferences are stored locally on the device. Authenticator and vault entries shown in this preview are mock data.\n\nSensitive screens (Unlock, Authenticator, Vault, and Generator) block screenshots and screen recording. Onboarding, Settings, and About allow capture. If Hide recent-app preview is enabled, the window is protected while paused or hidden.\n\nValues copied by TimeAuth are restricted to the local device. When automatic clipboard clearing is enabled, TimeAuth attempts to clear its own copied value after 30 seconds and will not clear newer clipboard content written by another app.\n\nTimeAuth does not transmit these preferences or preview data to a TimeAuth server in the current build." },
+    { "name": "about_privacy_body", "value": "Current build: no account or cloud sync is used. Theme, language, security, and password-generation preferences are stored locally on the device. Authenticator and vault entries are still mock data. The password generator uses the system cryptographically secure random source. Generated passwords stay in memory; TimeAuth does not save them to disk, write them to logs, or upload them. Copying puts a password on the local-device clipboard.\n\nSensitive screens (Unlock, Authenticator, Vault, and Generator) block screenshots and screen recording. Onboarding, Settings, and About allow capture. If Hide recent-app preview is enabled, the window is protected while paused or hidden.\n\nWhen automatic clipboard clearing is enabled, TimeAuth checks whether its copied value is still current before attempting to clear it after 30 seconds. Background execution limits may delay or prevent clearing.\n\nTimeAuth does not transmit these preferences, generated passwords, or preview data to a TimeAuth server in the current build." },
     { "name": "about_platform_title", "value": "Minimum system" },
     { "name": "about_platform_value", "value": "HarmonyOS 6.0 / API 20" },
     { "name": "about_local_first_note", "value": "No account or cloud connection is required by the current build." }

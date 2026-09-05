@@ -1,0 +1,31 @@
+{
+  "string": [
+    { "name": "generator_offline", "value": "OFFLINE" },
+    { "name": "generator_lowercase", "value": "Lowercase letters" },
+    { "name": "generator_lowercase_detail", "value": "Include a–z" },
+    { "name": "generator_require_each", "value": "Use every selected type" },
+    { "name": "generator_require_each_detail", "value": "Include at least one character from each enabled type" },
+    { "name": "generator_advanced", "value": "Advanced options" },
+    { "name": "generator_custom_symbols", "value": "Allowed symbols" },
+    { "name": "generator_custom_symbols_detail", "value": "Use standard English keyboard punctuation. Duplicates count once; spaces are not allowed." },
+    { "name": "generator_reset_symbols", "value": "Reset symbols" },
+    { "name": "generator_show", "value": "Show password" },
+    { "name": "generator_hide", "value": "Hide password" },
+    { "name": "generator_empty", "value": "Generate a password to get started" },
+    { "name": "generator_generate_failed", "value": "Could not generate a secure password. Try again." },
+    { "name": "generator_invalid_length", "value": "Enter a whole number from 8 to 128." },
+    { "name": "generator_no_characters", "value": "Keep at least one character type enabled." },
+    { "name": "generator_invalid_symbols", "value": "Use standard English keyboard punctuation only, without letters, numbers or spaces." },
+    { "name": "generator_empty_symbols", "value": "Add at least one symbol, or turn off special characters." },
+    { "name": "generator_options_changed", "value": "Options changed. Regenerate before copying." },
+    { "name": "generator_strength_weak", "value": "Weak" },
+    { "name": "generator_strength_fair", "value": "Fair" },
+    { "name": "generator_strength_strong", "value": "Strong" },
+    { "name": "generator_strength_very_strong", "value": "Very strong" },
+    { "name": "generator_strength_detail", "value": "Estimated entropy: %s bits. Based on these generation rules; not a prediction of cracking time." },
+    { "name": "generator_local_notice", "value": "Only generation settings are saved. Passwords stay in this app session unless you copy them." },
+    { "name": "generator_preferences_failed", "value": "Could not load or save these settings. Check them after restarting the app." },
+    { "name": "generator_generated", "value": "New password generated" },
+    { "name": "generator_length_hint", "value": "8–128 characters; default 20" }
+  ]
+}

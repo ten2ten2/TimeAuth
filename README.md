@@ -2,7 +2,7 @@
 
 HarmonyOS-native authenticator and password-manager project.
 
-> Current OTP, vault and generator contents are demonstration data. Do not store real credentials in this build.
+> Authenticator and vault contents are still demonstration data, and unlock is not real authentication. Do not store real credentials in the mock vault. The password generator now produces real random passwords locally; it does not save generated passwords.
 
 ## Build
 
@@ -25,13 +25,15 @@ TimeAuth is proprietary, closed-source software. All rights reserved. Third-part
 | Language | Implemented: System / Simplified Chinese / Traditional Chinese (Taiwan) / Traditional Chinese (Hong Kong) / English, with locale-specific resources and English fallback. |
 | Screen capture policy | Implemented in code: Onboarding, Settings and About allow capture; Unlock, Authenticator, Vault and Generator are protected. |
 | Recent-app preview protection | Implemented in code with native privacy mode plus an opaque root cover; still requires real-device acceptance testing on each target OS/device. |
-| Clipboard | Implemented: local-device clipboard writes and guarded 30-second automatic clearing. |
+| Clipboard | Implemented: local-device clipboard writes, revision-guarded best-effort 30-second clearing, and foreground retry of pending deadlines. |
+| Password generator | Implemented: system cryptographic randomness, 8–128 characters, configurable character types and symbols, estimated entropy, show/hide, copy, session retention, and locally saved generation settings. |
 | About | Implemented: installed version, privacy/security information, proprietary-license notice, platform notices, and native ArkUI detail dialogs. |
 | Biometric unlock | Preview only. |
 | Backup / restore | Not implemented. |
 | Authenticator import / export | Not implemented. |
 | OTP / password persistence | Not implemented; mock repository only. |
-| Real OTP/password generation | Not implemented. |
+| Real OTP generation | Not implemented. |
+| Passphrase / PIN generation | Not implemented; the generator currently supports random passwords only. |
 
 ## Language mapping
 
@@ -45,9 +47,15 @@ Sensitive-page screenshot/recording protection is an application policy, not a u
 
 Recent-app task snapshots are partly controlled by the operating system compositor. Code-level privacy handling must therefore be verified on real hardware; the goal is to hide the card content, not remove the app itself from the task list.
 
+Generated passwords are kept in memory for the current app session, without disk persistence, logging, or network transmission. Copying writes the current password to the local-device clipboard. Generator preferences contain rules only, never password values or history.
+
+Automatic clipboard clearing is best effort. TimeAuth checks the clipboard source and change count before clearing, and retries pending deadlines when the app returns to the foreground. Background execution restrictions can delay clearing, and process termination can prevent it. The OS offers no atomic compare-and-clear operation, so the metadata guard cannot eliminate every cross-process race.
+
 ## Documentation
 
 See [docs/ui-ux-framework.md](docs/ui-ux-framework.md) for UI rules, preference behavior and the focused real-device acceptance checklist.
+
+See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 40 host tests passed: 11 generator-engine, 6 settings/session, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
 
 ## Next milestone
 

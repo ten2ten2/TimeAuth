@@ -1,0 +1,31 @@
+{
+  "string": [
+    { "name": "generator_offline", "value": "離線產生" },
+    { "name": "generator_lowercase", "value": "小寫英文字母" },
+    { "name": "generator_lowercase_detail", "value": "包含 a–z" },
+    { "name": "generator_require_each", "value": "每種已選類型至少一個" },
+    { "name": "generator_require_each_detail", "value": "確保密碼包含每種已啟用類型的字元" },
+    { "name": "generator_advanced", "value": "進階選項" },
+    { "name": "generator_custom_symbols", "value": "允許使用的符號" },
+    { "name": "generator_custom_symbols_detail", "value": "只支援半形標點符號，重複符號只計算一次，不接受空格。" },
+    { "name": "generator_reset_symbols", "value": "還原預設符號" },
+    { "name": "generator_show", "value": "顯示密碼" },
+    { "name": "generator_hide", "value": "隱藏密碼" },
+    { "name": "generator_empty", "value": "產生密碼以開始使用" },
+    { "name": "generator_generate_failed", "value": "無法安全產生密碼，請重試。" },
+    { "name": "generator_invalid_length", "value": "請輸入 8～128 之間的整數。" },
+    { "name": "generator_no_characters", "value": "請至少啟用一種字元類型。" },
+    { "name": "generator_invalid_symbols", "value": "符號只可使用半形標點，不能包含字母、數字或空格。" },
+    { "name": "generator_empty_symbols", "value": "請至少填入一個符號，或關閉特殊字元。" },
+    { "name": "generator_options_changed", "value": "選項已更改，請重新產生後再複製。" },
+    { "name": "generator_strength_weak", "value": "弱" },
+    { "name": "generator_strength_fair", "value": "一般" },
+    { "name": "generator_strength_strong", "value": "強" },
+    { "name": "generator_strength_very_strong", "value": "很強" },
+    { "name": "generator_strength_detail", "value": "估算熵值：%s 位元。按目前產生規則計算，不代表破解所需時間。" },
+    { "name": "generator_local_notice", "value": "只儲存產生設定。密碼只保留在本次應用程式使用期間，複製後會寫入剪貼簿。" },
+    { "name": "generator_preferences_failed", "value": "無法讀取或儲存這些設定，請在重新啟動應用程式後檢查選項。" },
+    { "name": "generator_generated", "value": "已產生新密碼" },
+    { "name": "generator_length_hint", "value": "8～128 個字元，預設 20 個" }
+  ]
+}

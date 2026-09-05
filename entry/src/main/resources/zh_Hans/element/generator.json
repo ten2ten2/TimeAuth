@@ -1,0 +1,31 @@
+{
+  "string": [
+    { "name": "generator_offline", "value": "离线生成" },
+    { "name": "generator_lowercase", "value": "小写字母" },
+    { "name": "generator_lowercase_detail", "value": "包含 a–z" },
+    { "name": "generator_require_each", "value": "每种已选类型至少一个" },
+    { "name": "generator_require_each_detail", "value": "确保密码包含每种已开启类型的字符" },
+    { "name": "generator_advanced", "value": "高级选项" },
+    { "name": "generator_custom_symbols", "value": "允许使用的符号" },
+    { "name": "generator_custom_symbols_detail", "value": "仅支持半角标点符号，重复符号只计算一次，不支持空格。" },
+    { "name": "generator_reset_symbols", "value": "恢复默认符号" },
+    { "name": "generator_show", "value": "显示密码" },
+    { "name": "generator_hide", "value": "隐藏密码" },
+    { "name": "generator_empty", "value": "生成一个密码开始使用" },
+    { "name": "generator_generate_failed", "value": "无法安全生成密码，请重试。" },
+    { "name": "generator_invalid_length", "value": "请输入 8～128 之间的整数。" },
+    { "name": "generator_no_characters", "value": "请至少开启一种字符类型。" },
+    { "name": "generator_invalid_symbols", "value": "符号只能使用半角标点，不能包含字母、数字或空格。" },
+    { "name": "generator_empty_symbols", "value": "请至少填写一个符号，或关闭特殊字符。" },
+    { "name": "generator_options_changed", "value": "选项已更改，请重新生成后再复制。" },
+    { "name": "generator_strength_weak", "value": "弱" },
+    { "name": "generator_strength_fair", "value": "一般" },
+    { "name": "generator_strength_strong", "value": "强" },
+    { "name": "generator_strength_very_strong", "value": "很强" },
+    { "name": "generator_strength_detail", "value": "估算熵值：%s 比特。根据当前生成规则计算，不代表破解所需时间。" },
+    { "name": "generator_local_notice", "value": "仅保存生成设置。密码只保留在本次应用会话中，复制后会写入剪贴板。" },
+    { "name": "generator_preferences_failed", "value": "无法读取或保存这些设置，请在重启应用后检查选项。" },
+    { "name": "generator_generated", "value": "已生成新密码" },
+    { "name": "generator_length_hint", "value": "8～128 位，默认 20 位" }
+  ]
+}

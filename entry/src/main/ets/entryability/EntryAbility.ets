@@ -3,6 +3,7 @@ import { window } from '@kit.ArkUI';
 import { BusinessError, commonEventManager } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { applyThemePreference, readThemePreference } from '../design/ThemeManager';
+import { clearGeneratorSession } from '../features/generator/GeneratorSession';
 import {
   applyLanguagePreference, readLanguagePreference, refreshSystemLanguage
 } from '../localization/LanguageManager';
@@ -10,6 +11,7 @@ import {
   attachScreenSecurity, detachScreenSecurity, handleWindowEvent,
   handleWindowStageLifecycle, markScreenContentReady, reportScreenSecuritySetupFailure, setScreenAbilityForeground
 } from '../security/ScreenSecurityManager';
+import { disposeSensitiveClipboard, resumeSensitiveClipboardClear } from '../security/SecureClipboard';
 
 export default class EntryAbility extends UIAbility {
   private windowStage: window.WindowStage | undefined = undefined;
@@ -87,6 +89,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   onForeground(): void {
+    resumeSensitiveClipboardClear();
     if (this.contentLoaded) {
       // Covers missed/delayed locale broadcasts after changing the system language in Settings.
       refreshSystemLanguage(this.context);
@@ -123,6 +126,8 @@ export default class EntryAbility extends UIAbility {
   }
 
   onDestroy(): void {
+    disposeSensitiveClipboard();
+    clearGeneratorSession();
     const subscriber: commonEventManager.CommonEventSubscriber | undefined = this.localeSubscriber;
     this.localeSubscriber = undefined;
     if (subscriber !== undefined) {
