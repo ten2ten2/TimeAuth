@@ -143,26 +143,44 @@ export struct SettingsPage {
     this.languageDialogController.open();
   }
 
-  private selectTheme(preference: ThemePreference, index: number): void {
+  private async selectTheme(preference: ThemePreference, index: number): Promise<void> {
     this.themePreference = preference;
     this.themeDialogIndex = index;
     const context: common.Context | undefined = this.getUIContext().getHostContext();
-    if (context !== undefined) {
-      saveThemePreference(context, preference);
+    if (context === undefined) {
+      this.themeDialogController.close();
+      return;
     }
+
+    const saved: boolean = await saveThemePreference(context, preference);
+    if (!saved) {
+      this.themePreference = readThemePreference(context);
+      this.themeDialogIndex = this.themePreferenceIndex();
+      this.themeDialogController.close();
+      return;
+    }
+
     this.themeDialogController.close();
-    if (context !== undefined) {
-      applyThemePreference(context, preference);
-    }
+    applyThemePreference(context, preference);
   }
 
-  private selectLanguage(preference: LanguagePreference, index: number): void {
+  private async selectLanguage(preference: LanguagePreference, index: number): Promise<void> {
     this.languagePreference = preference;
     this.languageDialogIndex = index;
     const context: common.Context | undefined = this.getUIContext().getHostContext();
-    if (context !== undefined) {
-      saveLanguagePreference(context, preference);
+    if (context === undefined) {
+      this.languageDialogController.close();
+      return;
     }
+
+    const saved: boolean = await saveLanguagePreference(context, preference);
+    if (!saved) {
+      this.languagePreference = readLanguagePreference(context);
+      this.languageDialogIndex = this.languagePreferenceIndex();
+      this.languageDialogController.close();
+      return;
+    }
+
     this.languageDialogController.close();
     applyLanguagePreference(preference);
   }
