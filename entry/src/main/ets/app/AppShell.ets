@@ -11,6 +11,9 @@ export struct AppShell {
   @State private selectedIndex: number = 0;
   @State private currentBreakpoint: string = 'xs';
   @State private showAbout: boolean = false;
+  private pageTransition: TransitionEffect = TransitionEffect.OPACITY
+    .animation({ duration: 160, curve: Curve.EaseOut })
+    .combine(TransitionEffect.translate({ y: 6 }));
 
   private isExpanded(): boolean {
     return this.currentBreakpoint === 'md' ||
@@ -33,6 +36,9 @@ export struct AppShell {
   }
 
   private selectPage(index: number): void {
+    if (index === this.selectedIndex && !this.showAbout) {
+      return;
+    }
     this.showAbout = false;
     const context = this.getUIContext().getHostContext();
     if (context !== undefined) {
@@ -42,6 +48,9 @@ export struct AppShell {
   }
 
   private openAbout(): void {
+    if (this.showAbout) {
+      return;
+    }
     const context = this.getUIContext().getHostContext();
     if (context !== undefined) {
       setCurrentScreen(context, ScreenSecurityPage.ABOUT);
@@ -67,34 +76,60 @@ export struct AppShell {
   @Builder
   CurrentPage() {
     if (this.selectedIndex === 0) {
-      AuthenticatorPage()
+      Column() {
+        AuthenticatorPage()
+      }
+      .width('100%')
+      .height('100%')
+      .transition(this.pageTransition)
     } else if (this.selectedIndex === 1) {
-      PasswordVaultPage()
+      Column() {
+        PasswordVaultPage()
+      }
+      .width('100%')
+      .height('100%')
+      .transition(this.pageTransition)
     } else if (this.selectedIndex === 2) {
-      GeneratorPage()
+      Column() {
+        GeneratorPage()
+      }
+      .width('100%')
+      .height('100%')
+      .transition(this.pageTransition)
     } else if (this.showAbout) {
-      AboutPage({
-        onBack: () => {
-          this.closeAbout();
-        }
-      })
+      Column() {
+        AboutPage({
+          onBack: () => {
+            this.closeAbout();
+          }
+        })
+      }
+      .width('100%')
+      .height('100%')
+      .transition(this.pageTransition)
     } else {
-      SettingsPage({
-        onOpenAbout: () => {
-          this.openAbout();
-        }
-      })
+      Column() {
+        SettingsPage({
+          onOpenAbout: () => {
+            this.openAbout();
+          }
+        })
+      }
+      .width('100%')
+      .height('100%')
+      .transition(this.pageTransition)
     }
   }
 
   @Builder
   CompactLayout() {
     Column() {
-      Column() {
+      Stack() {
         this.CurrentPage()
       }
       .layoutWeight(1)
       .width('100%')
+      .clip(true)
 
       BottomNavigation({
         selectedIndex: this.selectedIndex,
@@ -117,11 +152,12 @@ export struct AppShell {
         }
       })
 
-      Column() {
+      Stack() {
         this.CurrentPage()
       }
       .layoutWeight(1)
       .height('100%')
+      .clip(true)
     }
     .width('100%')
     .height('100%')
