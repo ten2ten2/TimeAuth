@@ -14,7 +14,7 @@ export enum ScreenSecurityPage {
 }
 
 let currentPage: ScreenSecurityPage = ScreenSecurityPage.ONBOARDING;
-let lifecycleState: window.WindowStageLifecycleEventType = window.WindowStageLifecycleEventType.SHOWN;
+let isWindowResumed: boolean = false;
 
 function pageAllowsCapture(page: ScreenSecurityPage): boolean {
   return page === ScreenSecurityPage.ONBOARDING ||
@@ -27,7 +27,7 @@ function shouldUsePrivacyMode(context: common.Context): boolean {
     return true;
   }
 
-  if (lifecycleState === window.WindowStageLifecycleEventType.RESUMED) {
+  if (isWindowResumed) {
     return false;
   }
 
@@ -57,7 +57,7 @@ export function setCurrentScreen(context: common.Context, page: ScreenSecurityPa
 
 export function handleWindowStageLifecycle(context: common.Context,
   event: window.WindowStageLifecycleEventType): void {
-  lifecycleState = event;
+  isWindowResumed = event === window.WindowStageLifecycleEventType.RESUMED;
   applyPrivacyMode(context);
 }
 
