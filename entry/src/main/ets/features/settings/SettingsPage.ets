@@ -1,25 +1,13 @@
 import { common } from '@kit.AbilityKit';
 import { SelectDialog } from '@kit.ArkUI';
 import { PageHeader } from '../../components/PageHeader';
-import {
-  applyThemePreference,
-  readThemePreference,
-  saveThemePreference
-} from '../../design/ThemeManager';
+import { applyThemePreference, readThemePreference, saveThemePreference } from '../../design/ThemeManager';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
-import {
-  applyLanguagePreference,
-  readLanguagePreference,
-  saveLanguagePreference
-} from '../../localization/LanguageManager';
+import { applyLanguagePreference, readLanguagePreference, saveLanguagePreference } from '../../localization/LanguageManager';
 import { LanguagePreference, ThemePreference } from '../../models/AppModels';
 import { cancelPendingSensitiveClipboardClear } from '../../security/SecureClipboard';
-import {
-  readSecuritySettings,
-  saveClearClipboard,
-  saveHideTaskPreview,
-  SecuritySettings
-} from '../../security/SecuritySettingsManager';
+import { refreshScreenSecurity } from '../../security/ScreenSecurityManager';
+import { readSecuritySettings, saveClearClipboard, saveHideTaskPreview, SecuritySettings } from '../../security/SecuritySettingsManager';
 
 @Component
 export struct SettingsPage {
@@ -28,32 +16,19 @@ export struct SettingsPage {
   @State private languagePreference: LanguagePreference = LanguagePreference.SYSTEM;
   @State private hideTaskPreview: boolean = true;
   @State private clearClipboard: boolean = true;
-  @State private themeDialogIndex: number = 0;
-  @State private languageDialogIndex: number = 0;
+  @State private preferencePending: boolean = false;
+  @State private preferenceFailed: boolean = false;
+  @StorageLink('timeauth.screenCovered') @Watch('onScreenCoverChanged') private screenCovered: boolean = false;
+  @StorageLink('timeauth.screenProtectionFailed') private protectionFailed: boolean = false;
 
   private themeDialogController: CustomDialogController = new CustomDialogController({
     builder: SelectDialog({
       title: $r('app.string.settings_appearance'),
-      selectedIndex: this.themeDialogIndex,
+      selectedIndex: this.themePreferenceIndex(),
       radioContent: [
-        {
-          title: $r('app.string.theme_system'),
-          action: () => {
-            this.selectTheme(ThemePreference.SYSTEM, 0);
-          }
-        },
-        {
-          title: $r('app.string.theme_light'),
-          action: () => {
-            this.selectTheme(ThemePreference.LIGHT, 1);
-          }
-        },
-        {
-          title: $r('app.string.theme_dark'),
-          action: () => {
-            this.selectTheme(ThemePreference.DARK, 2);
-          }
-        }
+        { title: $r('app.string.theme_system'), action: () => { this.selectTheme(ThemePreference.SYSTEM); } },
+        { title: $r('app.string.theme_light'), action: () => { this.selectTheme(ThemePreference.LIGHT); } },
+        { title: $r('app.string.theme_dark'), action: () => { this.selectTheme(ThemePreference.DARK); } }
       ]
     }),
     autoCancel: true
@@ -62,32 +37,12 @@ export struct SettingsPage {
   private languageDialogController: CustomDialogController = new CustomDialogController({
     builder: SelectDialog({
       title: $r('app.string.settings_language'),
-      selectedIndex: this.languageDialogIndex,
+      selectedIndex: this.languagePreferenceIndex(),
       radioContent: [
-        {
-          title: $r('app.string.language_system'),
-          action: () => {
-            this.selectLanguage(LanguagePreference.SYSTEM, 0);
-          }
-        },
-        {
-          title: $r('app.string.language_simplified_chinese'),
-          action: () => {
-            this.selectLanguage(LanguagePreference.SIMPLIFIED_CHINESE, 1);
-          }
-        },
-        {
-          title: $r('app.string.language_traditional_chinese'),
-          action: () => {
-            this.selectLanguage(LanguagePreference.TRADITIONAL_CHINESE, 2);
-          }
-        },
-        {
-          title: $r('app.string.language_english'),
-          action: () => {
-            this.selectLanguage(LanguagePreference.ENGLISH, 3);
-          }
-        }
+        { title: $r('app.string.language_system'), action: () => { this.selectLanguage(LanguagePreference.SYSTEM); } },
+        { title: $r('app.string.language_simplified_chinese'), action: () => { this.selectLanguage(LanguagePreference.SIMPLIFIED_CHINESE); } },
+        { title: $r('app.string.language_traditional_chinese'), action: () => { this.selectLanguage(LanguagePreference.TRADITIONAL_CHINESE); } },
+        { title: $r('app.string.language_english'), action: () => { this.selectLanguage(LanguagePreference.ENGLISH); } }
       ]
     }),
     autoCancel: true
@@ -102,17 +57,26 @@ export struct SettingsPage {
       this.hideTaskPreview = settings.hideTaskPreview;
       this.clearClipboard = settings.clearClipboard;
     }
-    this.syncDialogSelections();
+  }
+
+  aboutToDisappear(): void {
+    this.closePreferenceDialogs();
+  }
+
+  private onScreenCoverChanged(): void {
+    if (this.screenCovered) {
+      // Native dialogs must not remain above the root privacy cover.
+      this.closePreferenceDialogs();
+    }
+  }
+
+  private closePreferenceDialogs(): void {
+    this.themeDialogController.close();
+    this.languageDialogController.close();
   }
 
   private themePreferenceIndex(): number {
-    if (this.themePreference === ThemePreference.LIGHT) {
-      return 1;
-    }
-    if (this.themePreference === ThemePreference.DARK) {
-      return 2;
-    }
-    return 0;
+    return this.themePreference === ThemePreference.LIGHT ? 1 : this.themePreference === ThemePreference.DARK ? 2 : 0;
   }
 
   private languagePreferenceIndex(): number {
@@ -122,67 +86,63 @@ export struct SettingsPage {
     if (this.languagePreference === LanguagePreference.TRADITIONAL_CHINESE) {
       return 2;
     }
-    if (this.languagePreference === LanguagePreference.ENGLISH) {
-      return 3;
-    }
-    return 0;
+    return this.languagePreference === LanguagePreference.ENGLISH ? 3 : 0;
   }
 
-  private syncDialogSelections(): void {
-    this.themeDialogIndex = this.themePreferenceIndex();
-    this.languageDialogIndex = this.languagePreferenceIndex();
-  }
-
-  private openThemeDialog(): void {
-    this.themeDialogIndex = this.themePreferenceIndex();
-    this.themeDialogController.open();
-  }
-
-  private openLanguageDialog(): void {
-    this.languageDialogIndex = this.languagePreferenceIndex();
-    this.languageDialogController.open();
-  }
-
-  private async selectTheme(preference: ThemePreference, index: number): Promise<void> {
-    this.themePreference = preference;
-    this.themeDialogIndex = index;
-    const context: common.Context | undefined = this.getUIContext().getHostContext();
-    if (context === undefined) {
-      this.themeDialogController.close();
+  private async selectTheme(preference: ThemePreference): Promise<void> {
+    if (this.preferencePending) {
       return;
     }
-
+    const previous: ThemePreference = this.themePreference;
+    this.preferencePending = true;
+    this.preferenceFailed = false;
+    this.themePreference = preference;
+    this.themeDialogController.close();
+    const context: common.Context | undefined = this.getUIContext().getHostContext();
+    if (context === undefined) {
+      this.preferenceFailed = true;
+      this.preferencePending = false;
+      return;
+    }
     const saved: boolean = await saveThemePreference(context, preference);
     if (!saved) {
-      this.themePreference = readThemePreference(context);
-      this.themeDialogIndex = this.themePreferenceIndex();
-      this.themeDialogController.close();
-      return;
+      this.themePreference = previous;
+      this.preferenceFailed = true;
+    } else if (!applyThemePreference(context, preference)) {
+      await saveThemePreference(context, previous);
+      applyThemePreference(context, previous);
+      this.themePreference = previous;
+      this.preferenceFailed = true;
     }
-
-    this.themeDialogController.close();
-    applyThemePreference(context, preference);
+    this.preferencePending = false;
   }
 
-  private async selectLanguage(preference: LanguagePreference, index: number): Promise<void> {
+  private async selectLanguage(preference: LanguagePreference): Promise<void> {
+    if (this.preferencePending) {
+      return;
+    }
+    const previous: LanguagePreference = this.languagePreference;
+    this.preferencePending = true;
+    this.preferenceFailed = false;
     this.languagePreference = preference;
-    this.languageDialogIndex = index;
+    this.languageDialogController.close();
     const context: common.Context | undefined = this.getUIContext().getHostContext();
     if (context === undefined) {
-      this.languageDialogController.close();
+      this.preferenceFailed = true;
+      this.preferencePending = false;
       return;
     }
-
     const saved: boolean = await saveLanguagePreference(context, preference);
     if (!saved) {
-      this.languagePreference = readLanguagePreference(context);
-      this.languageDialogIndex = this.languagePreferenceIndex();
-      this.languageDialogController.close();
-      return;
+      this.languagePreference = previous;
+      this.preferenceFailed = true;
+    } else if (!applyLanguagePreference(context, preference)) {
+      await saveLanguagePreference(context, previous);
+      applyLanguagePreference(context, previous);
+      this.languagePreference = previous;
+      this.preferenceFailed = true;
     }
-
-    this.languageDialogController.close();
-    applyLanguagePreference(preference);
+    this.preferencePending = false;
   }
 
   private setHideTaskPreview(value: boolean): void {
@@ -190,6 +150,7 @@ export struct SettingsPage {
     const context: common.Context | undefined = this.getUIContext().getHostContext();
     if (context !== undefined) {
       saveHideTaskPreview(context, value);
+      refreshScreenSecurity(context); // Apply now, not only on the next lifecycle event.
     }
   }
 
@@ -204,49 +165,43 @@ export struct SettingsPage {
     }
   }
 
-  private currentThemeLabel(): ResourceStr {
-    switch (this.themePreference) {
-      case ThemePreference.LIGHT:
-        return $r('app.string.theme_light');
-      case ThemePreference.DARK:
-        return $r('app.string.theme_dark');
-      case ThemePreference.SYSTEM:
-      default:
-        return $r('app.string.theme_system');
+  private themeLabel(preference: ThemePreference): ResourceStr {
+    if (preference === ThemePreference.LIGHT) {
+      return $r('app.string.theme_light');
     }
+    return preference === ThemePreference.DARK ? $r('app.string.theme_dark') : $r('app.string.theme_system');
   }
 
-  private currentLanguageLabel(): ResourceStr {
-    switch (this.languagePreference) {
-      case LanguagePreference.ENGLISH:
-        return $r('app.string.language_english');
-      case LanguagePreference.SIMPLIFIED_CHINESE:
-        return $r('app.string.language_simplified_chinese');
-      case LanguagePreference.TRADITIONAL_CHINESE:
-        return $r('app.string.language_traditional_chinese');
-      case LanguagePreference.SYSTEM:
-      default:
-        return $r('app.string.language_system');
+  private languageLabel(preference: LanguagePreference): ResourceStr {
+    if (preference === LanguagePreference.ENGLISH) {
+      return $r('app.string.language_english');
     }
+    if (preference === LanguagePreference.SIMPLIFIED_CHINESE) {
+      return $r('app.string.language_simplified_chinese');
+    }
+    return preference === LanguagePreference.TRADITIONAL_CHINESE ?
+      $r('app.string.language_traditional_chinese') : $r('app.string.language_system');
   }
 
+  // Only the static row identity is passed by value. Read reactive state inside
+  // Text's render scope; passing a computed ResourceStr into @Builder freezes it.
   @Builder
-  PreferenceSelectionRow(title: ResourceStr, value: ResourceStr, onClick: () => void) {
+  PreferenceSelectionRow(isAppearance: boolean) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: AppSpacing.sm }) {
-        Text(title)
+        Text(isAppearance ? $r('app.string.settings_appearance') : $r('app.string.settings_language'))
           .fontSize(AppTypography.body)
           .fontColor($r('app.color.text_primary'))
           .lineHeight(22)
           .layoutWeight(1)
           .textAlign(TextAlign.Start)
-
         Row({ space: AppSpacing.xs }) {
-          Text(value)
+          Text(isAppearance ? this.themeLabel(this.themePreference) : this.languageLabel(this.languagePreference))
             .fontSize(AppTypography.label)
             .fontColor($r('app.color.text_secondary'))
             .lineHeight(20)
             .textAlign(TextAlign.End)
+            .id(isAppearance ? 'settings-appearance-value' : 'settings-language-value')
           Text('›')
             .fontSize(22)
             .fontColor($r('app.color.text_secondary'))
@@ -258,38 +213,47 @@ export struct SettingsPage {
         .alignItems(VerticalAlign.Center)
       }
       .width('100%')
-      .height(56)
-      .padding({ left: AppSpacing.md, right: AppSpacing.sm })
+      .constraintSize({ minHeight: 56 })
+      .padding({ left: AppSpacing.md, right: AppSpacing.sm, top: AppSpacing.xs, bottom: AppSpacing.xs })
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .height(56)
     .padding(0)
     .backgroundColor(Color.Transparent)
-    .onClick(onClick)
+    .enabled(!this.preferencePending)
+    .onClick(() => {
+      if (isAppearance) {
+        this.themeDialogController.open();
+      } else {
+        this.languageDialogController.open();
+      }
+    })
   }
 
   @Builder
-  SettingToggle(title: ResourceStr, description: ResourceStr, value: boolean,
-    onChange: (value: boolean) => void) {
+  SettingToggle(isTaskPreview: boolean) {
     Row({ space: AppSpacing.md }) {
       Column({ space: 2 }) {
-        Text(title)
+        Text(isTaskPreview ? $r('app.string.settings_hide_preview') : $r('app.string.settings_clear_clipboard'))
           .fontSize(AppTypography.body)
           .fontColor($r('app.color.text_primary'))
           .lineHeight(22)
-        Text(description)
+        Text(isTaskPreview ? $r('app.string.settings_hide_preview_detail') : $r('app.string.settings_clear_clipboard_detail'))
           .fontSize(AppTypography.caption)
           .fontColor($r('app.color.text_secondary'))
           .lineHeight(16)
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
-
-      Toggle({ type: ToggleType.Switch, isOn: value })
+      Toggle({ type: ToggleType.Switch, isOn: isTaskPreview ? this.hideTaskPreview : this.clearClipboard })
         .selectedColor($r('app.color.brand'))
+        .id(isTaskPreview ? 'settings-hide-preview' : 'settings-clear-clipboard')
         .onChange((isOn: boolean) => {
-          onChange(isOn);
+          if (isTaskPreview) {
+            this.setHideTaskPreview(isOn);
+          } else {
+            this.setClearClipboard(isOn);
+          }
         })
     }
     .width('100%')
@@ -313,13 +277,10 @@ export struct SettingsPage {
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
-
-      if (badge !== '') {
-        Text(badge)
-          .fontSize(AppTypography.caption)
-          .fontColor($r('app.color.brand'))
-          .lineHeight(18)
-      }
+      Text(badge)
+        .fontSize(AppTypography.caption)
+        .fontColor($r('app.color.brand'))
+        .lineHeight(18)
     }
     .width('100%')
     .constraintSize({ minHeight: 58 })
@@ -328,22 +289,21 @@ export struct SettingsPage {
   }
 
   @Builder
-  NavigationRow(title: ResourceStr, description: ResourceStr, onClick: () => void) {
+  AboutRow() {
     Button({ type: ButtonType.Normal }) {
       Row({ space: AppSpacing.md }) {
         Column({ space: 2 }) {
-          Text(title)
+          Text($r('app.string.settings_about'))
             .fontSize(AppTypography.body)
             .fontColor($r('app.color.text_primary'))
             .lineHeight(22)
-          Text(description)
+          Text($r('app.string.settings_about_detail'))
             .fontSize(AppTypography.caption)
             .fontColor($r('app.color.text_secondary'))
             .lineHeight(16)
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
-
         Text('›')
           .fontSize(22)
           .fontColor($r('app.color.text_secondary'))
@@ -360,7 +320,7 @@ export struct SettingsPage {
     .width('100%')
     .padding(0)
     .backgroundColor(Color.Transparent)
-    .onClick(onClick)
+    .onClick(() => { this.onOpenAbout(); })
   }
 
   @Builder
@@ -374,24 +334,31 @@ export struct SettingsPage {
       .padding({ left: AppSpacing.md, right: AppSpacing.md, top: AppSpacing.md, bottom: AppSpacing.xs })
   }
 
+  @Builder
+  SectionDivider() {
+    Divider().color($r('app.color.border')).margin({ left: AppSpacing.md, right: AppSpacing.md })
+  }
+
   build() {
     Scroll() {
       Column({ space: AppSpacing.sm }) {
-        PageHeader({
-          title: $r('app.string.settings_title'),
-          subtitle: $r('app.string.settings_subtitle')
-        })
-
+        PageHeader({ title: $r('app.string.settings_title'), subtitle: $r('app.string.settings_options_summary') })
+        if (this.preferenceFailed) {
+          Text($r('app.string.settings_apply_failed'))
+            .fontSize(AppTypography.label)
+            .fontColor($r('app.color.danger'))
+            .width('100%')
+        }
+        if (this.protectionFailed) {
+          Text($r('app.string.screen_protection_error'))
+            .fontSize(AppTypography.label)
+            .fontColor($r('app.color.danger'))
+            .width('100%')
+        }
         Column() {
-          this.PreferenceSelectionRow($r('app.string.settings_appearance'), this.currentThemeLabel(), () => {
-            this.openThemeDialog();
-          })
-          Divider()
-            .color($r('app.color.border'))
-            .margin({ left: AppSpacing.md, right: AppSpacing.md })
-          this.PreferenceSelectionRow($r('app.string.settings_language'), this.currentLanguageLabel(), () => {
-            this.openLanguageDialog();
-          })
+          this.PreferenceSelectionRow(true)
+          this.SectionDivider()
+          this.PreferenceSelectionRow(false)
         }
         .width('100%')
         .backgroundColor($r('app.color.surface'))
@@ -402,20 +369,10 @@ export struct SettingsPage {
           this.SectionTitle($r('app.string.settings_security'))
           this.StatusRow($r('app.string.settings_biometric'),
             $r('app.string.settings_biometric_detail'), $r('app.string.common_preview'))
-          Divider()
-            .color($r('app.color.border'))
-            .margin({ left: AppSpacing.md, right: AppSpacing.md })
-          this.SettingToggle($r('app.string.settings_hide_preview'),
-            $r('app.string.settings_hide_preview_detail'), this.hideTaskPreview, (value: boolean) => {
-              this.setHideTaskPreview(value);
-            })
-          Divider()
-            .color($r('app.color.border'))
-            .margin({ left: AppSpacing.md, right: AppSpacing.md })
-          this.SettingToggle($r('app.string.settings_clear_clipboard'),
-            $r('app.string.settings_clear_clipboard_detail'), this.clearClipboard, (value: boolean) => {
-              this.setClearClipboard(value);
-            })
+          this.SectionDivider()
+          this.SettingToggle(true)
+          this.SectionDivider()
+          this.SettingToggle(false)
         }
         .width('100%')
         .backgroundColor($r('app.color.surface'))
@@ -426,14 +383,10 @@ export struct SettingsPage {
           this.SectionTitle($r('app.string.settings_data'))
           this.StatusRow($r('app.string.settings_backup'), $r('app.string.settings_backup_detail'),
             $r('app.string.common_preview'))
-          Divider()
-            .color($r('app.color.border'))
-            .margin({ left: AppSpacing.md, right: AppSpacing.md })
+          this.SectionDivider()
           this.StatusRow($r('app.string.settings_import_codes'),
             $r('app.string.settings_import_codes_detail'), $r('app.string.common_preview'))
-          Divider()
-            .color($r('app.color.border'))
-            .margin({ left: AppSpacing.md, right: AppSpacing.md })
+          this.SectionDivider()
           this.StatusRow($r('app.string.settings_local_data'), $r('app.string.settings_local_data_detail'),
             $r('app.string.common_preview'))
         }
@@ -442,26 +395,17 @@ export struct SettingsPage {
         .borderRadius(AppRadius.large)
         .border({ width: 1, color: $r('app.color.border') })
 
-        Column() {
-          this.NavigationRow($r('app.string.settings_about'), $r('app.string.settings_about_detail'), () => {
-            this.onOpenAbout();
-          })
-        }
-        .width('100%')
-        .backgroundColor($r('app.color.surface'))
-        .borderRadius(AppRadius.large)
-        .border({ width: 1, color: $r('app.color.border') })
-
+        Column() { this.AboutRow() }
+          .width('100%')
+          .backgroundColor($r('app.color.surface'))
+          .borderRadius(AppRadius.large)
+          .border({ width: 1, color: $r('app.color.border') })
         Blank().height(72)
       }
       .width('100%')
       .constraintSize({ maxWidth: AppLayout.pageMaxWidth })
-      .padding({
-        left: AppLayout.compactPadding,
-        right: AppLayout.compactPadding,
-        top: AppSpacing.xl,
-        bottom: AppSpacing.xl
-      })
+      .padding({ left: AppLayout.compactPadding, right: AppLayout.compactPadding,
+        top: AppSpacing.xl, bottom: AppSpacing.xl })
     }
     .width('100%')
     .height('100%')

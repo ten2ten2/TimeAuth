@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "settings_options_summary",
+      "value": "Manage appearance, language and privacy. Items marked Preview are not available yet."
+    },
+    {
+      "name": "settings_apply_failed",
+      "value": "The setting could not be saved or applied. Please try again."
+    },
+    {
+      "name": "settings_retry",
+      "value": "Retry"
+    },
+    {
+      "name": "screen_content_covered",
+      "value": "Content hidden while the app is inactive"
+    },
+    {
+      "name": "screen_protection_error",
+      "value": "Screen protection could not be enabled. Protected content is hidden. Retry or restart the app."
+    }
+  ]
+}

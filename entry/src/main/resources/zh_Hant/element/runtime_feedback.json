@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "settings_options_summary",
+      "value": "管理外觀、語言與隱私選項；標示為預覽的功能尚未開放。"
+    },
+    {
+      "name": "settings_apply_failed",
+      "value": "設定無法儲存或套用，請重試。"
+    },
+    {
+      "name": "settings_retry",
+      "value": "重試"
+    },
+    {
+      "name": "screen_content_covered",
+      "value": "應用程式未處於活動狀態，內容已遮擋"
+    },
+    {
+      "name": "screen_protection_error",
+      "value": "無法啟用螢幕保護，受保護的內容已遮擋。請重試或重新啟動應用程式。"
+    }
+  ]
+}

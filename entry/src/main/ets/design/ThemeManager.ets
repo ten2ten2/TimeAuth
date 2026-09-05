@@ -10,13 +10,9 @@ export function readThemePreference(context: common.Context): ThemePreference {
     const store: preferences.Preferences = preferences.getPreferencesSync(context, {
       name: THEME_PREFERENCES_NAME
     });
-    const storedValue: string = store.getSync(THEME_PREFERENCE_STORAGE_KEY,
-      ThemePreference.SYSTEM) as string;
-    if (storedValue === ThemePreference.LIGHT) {
-      return ThemePreference.LIGHT;
-    }
-    if (storedValue === ThemePreference.DARK) {
-      return ThemePreference.DARK;
+    const value: string = store.getSync(THEME_PREFERENCE_STORAGE_KEY, ThemePreference.SYSTEM) as string;
+    if (value === ThemePreference.LIGHT || value === ThemePreference.DARK) {
+      return value as ThemePreference;
     }
   } catch (error) {
     console.error(`Failed to read TimeAuth theme preference: ${JSON.stringify(error)}`);
@@ -25,24 +21,35 @@ export function readThemePreference(context: common.Context): ThemePreference {
 }
 
 export async function saveThemePreference(context: common.Context, preference: ThemePreference): Promise<boolean> {
+  let store: preferences.Preferences | undefined = undefined;
+  const previous: ThemePreference = readThemePreference(context);
   try {
-    const store: preferences.Preferences = preferences.getPreferencesSync(context, {
-      name: THEME_PREFERENCES_NAME
-    });
+    store = preferences.getPreferencesSync(context, { name: THEME_PREFERENCES_NAME });
     store.putSync(THEME_PREFERENCE_STORAGE_KEY, preference);
     await store.flush();
     return true;
   } catch (error) {
+    if (store !== undefined) {
+      try {
+        store.putSync(THEME_PREFERENCE_STORAGE_KEY, previous);
+        await store.flush();
+      } catch (rollbackError) {
+        console.error(`Failed to roll back theme preference: ${JSON.stringify(rollbackError)}`);
+      }
+    }
     console.error(`Failed to save TimeAuth theme preference: ${JSON.stringify(error)}`);
     return false;
   }
 }
 
-export function applyThemePreference(context: common.Context, preference: ThemePreference): void {
+// Requires a created window with loaded page content.
+export function applyThemePreference(context: common.Context, preference: ThemePreference): boolean {
   try {
     context.getApplicationContext().setColorMode(colorModeForTheme(preference));
+    return true;
   } catch (error) {
     console.error(`Failed to apply TimeAuth theme preference: ${JSON.stringify(error)}`);
+    return false;
   }
 }
 

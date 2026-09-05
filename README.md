@@ -1,77 +1,49 @@
 # 时钥 / 時鑰 / TimeAuth
 
-TimeAuth（简体中文“时钥”、繁体中文“時鑰”）is a HarmonyOS-native security companion for one-time passwords, local password management, and secure password generation.
+A HarmonyOS-native authenticator and password-manager project. **The OTP, vault and generator contents are still demonstration data; do not use this build to store real credentials.**
 
-## Current milestone
+## Build and run
 
-The project currently provides the application shell and security foundation:
+Open the project in DevEco Studio, configure local signing for `entry`, and build/run the module on a compatible device. Minimum and target SDK are HarmonyOS 6.0 / API 20. `compileSdkVersion` is intentionally omitted so compilation uses the IDE's bundled SDK; a newer compile SDK does not increase the minimum device API.
 
-- responsive phone, tablet, foldable, and 2-in-1 navigation;
-- flat local SVG navigation icons with theme-aware tinting;
-- Simplified Chinese, Traditional Chinese, English, and system-following language preferences;
-- ArkData Preferences persistence for theme, language, and available security settings;
-- API 20 `windowStageLifecycleEvent` based privacy handling;
-- mandatory screenshot/screen-recording protection on Unlock, Authenticator, Vault, and Generator screens;
-- screenshot/screen-recording allowed on Onboarding, Settings, and About screens;
-- optional recent-app preview protection while the window is paused or hidden;
-- real system clipboard writes for preview OTP/password/generator values;
-- local-device clipboard restriction and guarded automatic clearing after 30 seconds;
-- a dedicated About screen with real package version information, privacy/security notes, third-party notices, and a source-repository link;
-- authenticator, password vault, and generator content still backed by mock data.
+Do not commit signing material, real OTP/Steam secrets, passwords, recovery keys or exported vaults.
 
-Real OTP secret persistence, cryptographic OTP generation, encrypted password-vault persistence, biometric unlock, camera scanning, and encrypted backup/import/export are not implemented yet.
+## Current status
 
-## Settings implementation status
+| Area | Implementation boundary |
+| --- | --- |
+| App shell | Onboarding, mock unlock, four primary tabs, responsive side rail, local SVG icons and light/dark resources. |
+| Appearance and language | Native APIs and ArkData Preferences are connected. Settings rows observe their own state inside the render scope. Language supports Simplified Chinese, Traditional Chinese, English and system following, with English fallback. See the device regression checklist below. |
+| Screen protection | Native privacy mode plus an opaque root cover are integrated. The latest recent-apps fix still requires device/compositor acceptance testing; code-level tests are not proof that task snapshots are hidden on a device. |
+| Clipboard | Real local-device clipboard writes, update monitoring and a scheduled 30-second clear. Timing when suspended/killed and replacement races require device testing; the timer is not a guaranteed background service. |
+| About | Dedicated page, installed package version lookup, privacy/security and dependency notices, and a source-repository link. |
+| Biometric unlock, backup/restore, authenticator import/export | Not implemented; displayed as preview/status entries. |
+| OTP and password data | Mock repository, not encrypted persistent storage. OTP generation and cryptographically secure password generation are not implemented. |
 
-| Setting / entry | Status | Behavior |
-| --- | --- | --- |
-| Appearance | Implemented | Uses the HarmonyOS application color-mode API and persists System / Light / Dark in ArkData Preferences. |
-| Language | Implemented | Uses the HarmonyOS preferred-language API and persists System / zh-Hans / zh-Hant / English in ArkData Preferences. |
-| Hide recent-app preview | Implemented | Adds privacy mode while the window is not resumed, including otherwise capture-allowed screens. |
-| Clear clipboard automatically | Implemented | Clears TimeAuth-owned sensitive clipboard data after 30 seconds without deleting newer content copied by another app. |
-| About | Implemented | Shows the real installed version, privacy/security information, dependency/licensing notes, and the source repository. |
-| Biometric unlock | Preview only | No User Authentication Kit / HUKS-backed unlock is performed yet. |
-| Backup and restore | Not implemented | UI status only; no encrypted backup format or restore pipeline exists yet. |
-| Import authenticator codes | Not implemented | UI status only; QR / otpauth / migration import is not wired yet. |
-| Local data | Preview only | Authenticator and password-vault entries are still mock data rather than encrypted persistent records. |
+## Preference behavior
 
-Screenshot/recording blocking is an application security policy rather than a user-disableable Settings switch.
+ArkData Preferences is the persistent source of truth. The UI uses local reactive state; selected labels are not snapshots passed by value to an `@Builder`. Native configuration is applied after `loadContent`, when the window and page exist. Save/application failures are shown in Settings.
 
-## Preview vs real device
+Selecting system language retains `SYSTEM` in the app's preferences. The current OS language is resolved immediately, and is re-evaluated on the system locale-change event, foreground entry and startup. This does not rely on the native `'default'` sentinel, whose documented follow-system effect requires a cold start. Explicit app languages are not overwritten by later OS changes.
 
-DevEco Studio Preview is useful for layout and interaction checks, but it is not authoritative for platform services. In particular, color-mode and preferred-language APIs may be partially emulated or may not force the Preview surface to reload exactly like a real application process.
+## Capture policy
 
-The Settings rows update their selected values locally as soon as a choice is made. Real system behavior should still be validated with Run/Debug on an emulator or device.
+In the active foreground, Onboarding, Settings and About allow screenshots/recording. Unlock, Authenticator, Vault, Generator and unknown screens are protected. The optional recent-apps preference adds protection while inactive, including otherwise capture-allowed screens. It hides **content**, not the app's existence in the task list.
 
-## Open in DevEco Studio
+The implementation uses the actual main window, `windowStageLifecycleEvent`, main-window `windowEvent`, UIAbility foreground/background callbacks, an opaque cover, serialized native writes and privacy-state acknowledgement. A failed request must not reveal sensitive content. Returning to the ability alone is insufficient to remove the cover. The source does not call system-only snapshot APIs.
 
-1. Open this repository as a HarmonyOS project.
-2. Use a DevEco Studio toolchain that can compile HarmonyOS 6.0 / API 20 applications. `compileSdkVersion` is intentionally not pinned, so the SDK bundled with the IDE is used for compilation.
-3. The minimum compatible system version is HarmonyOS 6.0 / API 20.
-4. Configure automatic signing for the `entry` module.
-5. Run the `entry` module on a compatible emulator or device.
+## Validation
 
-## Language behavior
+The Settings/native behavior must be checked in a device Run/Debug build, not inferred from Preview. [UI architecture and the regression checklist](docs/ui-ux-framework.md) distinguish mocked tests from device acceptance.
 
-The default preference follows the system. TimeAuth provides `zh-Hans`, `zh-Hant`, and English resources. English lives in the base resource directory, so unsupported system languages fall back to English. Language preference is stored in ArkData Preferences and applied during `EntryAbility.onCreate()`.
+With Node.js and TypeScript available as test tooling:
 
-## Brand and theme behavior
+```sh
+NODE_PATH="$(npm root -g)" node --test scripts/test-settings-regressions.cjs
+```
 
-The launcher icon keeps a stable product identity. In-app colors use semantic light/dark resources. Theme preference is stored in ArkData Preferences and applied during `EntryAbility.onCreate()` before the page content is loaded.
+These tests transpile the non-UI ArkTS modules as TypeScript and run them against explicit native-service mocks, plus check source/resource invariants. They do **not** replace `assembleHap`, ArkTSCheck, ArkUI rendering or real task-snapshot tests. No additional runtime dependency is added to the app.
 
-## Screen security
+## Next milestone
 
-Capture policy is defined centrally instead of by a user-disableable screenshot switch:
-
-- capture allowed: Onboarding, Settings, About;
-- capture blocked: Unlock, Authenticator, Password Vault, Password Generator.
-
-When Hide recent-app preview is enabled, even capture-allowed screens enter privacy mode while the window is paused or hidden.
-
-## Next security milestone
-
-Build one complete local TOTP vertical slice: validate and import a real OTP secret, protect the vault key with HUKS, encrypt and persist the item, generate RFC 6238 codes, integrate real user authentication, lock securely, and restore state after restart.
-
-## Security notice
-
-Never commit real OTP secrets, Steam shared secrets, credentials, signing material, recovery keys, or exported vaults to the repository.
+A complete local TOTP flow: validated input/import, HUKS-protected key management, encrypted persistence, RFC 6238 generation, real user authentication and tested recovery.

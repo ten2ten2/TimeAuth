@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "settings_options_summary",
+      "value": "管理外观、语言与隐私选项；标注为预览的功能尚未开放。"
+    },
+    {
+      "name": "settings_apply_failed",
+      "value": "设置未能保存或应用，请重试。"
+    },
+    {
+      "name": "settings_retry",
+      "value": "重试"
+    },
+    {
+      "name": "screen_content_covered",
+      "value": "应用未处于活动状态，内容已遮挡"
+    },
+    {
+      "name": "screen_protection_error",
+      "value": "无法启用屏幕保护，受保护的内容已遮挡。请重试或重新启动应用。"
+    }
+  ]
+}

@@ -1,73 +1,140 @@
 import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
+import { BusinessError, commonEventManager } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { applyThemePreference, readThemePreference } from '../design/ThemeManager';
-import { applyLanguagePreference, readLanguagePreference } from '../localization/LanguageManager';
 import {
-  handleWindowFocus,
-  handleWindowStageLifecycle,
-  refreshScreenSecurity
+  applyLanguagePreference, readLanguagePreference, refreshSystemLanguage
+} from '../localization/LanguageManager';
+import {
+  attachScreenSecurity, detachScreenSecurity, handleWindowEvent,
+  handleWindowStageLifecycle, markScreenContentReady, reportScreenSecuritySetupFailure, setScreenAbilityForeground
 } from '../security/ScreenSecurityManager';
 
 export default class EntryAbility extends UIAbility {
   private windowStage: window.WindowStage | undefined = undefined;
+  private mainWindow: window.Window | undefined = undefined;
   private lifecycleListener: ((event: window.WindowStageLifecycleEventType) => void) | undefined = undefined;
-  private focusListener: ((event: window.WindowStageEventType) => void) | undefined = undefined;
+  private windowListener: ((event: window.WindowEventType) => void) | undefined = undefined;
+  private localeSubscriber: commonEventManager.CommonEventSubscriber | undefined = undefined;
+  private contentLoaded: boolean = false;
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, 'TimeAuth', 'EntryAbility created');
-    applyLanguagePreference(readLanguagePreference(this.context));
-    applyThemePreference(this.context, readThemePreference(this.context));
+    // System locale events still arrive when an explicit app-language override is active.
+    try {
+      const subscriber: commonEventManager.CommonEventSubscriber = commonEventManager.createSubscriberSync({
+        events: [commonEventManager.Support.COMMON_EVENT_LOCALE_CHANGED]
+      });
+      this.localeSubscriber = subscriber;
+      commonEventManager.subscribe(subscriber, (error: BusinessError, data: commonEventManager.CommonEventData) => {
+        if (this.localeSubscriber !== subscriber) {
+          return;
+        }
+        if (error) {
+          hilog.error(0x0000, 'TimeAuth', 'Locale subscription failed: %{public}s', JSON.stringify(error));
+          return;
+        }
+        if (this.contentLoaded && data.event === commonEventManager.Support.COMMON_EVENT_LOCALE_CHANGED) {
+          refreshSystemLanguage(this.context);
+        }
+      });
+    } catch (error) {
+      hilog.error(0x0000, 'TimeAuth', 'Locale listener unavailable: %{public}s', JSON.stringify(error));
+    }
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
     this.windowStage = windowStage;
+    this.contentLoaded = false;
+    try {
+      this.mainWindow = windowStage.getMainWindowSync();
+      attachScreenSecurity(this.context, this.mainWindow);
+      this.windowListener = (event: window.WindowEventType): void => {
+        handleWindowEvent(event);
+      };
+      this.mainWindow.on('windowEvent', this.windowListener);
+    } catch (error) {
+      reportScreenSecuritySetupFailure();
+      hilog.error(0x0000, 'TimeAuth', 'Main window security setup failed: %{public}s', JSON.stringify(error));
+    }
     this.lifecycleListener = (event: window.WindowStageLifecycleEventType): void => {
-      handleWindowStageLifecycle(this.context, event);
+      handleWindowStageLifecycle(event);
     };
-    this.focusListener = (event: window.WindowStageEventType): void => {
-      handleWindowFocus(this.context, event);
-    };
-
     try {
       windowStage.on('windowStageLifecycleEvent', this.lifecycleListener);
-      windowStage.on('windowStageEvent', this.focusListener);
     } catch (error) {
-      hilog.error(0x0000, 'TimeAuth', 'Failed to register WindowStage security listeners: %{public}s',
-        JSON.stringify(error));
+      reportScreenSecuritySetupFailure();
+      hilog.error(0x0000, 'TimeAuth', 'Stage lifecycle subscription failed: %{public}s', JSON.stringify(error));
     }
 
     windowStage.loadContent('pages/Index', (error) => {
+      if (this.windowStage !== windowStage) {
+        return;
+      }
       if (error.code) {
         hilog.error(0x0000, 'TimeAuth', 'Failed to load content: %{public}s', JSON.stringify(error));
         return;
       }
-      refreshScreenSecurity(this.context);
-      hilog.info(0x0000, 'TimeAuth', 'UI loaded');
+      this.contentLoaded = true;
+      // ApplicationContext configuration APIs require a created window and loaded page.
+      applyLanguagePreference(this.context, readLanguagePreference(this.context));
+      applyThemePreference(this.context, readThemePreference(this.context));
+      if (this.mainWindow !== undefined) {
+        markScreenContentReady(this.context, this.mainWindow.getUIContext());
+      }
     });
   }
 
+  onForeground(): void {
+    if (this.contentLoaded) {
+      // Covers missed/delayed locale broadcasts after changing the system language in Settings.
+      refreshSystemLanguage(this.context);
+    }
+    // Returning to the ability alone must not remove the cover: focus + RESUMED are also required.
+    setScreenAbilityForeground(true);
+  }
+
+  onBackground(): void {
+    setScreenAbilityForeground(false);
+  }
+
   onWindowStageDestroy(): void {
-    if (this.windowStage !== undefined) {
-      if (this.lifecycleListener !== undefined) {
-        try {
-          this.windowStage.off('windowStageLifecycleEvent', this.lifecycleListener);
-        } catch (error) {
-          hilog.error(0x0000, 'TimeAuth', 'Failed to unregister WindowStage lifecycle listener: %{public}s',
-            JSON.stringify(error));
-        }
-      }
-      if (this.focusListener !== undefined) {
-        try {
-          this.windowStage.off('windowStageEvent', this.focusListener);
-        } catch (error) {
-          hilog.error(0x0000, 'TimeAuth', 'Failed to unregister WindowStage focus listener: %{public}s',
-            JSON.stringify(error));
-        }
+    this.contentLoaded = false;
+    if (this.mainWindow !== undefined && this.windowListener !== undefined) {
+      try {
+        this.mainWindow.off('windowEvent', this.windowListener);
+      } catch (error) {
+        hilog.error(0x0000, 'TimeAuth', 'Failed to remove window listener: %{public}s', JSON.stringify(error));
       }
     }
+    if (this.windowStage !== undefined && this.lifecycleListener !== undefined) {
+      try {
+        this.windowStage.off('windowStageLifecycleEvent', this.lifecycleListener);
+      } catch (error) {
+        hilog.error(0x0000, 'TimeAuth', 'Failed to remove stage listener: %{public}s', JSON.stringify(error));
+      }
+    }
+    detachScreenSecurity();
+    this.windowListener = undefined;
     this.lifecycleListener = undefined;
-    this.focusListener = undefined;
+    this.mainWindow = undefined;
     this.windowStage = undefined;
+  }
+
+  onDestroy(): void {
+    const subscriber: commonEventManager.CommonEventSubscriber | undefined = this.localeSubscriber;
+    this.localeSubscriber = undefined;
+    if (subscriber !== undefined) {
+      try {
+        commonEventManager.unsubscribe(subscriber, (error: BusinessError) => {
+          if (error) {
+            hilog.error(0x0000, 'TimeAuth', 'Failed to remove locale listener: %{public}s', JSON.stringify(error));
+          }
+        });
+      } catch (error) {
+        hilog.error(0x0000, 'TimeAuth', 'Locale cleanup failed: %{public}s', JSON.stringify(error));
+      }
+    }
   }
 }
