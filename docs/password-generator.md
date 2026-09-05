@@ -6,7 +6,7 @@ The Generator tab creates real random passwords locally. Authenticator codes, va
 
 | Control | Behavior |
 | --- | --- |
-| Length | Integer from 8 to 128; default 20. Adjustable with a slider or number field. |
+| Length | Integer from 8 to 128; default 16. Drag the slider thumb or edit the number field; tapping or starting a drag on the track does not change the value. Existing saved lengths are preserved. |
 | Character types | Lowercase letters, uppercase letters, numbers, and symbols can be enabled independently. All four are enabled by default. At least one type is required. |
 | Avoid ambiguous characters | Enabled by default; removes exactly `0`, `O`, `1`, `I`, and `l`. |
 | Use every selected type | Enabled by default; requires at least one character from every enabled type. |
@@ -17,7 +17,7 @@ The Generator tab creates real random passwords locally. Authenticator codes, va
 | Strength | Displays an estimated entropy value and a qualitative label based on the generation rules. It is not a prediction of cracking time. |
 | Remember settings | Persists generation preferences locally. Generated passwords and history are not persisted. |
 
-Editing options does not silently replace the current password. Changed options display a reminder to regenerate; copying stays disabled until a password matches the current options. Native random-source failure shows an error and prevents copying until a subsequent generation succeeds. There is no fallback to demonstration strings or a noncryptographic random source.
+Editing options does not silently replace the current password. Changed options display a reminder to regenerate; copying stays disabled until a password matches the current options. An explicit missing random capability displays a device-not-supported message. A capability-query exception or random-provider failure displays a separate retry message. Both failure categories clear the current result, prevent copying, and survive page recreation until a subsequent generation succeeds. There is no fallback to demonstration strings or a noncryptographic random source.
 
 The current result remains in memory while switching tabs, changing language or theme, and returning from the background in the same app process. OS process termination or an app restart discards that result. Generation settings survive restarts when preference storage succeeds. Storage failure is reported; do not assume settings were saved after an error.
 
@@ -54,12 +54,12 @@ From the repository root, with Node.js 22.13 or newer:
 node --test tests/*.test.cjs
 ```
 
-All 41 host tests passed:
+All 45 host tests passed:
 
 | Area | Passing tests |
 | --- | --- |
-| Generator engine | 12 |
-| Settings and session | 6 |
+| Generator engine | 15 |
+| Settings and session | 7 |
 | Clipboard | 23 |
 
 Host checks exercise generator rules and failure behavior with test random sources, settings/session behavior, and clipboard lifecycle handling with mocked platform APIs. They cannot establish that ArkTS compiles, that the native random source works, or that OS clipboard and screen-protection behavior matches the application policy.
@@ -71,7 +71,7 @@ The native HAP build and real-device tests have not been executed. This feature 
 Use a development build with disposable generated values. Record the device model, HarmonyOS version, app version, and result for each case.
 
 1. **Build and offline start:** build and install the `entry` module using the configured compatible SDK. Open Generator in airplane mode. Confirm a real result appears without a network requirement or preview mode selector.
-2. **Length boundaries:** generate at 8, 20, and 128 characters, checking the copied length. Confirm the number field and slider agree. Enter an empty value, 7, 129, and a decimal if the keyboard permits; invalid drafts must not generate or copy. A 128-character result must remain readable by wrapping or scrolling, without truncating the copied password.
+2. **Length boundaries:** generate at 8, 16, and 128 characters, checking the copied length. Confirm a fresh install defaults to 16 and an existing saved length (including 20) survives an update. Confirm the number field and slider agree. Swipe vertically starting on the track and on the thumb, and tap or drag from the track away from the thumb: the length must stay unchanged during page scrolling. Drag horizontally from the thumb's native touch target to adjust; confirm keyboard and accessibility adjustment still work. Enter an empty value, 7, 129, and a decimal if the keyboard permits; invalid drafts must not generate or copy. A 128-character result must remain readable by wrapping or scrolling, without truncating the copied password.
 3. **Character classes:** test each class alone and several combinations. Turn off the final remaining class; generating with no characters must be prevented and the UI must explain the requirement or retain one enabled type. Enable the every-type requirement and verify each selected class appears. Disable it and verify generation still obeys the allowed alphabet without promising every class.
 4. **Ambiguous characters:** with avoidance enabled, verify generated values exclude `0/O/1/I/l`. With it disabled, those characters become eligible; no individual result is required to contain them.
 5. **Custom symbols:** set symbols to `!@!` and generate using symbols only. Results must use only `!` and `@`, with duplicates not changing the reported entropy. Test an empty set, a space, an ASCII letter, a number, a full-width symbol, and an emoji. Invalid active symbol rules must block generation and copying. Reset symbols and confirm generation recovers. Turn symbols off and confirm no punctuation appears in the result.
@@ -80,6 +80,6 @@ Use a development build with disposable generated values. Record the device mode
 8. **Session and persistence:** switch to Settings and back, change theme, change locale, and background/foreground the app; the password must remain the same until explicitly regenerated while the process survives. After a full process restart, confirm the last successfully saved rules are restored and the previous password is not restored.
 9. **Sensitive screen:** attempt a screenshot and recording on Generator; inspect recent-app previews with the result both shown and hidden. Repeat with the optional extra preview setting off. Background content must stay protected; capture policy on Settings and About must retain its existing behavior.
 10. **Languages and layout:** check English, Simplified Chinese, Taiwan Traditional Chinese, Hong Kong Traditional Chinese, and Follow system. Check light, dark, and system themes, narrow phones, and large font settings. Error messages, advanced controls, and a 128-character result must fit without blocking Copy or Regenerate.
-11. **Failure recovery:** in a local debug-only build, replace the native random-source adapter with one that throws. Confirm an error appears, no new value is produced, and copying is disabled even if an earlier result exists. Restore the adapter and confirm regeneration recovers. Separately simulate preference read/write or flush failure; confirm a settings error is surfaced and no generated password is written as a fallback. Remove debug fault injection before shipping.
+11. **Failure recovery:** in a local debug-only build, make the Rand capability query return false and confirm the device-not-supported message. Separately make the query throw or the random provider fail and confirm the retry message. In each case confirm that the current result is cleared, copying is disabled, and the error category persists across tab, language, and theme changes. Restore the adapter and confirm regeneration recovers. Separately simulate preference read/write or flush failure; confirm a settings error is surfaced and no generated password is written as a fallback. Remove debug fault injection before shipping.
 
 Repeatedly generating different-looking values is not a proof of cryptographic randomness. Host verification checks selection logic; the native adapter and device behavior need the build and acceptance checks above.

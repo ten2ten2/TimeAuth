@@ -26,7 +26,7 @@ TimeAuth is proprietary, closed-source software. All rights reserved. Third-part
 | Screen capture policy | Implemented in code: Onboarding, Settings and About allow capture; Unlock, Authenticator, Vault and Generator are protected. |
 | Recent-app preview protection | Implemented in code with native privacy mode plus an opaque root cover; still requires real-device acceptance testing on each target OS/device. |
 | Clipboard | Implemented: local-device clipboard writes, revision-guarded best-effort 30-second clearing, and foreground retry of pending deadlines. |
-| Password generator | Implemented: system cryptographic randomness, 8–128 characters, configurable character types and symbols, estimated entropy, show/hide, copy, session retention, and locally saved generation settings. |
+| Password generator | Implemented: system cryptographic randomness, 8–128 characters (default 16), thumb-only slider dragging, distinct unsupported-device and retry messages, configurable character types and symbols, estimated entropy, show/hide, copy, session retention, and locally saved generation settings. |
 | About | Implemented: installed version, privacy/security information, proprietary-license notice, platform notices, and native ArkUI detail dialogs. |
 | Biometric unlock | Preview only. |
 | Backup / restore | Not implemented. |
@@ -55,7 +55,7 @@ Automatic clipboard clearing is best effort. TimeAuth checks the clipboard sourc
 
 See [docs/ui-ux-framework.md](docs/ui-ux-framework.md) for UI rules, preference behavior and the focused real-device acceptance checklist.
 
-See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 41 host tests passed: 12 generator-engine, 6 settings/session, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
+See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 45 host tests passed: 15 generator-engine, 7 settings/session, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
 
 ## Next milestone
 

@@ -1,7 +1,10 @@
 import { cryptoFramework } from '@kit.CryptoArchitectureKit';
-import { GeneratorOptions, PasswordResult, generatePasswordFromSource } from './GeneratorCore';
+import {
+  GeneratorFailure, GeneratorOptions, PasswordGenerationError, PasswordResult, generatePasswordFromSource
+} from './GeneratorCore';
 
 export function generatePassword(options: GeneratorOptions): PasswordResult {
+  let failure: GeneratorFailure = GeneratorFailure.UNAVAILABLE;
   try {
     // API 12+ exposes random generation through the dedicated Rand capability.
     if (canIUse('SystemCapability.Security.CryptoFramework.Rand')) {
@@ -11,12 +14,15 @@ export function generatePassword(options: GeneratorOptions): PasswordResult {
         if (canIUse('SystemCapability.Security.CryptoFramework.Rand')) {
           return random.generateRandomSync(length).data;
         }
+        failure = GeneratorFailure.UNSUPPORTED;
         throw new Error('Secure password generation failed.');
       });
     }
     // Never substitute a noncryptographic source on unsupported devices.
-    throw new Error('Secure password generation failed.');
-  } catch (error) {
-    throw new Error('Secure password generation failed.');
+    failure = GeneratorFailure.UNSUPPORTED;
+  } catch (_) {
+    // A thrown capability query or provider call does not prove a missing capability.
+    // Discard exception details; only an explicit false is classified as unsupported.
   }
+  throw new PasswordGenerationError(failure);
 }

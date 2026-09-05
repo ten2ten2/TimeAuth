@@ -1,4 +1,4 @@
-import { GeneratorOptions } from './GeneratorCore';
+import { GeneratorFailure, GeneratorOptions } from './GeneratorCore';
 
 export class GeneratorSession {
   initialized: boolean = false;
@@ -6,7 +6,7 @@ export class GeneratorSession {
   value: string = '';
   entropyBits: number = 0;
   generatedFor: string = '';
-  generationFailed: boolean = false;
+  generationFailure: GeneratorFailure = GeneratorFailure.NONE;
 }
 
 // Memory only. Survives page recreation and language/theme changes, never process restart.

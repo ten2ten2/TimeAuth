@@ -1,7 +1,10 @@
 import { PageHeader } from '../../components/PageHeader';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 import { copySensitiveText } from '../../security/SecureClipboard';
-import { GeneratorOptions, GeneratorValidation, PasswordResult, validateGeneratorOptions } from './GeneratorCore';
+import {
+  GeneratorFailure, GeneratorOptions, GeneratorValidation, PasswordGenerationError, PasswordResult,
+  validateGeneratorOptions
+} from './GeneratorCore';
 import { generatePassword } from './PasswordGenerator';
 import { copyGeneratorOptions, readGeneratorOptions, saveGeneratorOptions } from './GeneratorSettings';
 import { GeneratorSession, getGeneratorSession } from './GeneratorSession';
@@ -10,11 +13,11 @@ import { GeneratorOptionToggle } from './GeneratorOptionToggle';
 @Component
 export struct GeneratorPage {
   @State private options: GeneratorOptions = new GeneratorOptions();
-  @State private lengthInput: string = '20';
+  @State private lengthInput: string = '16';
   @State private value: string = '';
   @State private entropyBits: number = 0;
   @State private generatedFor: string = '';
-  @State private generationFailed: boolean = false;
+  @State private generationFailure: GeneratorFailure = GeneratorFailure.NONE;
   @State private revealed: boolean = true;
   @State private advanced: boolean = false;
   @State private preferencesFailed: boolean = false;
@@ -43,10 +46,11 @@ export struct GeneratorPage {
     this.value = session.value;
     this.entropyBits = session.entropyBits;
     this.generatedFor = session.generatedFor;
-    this.generationFailed = session.generationFailed;
+    this.generationFailure = session.generationFailure;
     // Native navigation can recreate the component. Do not overwrite an existing result.
     this.revealed = session.value.length === 0;
-    if (this.value.length === 0 && !this.generationFailed && this.validation() === GeneratorValidation.VALID) {
+    if (this.value.length === 0 && this.generationFailure === GeneratorFailure.NONE &&
+      this.validation() === GeneratorValidation.VALID) {
       this.regenerate(false);
     }
   }
@@ -74,12 +78,16 @@ export struct GeneratorPage {
     return JSON.stringify(copyGeneratorOptions(this.options));
   }
 
+  private sliderValue(): number {
+    return Math.max(8, Math.min(128, this.options.length));
+  }
+
   private rulesChanged(): boolean {
     return this.value.length > 0 && this.generatedFor !== this.optionsSignature();
   }
 
   private canCopy(): boolean {
-    return this.value.length > 0 && !this.generationFailed && !this.rulesChanged() &&
+    return this.value.length > 0 && this.generationFailure === GeneratorFailure.NONE && !this.rulesChanged() &&
       this.validation() === GeneratorValidation.VALID && !this.copying;
   }
 
@@ -132,26 +140,26 @@ export struct GeneratorPage {
       this.value = result.value;
       this.entropyBits = result.entropyBits;
       this.generatedFor = this.optionsSignature();
-      this.generationFailed = false;
+      this.generationFailure = GeneratorFailure.NONE;
       session.value = result.value;
       session.entropyBits = result.entropyBits;
       session.generatedFor = this.generatedFor;
-      session.generationFailed = false;
+      session.generationFailure = GeneratorFailure.NONE;
       session.options = copyGeneratorOptions(this.options);
       this.persistOptions();
       if (notify) {
         this.showFeedback($r('app.string.generator_generated'));
       }
-    } catch (_) {
+    } catch (error) {
       // Never fall back to predictable demo values or log a password/error payload.
       this.value = '';
       this.entropyBits = 0;
       this.generatedFor = '';
-      this.generationFailed = true;
+      this.generationFailure = error instanceof PasswordGenerationError ? error.failure : GeneratorFailure.UNAVAILABLE;
       session.value = '';
       session.entropyBits = 0;
       session.generatedFor = '';
-      session.generationFailed = true;
+      session.generationFailure = this.generationFailure;
       this.feedback = undefined;
     }
   }
@@ -203,6 +211,16 @@ export struct GeneratorPage {
     return $r('app.string.generator_invalid_symbols');
   }
 
+  private resultPlaceholder(): Resource {
+    if (this.generationFailure === GeneratorFailure.UNSUPPORTED) {
+      return $r('app.string.generator_device_unsupported');
+    }
+    if (this.generationFailure === GeneratorFailure.UNAVAILABLE) {
+      return $r('app.string.generator_generate_failed');
+    }
+    return $r('app.string.generator_empty');
+  }
+
   private strengthLabel(): Resource {
     if (this.entropyBits < 40) {
       return $r('app.string.generator_strength_weak');
@@ -249,9 +267,10 @@ export struct GeneratorPage {
       .width('100%')
 
       if (this.value.length === 0) {
-        Text(this.generationFailed ? $r('app.string.generator_generate_failed') : $r('app.string.generator_empty'))
+        Text(this.resultPlaceholder())
           .fontSize(AppTypography.body)
-          .fontColor(this.generationFailed ? $r('app.color.danger') : $r('app.color.text_secondary'))
+          .fontColor(this.generationFailure !== GeneratorFailure.NONE ?
+            $r('app.color.danger') : $r('app.color.text_secondary'))
           .width('100%')
       } else {
         if (this.revealed) {
@@ -360,14 +379,21 @@ export struct GeneratorPage {
       }
       .width('100%')
 
-      Slider({ value: Math.max(8, Math.min(128, this.options.length)), min: 8, max: 128,
+      Slider({ value: this.sliderValue(), min: 8, max: 128,
         step: 1, style: SliderStyle.OutSet })
+        // Start on the thumb's native touch target; touching the track must not change length.
+        .sliderInteractionMode(SliderInteraction.SLIDE_ONLY)
         .selectedColor($r('app.color.brand'))
         .blockColor($r('app.color.brand'))
         .trackColor($r('app.color.surface_secondary'))
         .accessibilityText($r('app.string.generator_length'))
         .onChange((value: number) => {
-          this.options.length = Math.round(value);
+          const nextLength: number = Math.round(value);
+          // Begin/End can fire without movement. Preserve the draft and feedback on a mere touch.
+          if (nextLength === this.sliderValue()) {
+            return;
+          }
+          this.options.length = nextLength;
           this.lengthInput = `${this.options.length}`;
           this.optionsChanged();
         })

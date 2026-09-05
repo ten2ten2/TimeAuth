@@ -20,6 +20,8 @@ let factoryFailure = false;
 let factoryCalls = 0;
 let capabilityAvailable = true;
 let capabilityFailure = false;
+let capabilityChecks = 0;
+let missingOnSecondCheck = false;
 
 function moduleUrl(source) {
   const javascript = stripTypeScriptTypes(source, { mode: 'transform' });
@@ -44,7 +46,9 @@ before(async () => {
   };
   globalThis.__timeAuthTestCanIUse = (capability) => {
     assert.equal(capability, 'SystemCapability.Security.CryptoFramework.Rand');
+    capabilityChecks++;
     if (capabilityFailure) throw new Error('SENSITIVE_CAPABILITY_DETAIL');
+    if (missingOnSecondCheck && capabilityChecks > 1) return false;
     return capabilityAvailable;
   };
   const kitUrl = moduleUrl('export const cryptoFramework = globalThis.__timeAuthTestCrypto;');
@@ -109,15 +113,15 @@ function near(actual, expected) {
   assert.ok(Math.abs(actual - expected) < 1e-10, `Expected ${actual} to equal ${expected}`);
 }
 
-test('default settings are valid and generate a 20-character result', () => {
+test('default settings are valid and generate a 16-character result', () => {
   const configuration = options();
-  assert.equal(configuration.length, 20);
+  assert.equal(configuration.length, 16);
   assert.equal(configuration.requireEach, true);
   assert.equal(configuration.avoidAmbiguous, true);
   assert.equal(core.validateGeneratorOptions(configuration), core.GeneratorValidation.VALID);
   const result = core.generatePasswordFromSource(configuration, deterministicSource('defaults'));
-  assert.equal(result.value.length, 20);
-  assert.ok(result.entropyBits > 120);
+  assert.equal(result.value.length, 16);
+  assert.ok(result.entropyBits > 95);
 });
 
 test('length boundaries reject invalid values before requesting randomness', () => {
@@ -260,7 +264,7 @@ test('production adapter reads system synchronous random bytes and sanitizes pla
   adapterCalls = [];
   adapterSource = deterministicSource('platform-adapter');
   const result = adapter.generatePassword(options());
-  assert.equal(result.value.length, 20);
+  assert.equal(result.value.length, 16);
   assert.ok(adapterCalls.length > 0);
   assert.ok(adapterCalls.every((length) => Number.isInteger(length) && length > 0));
   adapterSource = () => { throw new Error('SENSITIVE_PROVIDER_DETAIL'); };
@@ -273,18 +277,58 @@ test('production adapter reads system synchronous random bytes and sanitizes pla
   }
 });
 
-test('unsupported or failing system capability checks stop before creating a random source', () => {
+test('missing capability reports unsupported without creating a random source', () => {
   const beforeCalls = factoryCalls;
   capabilityAvailable = false;
   try {
-    assert.throws(() => adapter.generatePassword(options()), { message: 'Secure password generation failed.' });
-    assert.equal(factoryCalls, beforeCalls);
-    capabilityAvailable = true;
-    capabilityFailure = true;
-    assert.throws(() => adapter.generatePassword(options()), { message: 'Secure password generation failed.' });
+    assert.throws(() => adapter.generatePassword(options()), {
+      message: 'Secure password generation failed.', failure: core.GeneratorFailure.UNSUPPORTED
+    });
     assert.equal(factoryCalls, beforeCalls);
   } finally {
     capabilityAvailable = true;
+  }
+});
+
+test('a failing capability query is retryable, not evidence of an unsupported device', () => {
+  const beforeCalls = factoryCalls;
+  capabilityFailure = true;
+  try {
+    assert.throws(() => adapter.generatePassword(options()), {
+      message: 'Secure password generation failed.', failure: core.GeneratorFailure.UNAVAILABLE
+    });
+    assert.equal(factoryCalls, beforeCalls);
+  } finally {
     capabilityFailure = false;
   }
+});
+
+test('the callback capability guard retains the unsupported category and does not read random bytes', () => {
+  capabilityChecks = 0;
+  missingOnSecondCheck = true;
+  adapterCalls = [];
+  try {
+    assert.throws(() => adapter.generatePassword(options()), {
+      message: 'Secure password generation failed.', failure: core.GeneratorFailure.UNSUPPORTED
+    });
+    assert.equal(adapterCalls.length, 0);
+  } finally {
+    missingOnSecondCheck = false;
+  }
+});
+
+test('provider failures are sanitized and a subsequent attempt can recover', () => {
+  adapterCalls = [];
+  for (const failure of [null, undefined, 'SENSITIVE_PROVIDER_DETAIL', new Error('SENSITIVE_PROVIDER_DETAIL')]) {
+    adapterSource = () => { throw failure; };
+    assert.throws(() => adapter.generatePassword(options()), (error) => {
+      assert.ok(error instanceof core.PasswordGenerationError);
+      assert.equal(error.failure, core.GeneratorFailure.UNAVAILABLE);
+      assert.equal(error.message, 'Secure password generation failed.');
+      assert.equal(error.cause, undefined);
+      return true;
+    });
+  }
+  adapterSource = deterministicSource('recovered');
+  assert.equal(adapter.generatePassword(options()).value.length, 16);
 });

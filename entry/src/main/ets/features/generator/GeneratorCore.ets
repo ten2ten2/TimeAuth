@@ -1,6 +1,6 @@
 // Pure generation rules. The platform adapter is the only production source of random bytes.
 export class GeneratorOptions {
-  length: number = 20;
+  length: number = 16;
   includeLowercase: boolean = true;
   includeUppercase: boolean = true;
   includeNumbers: boolean = true;
@@ -16,6 +16,22 @@ export enum GeneratorValidation {
   NO_CHARACTERS = 'no_characters',
   INVALID_SYMBOLS = 'invalid_symbols',
   EMPTY_SYMBOLS = 'empty_symbols'
+}
+
+export enum GeneratorFailure {
+  NONE = 'none',
+  UNSUPPORTED = 'unsupported',
+  UNAVAILABLE = 'unavailable'
+}
+
+// Only a sanitized category crosses the platform adapter boundary.
+export class PasswordGenerationError extends Error {
+  readonly failure: GeneratorFailure;
+
+  constructor(failure: GeneratorFailure) {
+    super('Secure password generation failed.');
+    this.failure = failure;
+  }
 }
 
 export class PasswordResult {

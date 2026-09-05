@@ -55,7 +55,7 @@ test('missing preferences use valid defaults', () => {
   stored = undefined;
   const result = settings.readGeneratorOptions({});
   assert.equal(result.succeeded, true);
-  assert.equal(result.options.length, 20);
+  assert.equal(result.options.length, 16);
   assert.equal(core.validateGeneratorOptions(result.options), core.GeneratorValidation.VALID);
 });
 
@@ -80,6 +80,13 @@ test('saved rules round-trip; output and unexpected fields never enter storage',
   assert.equal(read.options.value, undefined);
 });
 
+test('the new default preserves an existing saved 20-character preference', () => {
+  stored = JSON.stringify({ ...new core.GeneratorOptions(), length: 20 });
+  const result = settings.readGeneratorOptions({});
+  assert.equal(result.succeeded, true);
+  assert.equal(result.options.length, 20);
+});
+
 test('malformed and invalid persisted rules recover to defaults without throwing', () => {
   const valid = new core.GeneratorOptions();
   for (const raw of [null, 55, 'null', '[]', '{', '{}', 'true', JSON.stringify({ ...valid, length: 129 }),
@@ -89,7 +96,7 @@ test('malformed and invalid persisted rules recover to defaults without throwing
     stored = raw;
     const read = settings.readGeneratorOptions({});
     assert.equal(read.succeeded, false);
-    assert.equal(read.options.length, 20);
+    assert.equal(read.options.length, 16);
     assert.equal(core.validateGeneratorOptions(read.options), core.GeneratorValidation.VALID);
   }
 });
@@ -124,13 +131,16 @@ test('session survives repeated page access and explicit teardown discards the p
   first.value = 'SESSION_ONLY';
   first.generatedFor = 'rules';
   first.options.length = 64;
+  first.generationFailure = core.GeneratorFailure.UNSUPPORTED;
   assert.equal(session.getGeneratorSession(), first);
   assert.equal(session.getGeneratorSession().value, 'SESSION_ONLY');
+  assert.equal(session.getGeneratorSession().generationFailure, core.GeneratorFailure.UNSUPPORTED);
   session.clearGeneratorSession();
   assert.equal(first.value, '');
   const fresh = session.getGeneratorSession();
   assert.notEqual(fresh, first);
   assert.equal(fresh.initialized, false);
   assert.equal(fresh.value, '');
-  assert.equal(fresh.options.length, 20);
+  assert.equal(fresh.options.length, 16);
+  assert.equal(fresh.generationFailure, core.GeneratorFailure.NONE);
 });

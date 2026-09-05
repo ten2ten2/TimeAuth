@@ -12,7 +12,8 @@
     { "name": "generator_show", "value": "Show password" },
     { "name": "generator_hide", "value": "Hide password" },
     { "name": "generator_empty", "value": "Generate a password to get started" },
-    { "name": "generator_generate_failed", "value": "Could not generate a secure password. Try again." },
+    { "name": "generator_generate_failed", "value": "Could not generate a secure password right now. Try again." },
+    { "name": "generator_device_unsupported", "value": "This device does not support secure password generation." },
     { "name": "generator_invalid_length", "value": "Enter a whole number from 8 to 128." },
     { "name": "generator_no_characters", "value": "Keep at least one character type enabled." },
     { "name": "generator_invalid_symbols", "value": "Use standard English keyboard punctuation only, without letters, numbers or spaces." },
@@ -26,6 +27,6 @@
     { "name": "generator_local_notice", "value": "Only generation settings are saved. Passwords stay in this app session unless you copy them." },
     { "name": "generator_preferences_failed", "value": "Could not load or save these settings. Check them after restarting the app." },
     { "name": "generator_generated", "value": "New password generated" },
-    { "name": "generator_length_hint", "value": "8–128 characters; default 20" }
+    { "name": "generator_length_hint", "value": "8–128 characters; default 16" }
   ]
 }

@@ -12,7 +12,8 @@
     { "name": "generator_show", "value": "显示密码" },
     { "name": "generator_hide", "value": "隐藏密码" },
     { "name": "generator_empty", "value": "生成一个密码开始使用" },
-    { "name": "generator_generate_failed", "value": "无法安全生成密码，请重试。" },
+    { "name": "generator_generate_failed", "value": "暂时无法安全生成密码，请重试。" },
+    { "name": "generator_device_unsupported", "value": "当前设备不支持安全密码生成。" },
     { "name": "generator_invalid_length", "value": "请输入 8～128 之间的整数。" },
     { "name": "generator_no_characters", "value": "请至少开启一种字符类型。" },
     { "name": "generator_invalid_symbols", "value": "符号只能使用半角标点，不能包含字母、数字或空格。" },
@@ -26,6 +27,6 @@
     { "name": "generator_local_notice", "value": "仅保存生成设置。密码只保留在本次应用会话中，复制后会写入剪贴板。" },
     { "name": "generator_preferences_failed", "value": "无法读取或保存这些设置，请在重启应用后检查选项。" },
     { "name": "generator_generated", "value": "已生成新密码" },
-    { "name": "generator_length_hint", "value": "8～128 位，默认 20 位" }
+    { "name": "generator_length_hint", "value": "8～128 位，默认 16 位" }
   ]
 }
