@@ -3,7 +3,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { preferences } from '@kit.ArkData';
 import { ThemePreference } from '../models/AppModels';
 
-export const THEME_PREFERENCE_STORAGE_KEY: string = 'timeauth.themePreference';
+const THEME_PREFERENCE_STORAGE_KEY: string = 'timeauth.themePreference';
 const THEME_PREFERENCES_NAME: string = 'timeauth_preferences';
 
 export function readThemePreference(context: common.Context): ThemePreference {
@@ -49,7 +49,7 @@ export function applyThemePreference(context: common.Context, preference: ThemeP
   }
 }
 
-export function colorModeForTheme(preference: ThemePreference): ConfigurationConstant.ColorMode {
+function colorModeForTheme(preference: ThemePreference): ConfigurationConstant.ColorMode {
   if (preference === ThemePreference.LIGHT) {
     return ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
   }
