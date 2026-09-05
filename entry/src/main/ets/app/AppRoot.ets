@@ -4,94 +4,68 @@ import { UnlockPage } from '../features/onboarding/UnlockPage';
 import { completeOnboarding, isOnboardingCompleted } from '../features/onboarding/OnboardingSettings';
 import { ScreenSecurityPage, setCurrentScreen } from '../security/ScreenSecurityManager';
 
-enum PreviewStage {
+enum AppStage {
   ONBOARDING = 0,
-  LOCKED = 1,
-  UNLOCKED = 2
+  APPLICATION = 1
 }
 
 @Component
 export struct AppRoot {
-  @State private stage: PreviewStage = PreviewStage.ONBOARDING;
+  @State private stage: AppStage = AppStage.ONBOARDING;
   @State private savingOnboarding: boolean = false;
   @State private onboardingSaveFailed: boolean = false;
-  private stageTransition: TransitionEffect = TransitionEffect.OPACITY
-    .animation({ duration: 180, curve: Curve.EaseOut });
+  @StorageLink('timeauth.sessionUnlocked') @Watch('onSessionChanged') private unlocked: boolean = false;
 
   private applyScreenSecurity(page: ScreenSecurityPage): void {
     const context = this.getUIContext().getHostContext();
-    if (context !== undefined) {
-      setCurrentScreen(context, page);
-    }
+    if (context !== undefined) { setCurrentScreen(context, page); }
   }
 
   aboutToAppear(): void {
     const context = this.getUIContext().getHostContext();
     this.stage = context !== undefined && isOnboardingCompleted(context) ?
-      PreviewStage.LOCKED : PreviewStage.ONBOARDING;
-    this.applyScreenSecurity(this.stage === PreviewStage.LOCKED ?
+      AppStage.APPLICATION : AppStage.ONBOARDING;
+    this.applyScreenSecurity(this.stage === AppStage.APPLICATION ?
       ScreenSecurityPage.UNLOCK : ScreenSecurityPage.ONBOARDING);
   }
 
-  private finishOnboarding(): void {
-    if (this.savingOnboarding) {
-      return;
+  private onSessionChanged(): void {
+    if (!this.unlocked && this.stage === AppStage.APPLICATION) {
+      this.applyScreenSecurity(ScreenSecurityPage.UNLOCK);
     }
+    // AppShell restores the selected page's policy after a successful unlock.
+  }
+
+  private async finishOnboarding(): Promise<void> {
+    if (this.savingOnboarding) { return; }
     const context = this.getUIContext().getHostContext();
-    if (context === undefined) {
-      this.onboardingSaveFailed = true;
-      return;
-    }
+    if (context === undefined) { this.onboardingSaveFailed = true; return; }
     this.savingOnboarding = true;
     this.onboardingSaveFailed = false;
-    completeOnboarding(context).then((success: boolean) => {
-      this.savingOnboarding = false;
-      this.onboardingSaveFailed = !success;
-      if (success) {
-        this.applyScreenSecurity(ScreenSecurityPage.UNLOCK);
-        this.stage = PreviewStage.LOCKED;
-      }
-    });
+    const success: boolean = await completeOnboarding(context);
+    this.savingOnboarding = false;
+    this.onboardingSaveFailed = !success;
+    if (success) {
+      this.applyScreenSecurity(ScreenSecurityPage.UNLOCK);
+      this.stage = AppStage.APPLICATION;
+    }
   }
 
   build() {
     Stack() {
-      if (this.stage === PreviewStage.ONBOARDING) {
-        Column() {
-          OnboardingPage({
-            saving: this.savingOnboarding,
-            saveFailed: this.onboardingSaveFailed,
-            onComplete: () => {
-              this.finishOnboarding();
-            }
-          })
-        }
-        .width('100%')
-        .height('100%')
-        .transition(this.stageTransition)
-      } else if (this.stage === PreviewStage.LOCKED) {
-        Column() {
-          UnlockPage({
-            onUnlock: () => {
-              this.applyScreenSecurity(ScreenSecurityPage.AUTHENTICATOR);
-              this.stage = PreviewStage.UNLOCKED;
-            }
-          })
-        }
-        .width('100%')
-        .height('100%')
-        .transition(this.stageTransition)
+      if (this.stage === AppStage.ONBOARDING) {
+        OnboardingPage({ saving: this.savingOnboarding, saveFailed: this.onboardingSaveFailed,
+          onComplete: () => { this.finishOnboarding(); } })
       } else {
-        Column() {
-          AppShell()
+        // Keep pending native scan callbacks alive, but make app content inaccessible while locked.
+        AppShell()
+          .visibility(this.unlocked ? Visibility.Visible : Visibility.Hidden)
+          .enabled(this.unlocked)
+        if (!this.unlocked) {
+          UnlockPage()
         }
-        .width('100%')
-        .height('100%')
-        .transition(this.stageTransition)
       }
     }
-    .width('100%')
-    .height('100%')
-    .clip(true)
+    .width('100%').height('100%').clip(true)
   }
 }

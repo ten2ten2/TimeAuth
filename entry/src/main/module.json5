@@ -15,6 +15,9 @@
     "requestPermissions": [
       {
         "name": "ohos.permission.PRIVACY_WINDOW"
+      },
+      {
+        "name": "ohos.permission.ACCESS_BIOMETRIC"
       }
     ],
     "abilities": [

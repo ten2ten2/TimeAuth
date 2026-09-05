@@ -1,100 +1,73 @@
 import { BrandMark } from '../../components/BrandMark';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
+import { appSessionEpoch, unlockAppSession } from '../../security/AppSession';
+import { DeviceUnlock } from '../../security/DeviceUnlock';
 
 @Component
 export struct UnlockPage {
-  @State private showFallback: boolean = false;
-  onUnlock: () => void = () => {};
+  @State private busy: boolean = false;
+  @State private failed: boolean = false;
+  private active: boolean = false;
+  private request: DeviceUnlock = new DeviceUnlock();
+
+  aboutToAppear(): void { this.active = true; }
+  aboutToDisappear(): void { this.active = false; this.request.cancel(); }
+
+  private async unlock(): Promise<void> {
+    if (this.busy || !this.active) { return; }
+    const context = this.getUIContext().getHostContext();
+    if (context === undefined) { this.failed = true; return; }
+    this.busy = true;
+    this.failed = false;
+    const epoch: number = appSessionEpoch();
+    try {
+      const title: string = context.resourceManager.getStringSync($r('app.string.auth_live_unlock_title').id);
+      const success: boolean = await this.request.verify(title);
+      if (!this.active) { return; }
+      this.failed = !success || !unlockAppSession(epoch);
+    } catch {
+      if (this.active) { this.failed = true; }
+    } finally {
+      if (this.active) { this.busy = false; }
+    }
+  }
 
   build() {
     Column() {
-      Row() {
-        Row({ space: AppSpacing.xs }) {
-          BrandMark({ markSize: 28 })
-          Text($r('app.string.brand_name'))
-            .fontSize(AppTypography.section)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-        }
-        Blank()
-        Text($r('app.string.preview_mode'))
-          .fontSize(AppTypography.caption)
-          .fontColor($r('app.color.warning'))
+      Row({ space: AppSpacing.xs }) {
+        BrandMark({ markSize: 28 })
+        Text($r('app.string.brand_name'))
+          .fontSize(AppTypography.section).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
       }
       .width('100%')
-
       Blank()
-
       Column({ space: AppSpacing.lg }) {
         BrandMark({ markSize: 88 })
-
-        Column({ space: AppSpacing.xs }) {
-          Text($r('app.string.unlock_title'))
-            .fontSize(AppTypography.title)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-          Text($r('app.string.unlock_description'))
-            .fontSize(AppTypography.label)
-            .fontColor($r('app.color.text_secondary'))
-            .lineHeight(21)
-            .textAlign(TextAlign.Center)
+        Text($r('app.string.auth_live_unlock_title'))
+          .fontSize(AppTypography.title).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
+        Text($r('app.string.auth_live_unlock_description'))
+          .fontSize(AppTypography.body).fontColor($r('app.color.text_secondary'))
+          .lineHeight(24).textAlign(TextAlign.Center)
+        if (this.failed) {
+          Text($r('app.string.auth_live_unlock_failed'))
+            .fontSize(AppTypography.label).fontColor($r('app.color.danger'))
+            .lineHeight(22).textAlign(TextAlign.Center)
         }
-        .width('100%')
-
-        if (this.showFallback) {
-          TextInput({ placeholder: $r('app.string.unlock_password_placeholder') })
-            .type(InputType.Password)
-            .height(52)
-            .fontColor($r('app.color.text_primary'))
-            .placeholderColor($r('app.color.text_secondary'))
-            .backgroundColor($r('app.color.surface'))
-            .borderRadius(AppRadius.medium)
-            .border({ width: 1, color: $r('app.color.border') })
-            .padding({ left: AppSpacing.md, right: AppSpacing.md })
-        }
-
-        Button(this.showFallback ? $r('app.string.unlock_mock_password') :
-          $r('app.string.unlock_mock_biometric'))
-          .type(ButtonType.Capsule)
-          .width('100%')
-          .height(52)
-          .fontColor(Color.White)
-          .backgroundColor($r('app.color.brand'))
-          .onClick(() => {
-            this.onUnlock();
-          })
-
-        Button(this.showFallback ? $r('app.string.unlock_use_biometric') :
-          $r('app.string.unlock_use_password'))
-          .type(ButtonType.Normal)
-          .height(48)
-          .fontColor($r('app.color.brand'))
-          .backgroundColor(Color.Transparent)
-          .onClick(() => {
-            this.showFallback = !this.showFallback;
-          })
+        Button(this.busy ? $r('app.string.auth_live_unlock_pending') : $r('app.string.auth_live_unlock_button'))
+          .type(ButtonType.Capsule).width('100%').height(52).enabled(!this.busy)
+          .fontColor(Color.White).backgroundColor($r('app.color.brand'))
+          .onClick(() => { this.unlock(); })
       }
-      .width('100%')
-      .constraintSize({ maxWidth: 440 })
-      .padding(AppSpacing.xl)
-      .backgroundColor($r('app.color.surface'))
-      .borderRadius(AppRadius.large)
-      .border({ width: 1, color: $r('app.color.border') })
-
+      .width('100%').constraintSize({ maxWidth: 440 }).padding(AppSpacing.xl)
+      .backgroundColor($r('app.color.surface')).borderRadius(AppRadius.large)
+      .border({ width: 1, color: $r('app.color.border'), radius: AppRadius.large })
       Blank()
-
-      Text($r('app.string.unlock_no_real_auth'))
-        .fontSize(AppTypography.caption)
-        .fontColor($r('app.color.text_secondary'))
+      Text($r('app.string.auth_live_unlock_privacy'))
+        .fontSize(AppTypography.caption).fontColor($r('app.color.text_secondary')).textAlign(TextAlign.Center)
     }
-    .width('100%')
-    .height('100%')
-    .padding({
-      left: AppLayout.contentPadding,
-      right: AppLayout.contentPadding,
-      top: AppSpacing.xl,
-      bottom: AppSpacing.xl
-    })
+    .width('100%').height('100%')
+    .padding({ left: AppLayout.contentPadding, right: AppLayout.contentPadding,
+      top: AppSpacing.xl, bottom: AppSpacing.xl })
     .backgroundColor($r('app.color.background'))
   }
 }

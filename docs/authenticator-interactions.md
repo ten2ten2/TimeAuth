@@ -1,48 +1,76 @@
-# Authenticator interaction preview
+# Real local Authenticator
 
-## Scope
+## Scope and migration
 
-This change implements the reviewed Authenticator **UI and mock-data management**, not the real OTP milestone. The existing `PageHeader` and `auth_title` / `auth_subtitle` resources are unchanged, including the explicit preview-data notice. Existing bottom navigation, global appearance preferences and screenshot/clipboard security policies are unchanged.
+Authenticator now starts empty and uses real locally stored accounts. The old in-memory preview store and twenty mock OTP records are removed; no demo keys are imported or converted to real accounts. The twenty bundled service icons, local alias matching, Apple-only -1vp optical offset, original header style, and rounded card container remain. Password Vault is still a separate preview milestone. Password/passphrase/PIN generation is unchanged.
 
-The page has no search field or day/night shortcut. The only top-right action is **+**, opening a native anchored menu with exactly **Scan QR code** and **Enter manually**. Each menu entry has a local leading SVG icon. Both remain clearly marked future-feature actions. No camera permission, import, secret input, real OTP calculation or encrypted persistence is added by this change.
+Implemented: standard TOTP provisioning QR scan, manual entry, review before Save, encrypted persistence, offline generation, live countdown, fresh-code copying, combined details/editor, confirmed deletion, and system identity verification on launch and after backgrounding. The UI strings cover English, Simplified Chinese, Traditional Chinese (Taiwan) and Traditional Chinese (Hong Kong).
 
-The preview list contains one mock entry for every service in the first icon batch: Alibaba Cloud, Tencent Cloud, Huawei Cloud, Baidu AI Cloud, Volcano Engine, Google, Microsoft, GitHub, Apple, AWS, Cloudflare, Steam, Discord, Dropbox, Slack, Bitwarden, 1Password, GitLab, Proton and OpenAI. This intentionally makes the preview long so all service badges can be visually reviewed in one scroll. Steam uses a five-character mock code; the other nineteen entries use six-digit mock TOTP values.
+Not implemented: encrypted backup/export/restore, cloud synchronization, HOTP account support, Google Authenticator protobuf migration QR codes, external deep-link import, Steam sign-in/enrollment/transfer, or Steam trade confirmations. An icon or issuer name is only a visual label; it is not proof of protocol compatibility and never chooses an OTP algorithm. Keep each service's recovery codes and another working recovery method. Do not make this development build your sole authenticator before native acceptance testing.
 
-## Service badges
+## Provisioning and generation
 
-- Known issuers are matched locally using normalized, case-insensitive aliases and render a bundled monochrome SVG on a service-specific background color.
-- Matching includes common forms such as `Aliyun`, `Google Workspace`, `Microsoft Entra`, `Amazon Web Services`, `Proton Mail` and `ChatGPT`.
-- Unknown issuers fall back to the issuer's first character on a neutral surface. No network request is made to resolve or download icons.
-- Service icons are decorative. The card's existing accessibility text continues to expose issuer, account and code rather than a separate logo label.
-- See `THIRD_PARTY_NOTICES.md` for icon-source and trademark notes.
+`OtpCore.ets` validates bounded inputs and parses single `otpauth://totp/...` URIs. Percent-encoding is decoded once, duplicate query parameters and conflicting issuer names are rejected, and unsupported modes fail explicitly. SHA1/SHA256/SHA512, six/eight digits and periods of 1–86400 seconds are supported. Defaults are SHA1, six digits and thirty seconds. Keys are canonicalized to unpadded Base32; malformed padding, symbols and non-zero unused bits are rejected. TOTP keys must contain 10–512 bytes. Labels are bounded and control/bidi override characters are rejected. Maximum: 500 accounts.
 
-## Interactions
+`OtpCrypto.ets` uses the platform CryptoArchitectureKit HMAC implementation. No handwritten hash or insecure random fallback is used. SHA1 is intentional for legacy TOTP interoperability, not password hashing. Temporary byte buffers and imported native key objects are cleared in `finally`. IDs use system cryptographic randomness.
 
-- Tapping any part of a closed card copies its current displayed OTP through `SecureClipboard`; display spaces are removed, leading zeroes and Steam letters are preserved. A single native Button owns the whole card and provides pressed feedback. There is no separate Copy button, chevron, tap-to-details region or long-press management menu.
-- Left-swiping a `ListItem` reveals icon-only **Edit** and **Delete** actions in that order. Accessible localized labels remain attached to both buttons. `SwipeEdgeEffect.None` and `actionAreaDistance: 0` prevent long-swipe direct deletion; there is no `onAction` delete handler. Tapping exposed card content dismisses its swipe actions first. Action buttons do not copy.
-- Edit opens one combined details/editor sheet. Service and account fields are drafts until Save. Service name is required; account is optional. Type and period are read-only. The preview does not offer a secret field. Cancel, outside dismissal and Back discard drafts. Edited cards get a content-derived ForEach key so plain-object snapshots do not leave stale card labels on screen.
-- Delete opens a native confirmation dialog showing the service name and account. Nothing is removed until the red Delete confirmation is pressed. Cancel, outside dismissal and Back do not delete. The callback targets a stable account ID, not a list index. Cancel receives default focus.
-- Edits and deletions stay in the **in-memory preview store** across tab/page reconstruction, including an empty list. A fresh app process reloads the original demo data. This is not durable storage or an undo/backup feature.
-- Short feedback is localized, does not intercept list touches and replaces the preceding timeout. Clipboard completions after page disposal are ignored; no code or account is logged.
+Steam is an explicit type with a five-character code, SHA1 and thirty-second period. Manual entry accepts an existing twenty-byte Base64 `shared_secret` or its Base32 encoding. QR import accepts the explicit `encoder=steam` extension. Merely naming an entry Steam does not select Steam mode. No Steam credentials are collected or network login performed.
+
+`OtpSession.ets` derives the counter and remaining time from `Date.now()`, never by decrementing an independent timer. Codes are cached for their exact time step and hidden when that step has expired while recalculation is pending. Copy recalculates at tap time and retries if the counter changes during calculation. A revision invalidates obsolete calculations after edits, deletion, navigation or locking. `@Observed OtpViewItem` / `@ObjectLink` and stable account IDs keep list items alive during countdown updates instead of rebuilding swipe controls each second.
+
+## Persistence and security boundary
+
+The authenticator uses ArkData relational storage configured with:
+
+```ts
+{ name: 'timeauth_authenticator_v1.db', securityLevel: relationalStore.SecurityLevel.S3, encrypt: true }
+```
+
+The platform manages the database encryption key. All account metadata and secrets are inside the encrypted database, including the duplicate-detection index. The application does not supply a hard-coded key, write plaintext credential files/preferences, or fall back to unencrypted storage. This is **platform database encryption plus an application authentication gate**, not a claim of a custom biometric-bound HUKS envelope or hardware authorization for every HMAC operation.
+
+Writes are serialized, bound to SQL parameters, and performed as single native row operations. Memory/UI is updated after a successful write, not optimistically. A failed write does not poison later operations. Corrupt records, unknown schema versions, and database-open failures display an error and disable adding; the app does not intentionally erase, rebuild, or replace the database with an empty one. UI deletion removes a logical record; it is not a claim of forensic secure erasure of previously used database pages.
+
+System authentication uses `UserAuthenticationKit.getUserAuthInstance`, a random challenge, available fingerprint/face/PIN methods at ATL2, and only the SDK's `UserAuthResultCode.SUCCESS`. Unsupported devices, missing enrollment, cancellation, timeout and failure do not unlock. There is no fake PIN field or Preview bypass. Authentication results from an earlier app epoch cannot unlock after backgrounding.
+
+On background/destroy, the ability locks the session. Authenticator clears displayed rows, account references, editor drafts, timers and pending delete confirmation, then closes the database behind accepted operations. JavaScript string memory cannot be guaranteed to be physically erased; references are released and byte buffers are zeroed where supported. The existing native privacy-window, inactive-content cover and best-effort clipboard cleanup remain. Clipboard clearing is not guaranteed after process termination or OS background restrictions.
+
+## UI flows
+
+- **Add:** + opens exactly two local-SVG menu items. Manual entry opens an empty editor. Scanning opens Scan Kit's native default UI with QR-only recognition and its album option. A scan is parsed and reviewed; it does not write until Save. Errors never log raw QR data. If the native scanner backgrounds the app, a newly returned draft waits in memory for successful re-authentication and database loading, expires after 120 seconds, and is discarded on page disposal. Existing account secrets are not kept alive for this purpose.
+- **Copy:** the entire closed card is one native Button. The outer clipped Column owns the 22vp shape and border; the button is transparent and retains native pressed feedback/accessibility. Empty/failed codes are disabled. Clicking an exposed swipe item first dismisses actions rather than copying.
+- **Edit:** left swipe exposes a 24vp pencil in a full-height 68vp target. One combined editor keeps labels, algorithm, length and period as drafts. The current key is hidden and retained unless Replace key is enabled. Cancel, Back and outside dismissal discard unsaved changes. Native writes already submitted are not undone by dismissing a sheet.
+- **Delete:** left swipe exposes a 24vp trash icon in a 68vp target. Full-swipe deletion is disabled. Confirmation names the exact service/account and warns that removing a local key does not turn off the service's two-step verification. Cancel is the default focus. Stable ID, dialog token and lifecycle revision prevent stale dialog callbacks from deleting a different account or acting after locking.
 
 ## Host checks
 
-Run from the repository root with Node.js 22.13+:
+Node.js 22.13+ is required for the type-stripping test harness:
 
 ```sh
-node --test tests/authenticator-interactions.test.cjs tests/authenticator-action-icons.test.cjs tests/authenticator-service-icons.test.cjs
+node --test tests/otp-core.test.cjs tests/otp-storage.test.cjs tests/otp-platform.test.cjs tests/otp-ui-contracts.test.cjs tests/authenticator-interactions.test.cjs
 ```
 
-The suites execute the pure preview store and the page's non-rendering controller methods with mocked ArkUI/clipboard APIs; they also check UI source contracts, local SVG resources and locale parity. They do **not** compile ArkTS UI DSL, render native widgets, emulate native gestures or prove device behavior. Run the existing `node --test tests/*.test.cjs` suite too when a complete checkout is available.
+These 111 tests passed in the development environment. They execute production non-rendering logic with mocked native APIs, including all eighteen RFC 6238 vectors, RFC 4226 truncation vectors, Base32 validation, persistence failures, concurrent duplicate prevention, time-step copying, stale callbacks, native scan return flow, system-authentication lifecycle and locale parity. They do **not** compile ArkTS UI DSL, render native widgets, verify on-device database ciphertext, or prove hardware biometric/scanner behavior. The existing icon-resource tests were updated for real data; run `node --test tests/*.test.cjs` from a complete checkout for the full repository regression suite. A full SDK build/full repository test run was not performed in this environment.
 
-## Required DevEco / real-device acceptance
+## Required DevEco / device acceptance
 
-1. Build with the repository's current minimum target (HarmonyOS 6.0 / API 20). Check both native runtime and DevEco Preview; clipboard access may be unavailable in Preview.
-2. Confirm the original header on light/dark and all four explicit locales, no search, no theme shortcut, and exactly two + menu choices. Confirm the QR and manual-entry icons are aligned with their menu labels. Menu dismissal must not copy or delete.
-3. Scroll through all twenty preview entries. Confirm each known issuer uses the intended local SVG badge and unknown issuer test data still falls back cleanly to a first character. Check dark/light contrast and large-font behavior.
-4. Tap avatar, title, account, whitespace, code and timer of closed cards. Check the clipboard contains digits without grouping (including a leading-zero case) or the unchanged five-character Steam code. Verify the copied feedback and automatic clipboard policy.
-5. Swipe each card left, including dragging beyond the action width and releasing. Both icon-only actions must have full-height touch targets; there must be no direct deletion and no accidental copy during a horizontal swipe or vertical scroll.
-6. Tap Edit, change labels (including changing to a known service alias), save and confirm immediate card/icon updates. Edit a different account, cancel, use Back, and dismiss by the scrim; unsaved drafts must not leak between accounts.
-7. Tap Delete; test Cancel, Back and outside dismissal before confirming. Verify only the named account is removed. Delete the last item and check the non-search empty state.
-8. Switch to Generator and back after an edit/deletion. Check that mock changes remain during the process; restart the app and confirm that all twenty demo entries return.
-9. Check a narrow phone, large font settings, a tablet/2-in-1, keyboard focus and screen-reader operation. Native swipe-action discovery, menu/sheet placement, keyboard avoidance and accessibility all require hardware acceptance.
+1. Build the existing HarmonyOS 6.0 / API 20 target, with local signing. There is no auth bypass for DevEco Preview; test the native flow on a supported device with a secure lock configured.
+2. Verify first-run onboarding, real system unlock, cancellation, failed authentication, background/foreground, screen locking, and no stale callback bypass. Check that fingerprint/face availability does not remove the system password fallback when it is supported.
+3. Start with the empty list. Add a **test-only** standard TOTP account manually, independently compare generated codes, and confirm restart persistence before adding important accounts. Never use public RFC seeds to secure real accounts.
+4. Scan a provisioning QR, cancel scanning, scan invalid QR/unsupported HOTP/migration data, and scan through the native album. Check re-authentication on return, review-before-save, duplicate handling and no duplicate writes on repeated taps.
+5. Check SHA1/256/512, six/eight digits, non-default periods, leading zeroes, device time changes and exact period boundaries. Test Steam only with an existing test secret and independently compare codes.
+6. Copy the icon, issuer, account, whitespace, code and timer areas. Confirm ungrouped output, native feedback and clipboard expiry policy. Horizontal swipes and vertical scrolls must not accidentally copy.
+7. Edit/cancel/Back/outside-dismiss, replace a key, change parameters, and switch tabs during a pending operation. Check stable row identity during countdowns and immediate saved-label/icon updates.
+8. Confirm/cancel/delete/Back, rapidly open different confirmation dialogs, and background while a dialog is open. Only the positively confirmed stable ID may be removed.
+9. Check storage-open errors, disk-full/write failures and corrupt test records on a debug-only fixture. Preserve data; never test destructive scenarios against users' only authenticator database. Inspect native encrypted database/journal/key handling without logging/exporting real secrets.
+10. Check round corners and pressed-state clipping on hardware, large fonts, light/dark themes, all locales, accessibility focus, and phone/tablet/2-in-1 layouts. Validate that native sheets/dialogs and the system scanner cannot expose sensitive content through task snapshots or capture.
+
+## Primary references
+
+- RFC 6238: https://www.rfc-editor.org/rfc/rfc6238
+- RFC 4226: https://www.rfc-editor.org/rfc/rfc4226
+- RFC 4648: https://www.rfc-editor.org/rfc/rfc4648
+- ArkData encrypted storage: https://developer.huawei.com/consumer/cn/doc/doccenter-capabilities/data-encryption
+- Crypto key conversion: https://developer.huawei.com/consumer/cn/doc/doccenter-dev-faq/faqs-crypto-architecture-66
+- System authentication: https://developer.huawei.com/consumer/en/doc/harmonyos-references-V14/js-apis-useriam-userauth-V14
+- Native default scanner: https://developer.huawei.com/consumer/en/doc/harmonyos-guides-V14/scan-scanbarcode-V14
+- Steam interoperability reference implementation (not Valve endorsement): https://github.com/DoctorMcKay/node-steam-totp/blob/master/index.js

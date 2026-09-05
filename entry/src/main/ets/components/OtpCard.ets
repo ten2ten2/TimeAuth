@@ -2,11 +2,12 @@ import { AppRadius, AppSpacing, AppTypography } from '../design/Tokens';
 import {
   resolveServiceIcon, ServiceIconKey, ServiceIconMatch, serviceInitial
 } from '../features/authenticator/ServiceIconRegistry';
-import { OtpItem, OtpKind } from '../models/AppModels';
+import { OtpKind } from '../models/AppModels';
+import { OtpViewItem } from '../features/authenticator/OtpViewItem';
 
 @Component
 export struct OtpCard {
-  @Prop item: OtpItem;
+  @ObjectLink item: OtpViewItem;
   onCopy: (code: string, issuer: string) => void = () => {};
 
   private serviceIconMatch(): ServiceIconMatch | undefined {
@@ -88,16 +89,11 @@ export struct OtpCard {
   @Builder
   Countdown() {
     Stack({ alignContent: Alignment.Center }) {
-      Progress({
-        value: this.item.remainingSeconds,
-        total: this.item.periodSeconds,
-        type: ProgressType.Ring
-      })
+      Progress({ value: this.item.remainingSeconds, total: this.item.periodSeconds, type: ProgressType.Ring })
         .width(42)
         .height(42)
         .color(this.item.remainingSeconds <= 5 ? $r('app.color.warning') : $r('app.color.brand'))
         .backgroundColor($r('app.color.surface_secondary'))
-
       Text(`${this.item.remainingSeconds}`)
         .fontSize(AppTypography.caption)
         .fontWeight(FontWeight.Medium)
@@ -107,14 +103,12 @@ export struct OtpCard {
   }
 
   build() {
-    // The outer container owns the visual card shape so native Button rendering cannot flatten the corners.
+    // The outer container owns the shape; a single transparent button owns copy semantics.
     Column() {
-      // Keep a single full-card button for copy semantics, pressed feedback and accessibility.
       Button({ type: ButtonType.Normal, stateEffect: true }) {
         Column({ space: AppSpacing.md }) {
           Row({ space: AppSpacing.sm }) {
             this.ServiceBadge()
-
             Column({ space: AppSpacing.xxs }) {
               Row({ space: AppSpacing.xs }) {
                 Text(this.item.issuer)
@@ -124,7 +118,6 @@ export struct OtpCard {
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
                   .layoutWeight(1)
-
                 if (this.item.kind === OtpKind.STEAM) {
                   Text('STEAM')
                     .fontSize(10)
@@ -136,7 +129,6 @@ export struct OtpCard {
                 }
               }
               .width('100%')
-
               Text(this.item.account)
                 .fontSize(AppTypography.label)
                 .fontColor($r('app.color.text_secondary'))
@@ -145,12 +137,10 @@ export struct OtpCard {
             }
             .layoutWeight(1)
             .alignItems(HorizontalAlign.Start)
-
             this.Countdown()
           }
           .width('100%')
-
-          Text(this.item.code)
+          Text(this.item.code.length > 0 ? this.item.code : '—')
             .fontSize(AppTypography.otp)
             .fontFamily('monospace')
             .fontWeight(FontWeight.Medium)
@@ -165,18 +155,17 @@ export struct OtpCard {
       .width('100%')
       .padding(AppSpacing.md)
       .backgroundColor(Color.Transparent)
+      .enabled(this.item.code.length > 0 && !this.item.failed)
       .accessibilityGroup(true)
       .accessibilityText($r('app.string.auth_card_accessibility',
         this.item.issuer, this.item.account, this.item.code))
       .accessibilityDescription($r('app.string.auth_card_hint'))
-      .onClick(() => {
-        this.onCopy(this.item.code, this.item.issuer);
-      })
+      .onClick(() => { this.onCopy(this.item.code, this.item.issuer); })
     }
     .width('100%')
     .backgroundColor($r('app.color.surface'))
     .borderRadius(AppRadius.large)
-    .border({ width: 1, color: $r('app.color.border') })
+    .border({ width: 1, color: $r('app.color.border'), radius: AppRadius.large })
     .clip(true)
   }
 }

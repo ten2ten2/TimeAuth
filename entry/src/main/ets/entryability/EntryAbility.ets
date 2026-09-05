@@ -12,6 +12,7 @@ import {
   handleWindowStageLifecycle, markScreenContentReady, reportScreenSecuritySetupFailure, setScreenAbilityForeground
 } from '../security/ScreenSecurityManager';
 import { disposeSensitiveClipboard, resumeSensitiveClipboardClear } from '../security/SecureClipboard';
+import { lockAppSession, setAppSessionForeground } from '../security/AppSession';
 
 export default class EntryAbility extends UIAbility {
   private windowStage: window.WindowStage | undefined = undefined;
@@ -22,6 +23,7 @@ export default class EntryAbility extends UIAbility {
   private contentLoaded: boolean = false;
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    lockAppSession();
     hilog.info(0x0000, 'TimeAuth', 'EntryAbility created');
     // System locale events still arrive when an explicit app-language override is active.
     try {
@@ -89,6 +91,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   onForeground(): void {
+    setAppSessionForeground(true);
     resumeSensitiveClipboardClear();
     if (this.contentLoaded) {
       // Covers missed/delayed locale broadcasts after changing the system language in Settings.
@@ -100,9 +103,11 @@ export default class EntryAbility extends UIAbility {
 
   onBackground(): void {
     setScreenAbilityForeground(false);
+    setAppSessionForeground(false);
   }
 
   onWindowStageDestroy(): void {
+    lockAppSession();
     this.contentLoaded = false;
     if (this.mainWindow !== undefined && this.windowListener !== undefined) {
       try {
@@ -126,6 +131,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   onDestroy(): void {
+    lockAppSession();
     disposeSensitiveClipboard();
     clearGeneratorSession();
     const subscriber: commonEventManager.CommonEventSubscriber | undefined = this.localeSubscriber;
@@ -134,7 +140,7 @@ export default class EntryAbility extends UIAbility {
       try {
         commonEventManager.unsubscribe(subscriber, (error: BusinessError) => {
           if (error) {
-            hilog.error(0x0000, 'TimeAuth', 'Failed to remove locale listener: %{public}s', JSON.stringify(error));
+            hilog.error(0x0000, 'TimeAuth', 'Locale unsubscribe failed: %{public}s', JSON.stringify(error));
           }
         });
       } catch (error) {
