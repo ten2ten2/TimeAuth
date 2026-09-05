@@ -4,7 +4,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { i18n } from '@kit.LocalizationKit';
 import { LanguagePreference } from '../models/AppModels';
 
-export const LANGUAGE_PREFERENCE_STORAGE_KEY: string = 'timeauth.languagePreference';
+const LANGUAGE_PREFERENCE_STORAGE_KEY: string = 'timeauth.languagePreference';
 const PREFERENCES_NAME: string = 'timeauth_preferences';
 
 function getStore(context: common.Context): preferences.Preferences {
