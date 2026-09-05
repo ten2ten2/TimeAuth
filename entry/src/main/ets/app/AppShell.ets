@@ -2,6 +2,7 @@ import { BottomNavigation, NavigationRail } from '../components/AppNavigation';
 import { AuthenticatorPage } from '../features/authenticator/AuthenticatorPage';
 import { GeneratorPage } from '../features/generator/GeneratorPage';
 import { PasswordVaultPage } from '../features/passwords/PasswordVaultPage';
+import { AboutPage } from '../features/settings/AboutPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { ScreenSecurityPage, setCurrentScreen } from '../security/ScreenSecurityManager';
 
@@ -9,6 +10,7 @@ import { ScreenSecurityPage, setCurrentScreen } from '../security/ScreenSecurity
 export struct AppShell {
   @State private selectedIndex: number = 0;
   @State private currentBreakpoint: string = 'xs';
+  @State private showAbout: boolean = false;
 
   private isExpanded(): boolean {
     return this.currentBreakpoint === 'md' ||
@@ -31,11 +33,28 @@ export struct AppShell {
   }
 
   private selectPage(index: number): void {
+    this.showAbout = false;
     const context = this.getUIContext().getHostContext();
     if (context !== undefined) {
       setCurrentScreen(context, this.securityPageForIndex(index));
     }
     this.selectedIndex = index;
+  }
+
+  private openAbout(): void {
+    const context = this.getUIContext().getHostContext();
+    if (context !== undefined) {
+      setCurrentScreen(context, ScreenSecurityPage.ABOUT);
+    }
+    this.showAbout = true;
+  }
+
+  private closeAbout(): void {
+    const context = this.getUIContext().getHostContext();
+    if (context !== undefined) {
+      setCurrentScreen(context, ScreenSecurityPage.SETTINGS);
+    }
+    this.showAbout = false;
   }
 
   aboutToAppear(): void {
@@ -53,8 +72,18 @@ export struct AppShell {
       PasswordVaultPage()
     } else if (this.selectedIndex === 2) {
       GeneratorPage()
+    } else if (this.showAbout) {
+      AboutPage({
+        onBack: () => {
+          this.closeAbout();
+        }
+      })
     } else {
-      SettingsPage()
+      SettingsPage({
+        onOpenAbout: () => {
+          this.openAbout();
+        }
+      })
     }
   }
 
@@ -122,4 +151,3 @@ export struct AppShell {
     })
   }
 }
-

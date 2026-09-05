@@ -14,6 +14,7 @@ import {
 
 @Component
 export struct SettingsPage {
+  onOpenAbout: () => void = () => {};
   @StorageLink('timeauth.themePreference') private themePreference: ThemePreference = ThemePreference.SYSTEM;
   @State private biometricLock: boolean = true;
   @State private hideTaskPreview: boolean = true;
@@ -232,42 +233,48 @@ export struct SettingsPage {
   }
 
   @Builder
-  NavigationRow(title: ResourceStr, description: ResourceStr, badge: ResourceStr) {
-    Row({ space: AppSpacing.md }) {
-      Column({ space: 2 }) {
-        Text(title)
-          .fontSize(AppTypography.body)
-          .fontColor($r('app.color.text_primary'))
-          .lineHeight(22)
-        Text(description)
-          .fontSize(AppTypography.caption)
-          .fontColor($r('app.color.text_secondary'))
-          .lineHeight(16)
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      Row({ space: AppSpacing.xs }) {
-        if (badge !== '') {
-          Text(badge)
+  NavigationRow(title: ResourceStr, description: ResourceStr, badge: ResourceStr, onClick: () => void) {
+    Button({ type: ButtonType.Normal }) {
+      Row({ space: AppSpacing.md }) {
+        Column({ space: 2 }) {
+          Text(title)
+            .fontSize(AppTypography.body)
+            .fontColor($r('app.color.text_primary'))
+            .lineHeight(22)
+          Text(description)
             .fontSize(AppTypography.caption)
-            .fontColor($r('app.color.brand'))
-            .lineHeight(18)
+            .fontColor($r('app.color.text_secondary'))
+            .lineHeight(16)
         }
-        Text('›')
-          .fontSize(22)
-          .fontColor($r('app.color.text_secondary'))
-          .width(20)
-          .height(24)
-          .lineHeight(24)
-          .textAlign(TextAlign.Center)
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Row({ space: AppSpacing.xs }) {
+          if (badge !== '') {
+            Text(badge)
+              .fontSize(AppTypography.caption)
+              .fontColor($r('app.color.brand'))
+              .lineHeight(18)
+          }
+          Text('›')
+            .fontSize(22)
+            .fontColor($r('app.color.text_secondary'))
+            .width(20)
+            .height(24)
+            .lineHeight(24)
+            .textAlign(TextAlign.Center)
+        }
+        .alignItems(VerticalAlign.Center)
       }
+      .width('100%')
+      .constraintSize({ minHeight: 58 })
+      .padding({ left: AppSpacing.md, right: AppSpacing.sm, top: AppSpacing.xs, bottom: AppSpacing.xs })
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .constraintSize({ minHeight: 58 })
-    .padding({ left: AppSpacing.md, right: AppSpacing.sm, top: AppSpacing.xs, bottom: AppSpacing.xs })
-    .alignItems(VerticalAlign.Center)
+    .padding(0)
+    .backgroundColor(Color.Transparent)
+    .onClick(onClick)
   }
 
   @Builder
@@ -286,7 +293,7 @@ export struct SettingsPage {
       Column({ space: AppSpacing.sm }) {
         PageHeader({
           title: $r('app.string.settings_title'),
-          subtitle: $r('app.string.settings_subtitle_security_active')
+          subtitle: $r('app.string.settings_subtitle')
         })
 
         Column() {
@@ -304,21 +311,21 @@ export struct SettingsPage {
         Column() {
           this.SectionTitle($r('app.string.settings_security'))
           this.SettingToggle($r('app.string.settings_biometric'),
-            $r('app.string.settings_biometric_preview_detail'), this.biometricLock, false, (value: boolean) => {
+            $r('app.string.settings_biometric_detail'), this.biometricLock, false, (value: boolean) => {
             this.biometricLock = value;
           })
           Divider()
             .color($r('app.color.border'))
             .margin({ left: AppSpacing.md, right: AppSpacing.md })
           this.SettingToggle($r('app.string.settings_hide_preview'),
-            $r('app.string.settings_hide_preview_active_detail'), this.hideTaskPreview, true, (value: boolean) => {
+            $r('app.string.settings_hide_preview_detail'), this.hideTaskPreview, true, (value: boolean) => {
             this.setHideTaskPreview(value);
           })
           Divider()
             .color($r('app.color.border'))
             .margin({ left: AppSpacing.md, right: AppSpacing.md })
           this.SettingToggle($r('app.string.settings_clear_clipboard'),
-            $r('app.string.settings_clear_clipboard_active_detail'), this.clearClipboard, true, (value: boolean) => {
+            $r('app.string.settings_clear_clipboard_detail'), this.clearClipboard, true, (value: boolean) => {
             this.setClearClipboard(value);
           })
         }
@@ -330,17 +337,17 @@ export struct SettingsPage {
         Column() {
           this.SectionTitle($r('app.string.settings_data'))
           this.NavigationRow($r('app.string.settings_backup'), $r('app.string.settings_backup_detail'),
-            $r('app.string.common_free'))
+            $r('app.string.common_free'), () => {})
           Divider()
             .color($r('app.color.border'))
             .margin({ left: AppSpacing.md, right: AppSpacing.md })
           this.NavigationRow($r('app.string.settings_import_codes'),
-            $r('app.string.settings_import_codes_detail'), '')
+            $r('app.string.settings_import_codes_detail'), '', () => {})
           Divider()
             .color($r('app.color.border'))
             .margin({ left: AppSpacing.md, right: AppSpacing.md })
           this.NavigationRow($r('app.string.settings_local_data'), $r('app.string.settings_local_data_detail'),
-            $r('app.string.common_preview'))
+            $r('app.string.common_preview'), () => {})
         }
         .width('100%')
         .backgroundColor($r('app.color.surface'))
@@ -348,8 +355,9 @@ export struct SettingsPage {
         .border({ width: 1, color: $r('app.color.border') })
 
         Column() {
-          this.NavigationRow($r('app.string.settings_about'), $r('app.string.settings_about_detail'),
-            '1.0.0-preview')
+          this.NavigationRow($r('app.string.settings_about'), $r('app.string.settings_about_detail'), '', () => {
+            this.onOpenAbout();
+          })
         }
         .width('100%')
         .backgroundColor($r('app.color.surface'))

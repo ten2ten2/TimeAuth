@@ -7,17 +7,14 @@ export struct BottomNavigation {
   onSelect: (index: number) => void = () => {};
 
   @Builder
-  NavItem(index: number, symbol: string, label: Resource) {
+  NavItem(index: number, icon: Resource, label: Resource) {
     Button({ type: ButtonType.Normal }) {
       Column({ space: AppSpacing.xxs }) {
-        Text(symbol)
-          .fontSize(19)
-          .fontWeight(this.selectedIndex === index ? FontWeight.Bold : FontWeight.Regular)
-          .fontColor(this.selectedIndex === index ? $r('app.color.brand') : $r('app.color.text_secondary'))
-          .width(26)
+        Image(icon)
+          .width(24)
           .height(24)
-          .lineHeight(24)
-          .textAlign(TextAlign.Center)
+          .objectFit(ImageFit.Contain)
+          .fillColor(this.selectedIndex === index ? $r('app.color.brand') : $r('app.color.text_secondary'))
         Text(label)
           .fontSize(AppTypography.caption)
           .fontWeight(this.selectedIndex === index ? FontWeight.Medium : FontWeight.Regular)
@@ -44,10 +41,10 @@ export struct BottomNavigation {
 
   build() {
     Row({ space: AppSpacing.xs }) {
-      this.NavItem(0, '⏱', $r('app.string.nav_authenticator'))
-      this.NavItem(1, '◆', $r('app.string.nav_vault'))
-      this.NavItem(2, '✦', $r('app.string.nav_generator'))
-      this.NavItem(3, '⚙', $r('app.string.nav_settings'))
+      this.NavItem(0, $r('app.media.nav_authenticator'), $r('app.string.nav_authenticator'))
+      this.NavItem(1, $r('app.media.nav_vault'), $r('app.string.nav_vault'))
+      this.NavItem(2, $r('app.media.nav_generator'), $r('app.string.nav_generator'))
+      this.NavItem(3, $r('app.media.nav_settings'), $r('app.string.nav_settings'))
     }
     .width('100%')
     .height(80)
@@ -64,17 +61,14 @@ export struct NavigationRail {
   onSelect: (index: number) => void = () => {};
 
   @Builder
-  RailItem(index: number, symbol: string, label: Resource) {
+  RailItem(index: number, icon: Resource, label: Resource) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: AppSpacing.sm }) {
-        Text(symbol)
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.selectedIndex === index ? $r('app.color.brand') : $r('app.color.text_secondary'))
-          .width(28)
+        Image(icon)
+          .width(24)
           .height(24)
-          .lineHeight(24)
-          .textAlign(TextAlign.Center)
+          .objectFit(ImageFit.Contain)
+          .fillColor(this.selectedIndex === index ? $r('app.color.brand') : $r('app.color.text_secondary'))
         Text(label)
           .fontSize(AppTypography.body)
           .fontWeight(this.selectedIndex === index ? FontWeight.Medium : FontWeight.Regular)
@@ -93,6 +87,7 @@ export struct NavigationRail {
     .padding(0)
     .backgroundColor(this.selectedIndex === index ? $r('app.color.brand_soft') : Color.Transparent)
     .borderRadius(AppRadius.medium)
+    .accessibilityText(label)
     .onClick(() => {
       this.onSelect(index);
     })
@@ -112,10 +107,10 @@ export struct NavigationRail {
       .padding({ bottom: AppSpacing.lg })
       .alignItems(VerticalAlign.Center)
 
-      this.RailItem(0, '⏱', $r('app.string.nav_authenticator'))
-      this.RailItem(1, '◆', $r('app.string.nav_vault'))
-      this.RailItem(2, '✦', $r('app.string.nav_generator'))
-      this.RailItem(3, '⚙', $r('app.string.nav_settings'))
+      this.RailItem(0, $r('app.media.nav_authenticator'), $r('app.string.nav_authenticator'))
+      this.RailItem(1, $r('app.media.nav_vault'), $r('app.string.nav_vault'))
+      this.RailItem(2, $r('app.media.nav_generator'), $r('app.string.nav_generator'))
+      this.RailItem(3, $r('app.media.nav_settings'), $r('app.string.nav_settings'))
 
       Blank()
 
