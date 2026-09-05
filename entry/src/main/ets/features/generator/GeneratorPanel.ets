@@ -419,6 +419,7 @@ export struct GeneratorPanel {
         .fontSize(24)
         .maxLines(1)
         .fontColor($r('app.color.text_primary'))
+        .textAlign(TextAlign.Center)
         .width('100%')
         .copyOption(CopyOptions.None)
     }
