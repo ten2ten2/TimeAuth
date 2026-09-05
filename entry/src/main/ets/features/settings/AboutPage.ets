@@ -207,7 +207,7 @@ export struct AboutPage {
         .borderRadius(AppRadius.large)
         .border({ width: 1, color: $r('app.color.border') })
 
-        Text($r('app.string.about_copyright'))
+        Text($r('app.string.about_copyright_private'))
           .fontSize(AppTypography.caption)
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
