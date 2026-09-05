@@ -1,6 +1,5 @@
 {
   "string": [
-    { "name": "settings_about_detail_private", "value": "版本、隐私、许可与第三方声明" },
     { "name": "about_license_title", "value": "许可与第三方声明" },
     { "name": "about_license_summary", "value": "专有软件许可与平台组件说明" },
     { "name": "about_license_body", "value": "TimeAuth 为闭源专有软件。© 2026 TimeAuth。保留所有权利。除非事先获得书面授权，否则不得复制、修改、再分发、反向工程、公开发布、再许可，或基于本应用及其资源制作衍生作品；适用法律明确允许的情形除外。\n\nHarmonyOS 系统框架及其他平台组件依据各自适用的条款和许可提供。" },
