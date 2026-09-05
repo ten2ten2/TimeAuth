@@ -2,6 +2,7 @@ import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { applyThemePreference, readThemePreference } from '../design/ThemeManager';
+import { applyLanguagePreference, readLanguagePreference } from '../localization/LanguageManager';
 import { handleWindowStageLifecycle, refreshScreenSecurity } from '../security/ScreenSecurityManager';
 
 export default class EntryAbility extends UIAbility {
@@ -10,6 +11,7 @@ export default class EntryAbility extends UIAbility {
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, 'TimeAuth', 'EntryAbility created');
+    applyLanguagePreference(readLanguagePreference(this.context));
     applyThemePreference(this.context, readThemePreference(this.context));
   }
 
@@ -32,7 +34,7 @@ export default class EntryAbility extends UIAbility {
         return;
       }
       refreshScreenSecurity(this.context);
-      hilog.info(0x0000, 'TimeAuth', 'UI/UX preview loaded');
+      hilog.info(0x0000, 'TimeAuth', 'UI loaded');
     });
   }
 
