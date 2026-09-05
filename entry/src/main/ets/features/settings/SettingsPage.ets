@@ -6,9 +6,7 @@ import { applyLanguagePreference } from '../../localization/LanguageManager';
 import { LanguagePreference, ThemePreference } from '../../models/AppModels';
 import { cancelPendingSensitiveClipboardClear } from '../../security/SecureClipboard';
 import {
-  applyWindowPrivacyMode,
   readSecuritySettings,
-  saveBlockScreenshots,
   saveClearClipboard,
   saveHideTaskPreview,
   SecuritySettings
@@ -19,7 +17,6 @@ export struct SettingsPage {
   @StorageLink('timeauth.themePreference') private themePreference: ThemePreference = ThemePreference.SYSTEM;
   @State private biometricLock: boolean = true;
   @State private hideTaskPreview: boolean = true;
-  @State private blockScreenshots: boolean = true;
   @State private clearClipboard: boolean = true;
   @StorageLink('timeauth.languagePreference') private languagePreference: LanguagePreference =
     LanguagePreference.SYSTEM;
@@ -31,7 +28,6 @@ export struct SettingsPage {
     }
     const settings: SecuritySettings = readSecuritySettings(context);
     this.hideTaskPreview = settings.hideTaskPreview;
-    this.blockScreenshots = settings.blockScreenshots;
     this.clearClipboard = settings.clearClipboard;
   }
 
@@ -55,15 +51,6 @@ export struct SettingsPage {
     const context: common.Context | undefined = this.getUIContext().getHostContext();
     if (context !== undefined) {
       saveHideTaskPreview(context, value);
-    }
-  }
-
-  private setBlockScreenshots(value: boolean): void {
-    this.blockScreenshots = value;
-    const context: common.Context | undefined = this.getUIContext().getHostContext();
-    if (context !== undefined) {
-      saveBlockScreenshots(context, value);
-      applyWindowPrivacyMode(context, value);
     }
   }
 
@@ -327,14 +314,6 @@ export struct SettingsPage {
             $r('app.string.settings_hide_preview_active_detail'), this.hideTaskPreview, true, (value: boolean) => {
             this.setHideTaskPreview(value);
           })
-          Divider()
-            .color($r('app.color.border'))
-            .margin({ left: AppSpacing.md, right: AppSpacing.md })
-          this.SettingToggle($r('app.string.settings_block_screenshots'),
-            $r('app.string.settings_block_screenshots_active_detail'), this.blockScreenshots, true,
-            (value: boolean) => {
-              this.setBlockScreenshots(value);
-            })
           Divider()
             .color($r('app.color.border'))
             .margin({ left: AppSpacing.md, right: AppSpacing.md })

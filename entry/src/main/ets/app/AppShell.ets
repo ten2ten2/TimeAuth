@@ -3,6 +3,7 @@ import { AuthenticatorPage } from '../features/authenticator/AuthenticatorPage';
 import { GeneratorPage } from '../features/generator/GeneratorPage';
 import { PasswordVaultPage } from '../features/passwords/PasswordVaultPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
+import { ScreenSecurityPage, setCurrentScreen } from '../security/ScreenSecurityManager';
 
 @Component
 export struct AppShell {
@@ -14,6 +15,34 @@ export struct AppShell {
       this.currentBreakpoint === 'lg' ||
       this.currentBreakpoint === 'xl' ||
       this.currentBreakpoint === 'xxl';
+  }
+
+  private securityPageForIndex(index: number): ScreenSecurityPage {
+    if (index === 0) {
+      return ScreenSecurityPage.AUTHENTICATOR;
+    }
+    if (index === 1) {
+      return ScreenSecurityPage.VAULT;
+    }
+    if (index === 2) {
+      return ScreenSecurityPage.GENERATOR;
+    }
+    return ScreenSecurityPage.SETTINGS;
+  }
+
+  private selectPage(index: number): void {
+    const context = this.getUIContext().getHostContext();
+    if (context !== undefined) {
+      setCurrentScreen(context, this.securityPageForIndex(index));
+    }
+    this.selectedIndex = index;
+  }
+
+  aboutToAppear(): void {
+    const context = this.getUIContext().getHostContext();
+    if (context !== undefined) {
+      setCurrentScreen(context, this.securityPageForIndex(this.selectedIndex));
+    }
   }
 
   @Builder
@@ -41,7 +70,7 @@ export struct AppShell {
       BottomNavigation({
         selectedIndex: this.selectedIndex,
         onSelect: (index: number) => {
-          this.selectedIndex = index;
+          this.selectPage(index);
         }
       })
     }
@@ -55,7 +84,7 @@ export struct AppShell {
       NavigationRail({
         selectedIndex: this.selectedIndex,
         onSelect: (index: number) => {
-          this.selectedIndex = index;
+          this.selectPage(index);
         }
       })
 

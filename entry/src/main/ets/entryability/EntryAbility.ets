@@ -1,33 +1,12 @@
 import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
-import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { applyThemePreference, readThemePreference } from '../design/ThemeManager';
-import { readSecuritySettings, SecuritySettings } from '../security/SecuritySettingsManager';
+import { handleWindowStageLifecycle, refreshScreenSecurity } from '../security/ScreenSecurityManager';
 
 export default class EntryAbility extends UIAbility {
-  private mainWindow: window.Window | undefined = undefined;
   private windowStage: window.WindowStage | undefined = undefined;
-  private stageEventListener: ((event: window.WindowStageEventType) => void) | undefined = undefined;
-
-  private applyPrivacyMode(isPrivate: boolean): void {
-    if (this.mainWindow === undefined) {
-      return;
-    }
-    this.mainWindow.setWindowPrivacyMode(isPrivate).catch((error: BusinessError) => {
-      hilog.error(0x0000, 'TimeAuth', 'Failed to update window privacy mode: %{public}s', JSON.stringify(error));
-    });
-  }
-
-  private applyForegroundPrivacy(): void {
-    const settings: SecuritySettings = readSecuritySettings(this.context);
-    this.applyPrivacyMode(settings.blockScreenshots);
-  }
-
-  private applyBackgroundPrivacy(): void {
-    const settings: SecuritySettings = readSecuritySettings(this.context);
-    this.applyPrivacyMode(settings.blockScreenshots || settings.hideTaskPreview);
-  }
+  private lifecycleListener: ((event: window.WindowStageLifecycleEventType) => void) | undefined = undefined;
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, 'TimeAuth', 'EntryAbility created');
@@ -36,25 +15,14 @@ export default class EntryAbility extends UIAbility {
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
     this.windowStage = windowStage;
-    this.stageEventListener = (event: window.WindowStageEventType): void => {
-      switch (event) {
-        case window.WindowStageEventType.INACTIVE:
-        case window.WindowStageEventType.HIDDEN:
-          this.applyBackgroundPrivacy();
-          break;
-        case window.WindowStageEventType.SHOWN:
-        case window.WindowStageEventType.ACTIVE:
-          this.applyForegroundPrivacy();
-          break;
-        default:
-          break;
-      }
+    this.lifecycleListener = (event: window.WindowStageLifecycleEventType): void => {
+      handleWindowStageLifecycle(this.context, event);
     };
 
     try {
-      windowStage.on('windowStageEvent', this.stageEventListener);
+      windowStage.on('windowStageLifecycleEvent', this.lifecycleListener);
     } catch (error) {
-      hilog.error(0x0000, 'TimeAuth', 'Failed to register window-stage privacy listener: %{public}s',
+      hilog.error(0x0000, 'TimeAuth', 'Failed to register WindowStage lifecycle listener: %{public}s',
         JSON.stringify(error));
     }
 
@@ -63,36 +31,21 @@ export default class EntryAbility extends UIAbility {
         hilog.error(0x0000, 'TimeAuth', 'Failed to load content: %{public}s', JSON.stringify(error));
         return;
       }
-      try {
-        this.mainWindow = windowStage.getMainWindowSync();
-        this.applyForegroundPrivacy();
-      } catch (windowError) {
-        hilog.error(0x0000, 'TimeAuth', 'Failed to initialize secure main window: %{public}s',
-          JSON.stringify(windowError));
-      }
+      refreshScreenSecurity(this.context);
       hilog.info(0x0000, 'TimeAuth', 'UI/UX preview loaded');
     });
   }
 
-  onForeground(): void {
-    this.applyForegroundPrivacy();
-  }
-
-  onBackground(): void {
-    this.applyBackgroundPrivacy();
-  }
-
   onWindowStageDestroy(): void {
-    if (this.windowStage !== undefined && this.stageEventListener !== undefined) {
+    if (this.windowStage !== undefined && this.lifecycleListener !== undefined) {
       try {
-        this.windowStage.off('windowStageEvent', this.stageEventListener);
+        this.windowStage.off('windowStageLifecycleEvent', this.lifecycleListener);
       } catch (error) {
-        hilog.error(0x0000, 'TimeAuth', 'Failed to unregister window-stage privacy listener: %{public}s',
+        hilog.error(0x0000, 'TimeAuth', 'Failed to unregister WindowStage lifecycle listener: %{public}s',
           JSON.stringify(error));
       }
     }
-    this.stageEventListener = undefined;
-    this.mainWindow = undefined;
+    this.lifecycleListener = undefined;
     this.windowStage = undefined;
   }
 }
