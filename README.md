@@ -12,17 +12,21 @@ HarmonyOS-native authenticator and password-manager project.
 
 Do not commit signing material, OTP/Steam secrets, passwords, recovery keys or exported vaults.
 
+## License
+
+TimeAuth is proprietary, closed-source software. All rights reserved. Third-party and platform components remain subject to their own applicable terms and licenses.
+
 ## Current implementation
 
 | Area | Status |
 | --- | --- |
 | App shell | Implemented: onboarding, mock unlock, Authenticator, Vault, Generator, Settings, About, responsive phone/tablet/2-in-1 navigation. |
 | Appearance | Implemented: System / Light / Dark, ArkData persistence, native color-mode API. |
-| Language | Implemented: System / Simplified Chinese / Traditional Chinese / English, ArkData persistence, native app-language API, English fallback. |
+| Language | Implemented: System / Simplified Chinese / Traditional Chinese (Taiwan) / English, ArkData persistence, native app-language API, English fallback. |
 | Screen capture policy | Implemented in code: Onboarding, Settings and About allow capture; Unlock, Authenticator, Vault and Generator are protected. |
 | Recent-app preview protection | Implemented in code with native privacy mode plus an opaque root cover; still requires real-device acceptance testing on each target OS/device. |
 | Clipboard | Implemented: local-device clipboard writes and guarded 30-second automatic clearing. |
-| About | Implemented: installed version, privacy/security notes, dependency/licensing notice and source link. |
+| About | Implemented: installed version, privacy/security information, proprietary-license notice, platform notices, and native ArkUI detail dialogs. |
 | Biometric unlock | Preview only. |
 | Backup / restore | Not implemented. |
 | Authenticator import / export | Not implemented. |
