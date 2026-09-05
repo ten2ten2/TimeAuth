@@ -7,8 +7,7 @@ import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/To
 @Component
 export struct AboutPage {
   onBack: () => void = () => {};
-  @State private versionName: string = '1.0.0';
-  @State private versionCode: string = '—';
+  @State private versionName: string = '0.1.0';
 
   private privacyDialogController: CustomDialogController = new CustomDialogController({
     builder: CustomContentDialog({
@@ -51,7 +50,6 @@ export struct AboutPage {
       bundleManager.getBundleInfoForSelf(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION)
         .then((info: bundleManager.BundleInfo) => {
           this.versionName = info.versionName;
-          this.versionCode = `${info.versionCode}`;
         })
         .catch((error: BusinessError) => {
           console.error(`Failed to read TimeAuth bundle info: ${JSON.stringify(error)}`);
@@ -154,7 +152,7 @@ export struct AboutPage {
             Text($r('app.string.about_version_label'))
               .fontSize(AppTypography.caption)
               .fontColor($r('app.color.text_secondary'))
-            Text(`${this.versionName} (${this.versionCode})`)
+            Text(this.versionName)
               .fontSize(AppTypography.caption)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.text_primary'))
@@ -179,30 +177,6 @@ export struct AboutPage {
           })
         }
         .width('100%')
-        .backgroundColor($r('app.color.surface'))
-        .borderRadius(AppRadius.large)
-        .border({ width: 1, color: $r('app.color.border') })
-
-        Column({ space: AppSpacing.xs }) {
-          Row() {
-            Text($r('app.string.about_platform_title'))
-              .fontSize(AppTypography.label)
-              .fontColor($r('app.color.text_secondary'))
-            Blank()
-            Text($r('app.string.about_platform_value'))
-              .fontSize(AppTypography.label)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_primary'))
-          }
-          .width('100%')
-          Text($r('app.string.about_local_first_note'))
-            .fontSize(AppTypography.caption)
-            .fontColor($r('app.color.text_secondary'))
-            .lineHeight(18)
-            .width('100%')
-        }
-        .width('100%')
-        .padding(AppSpacing.md)
         .backgroundColor($r('app.color.surface'))
         .borderRadius(AppRadius.large)
         .border({ width: 1, color: $r('app.color.border') })
