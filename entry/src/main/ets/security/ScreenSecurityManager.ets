@@ -15,6 +15,7 @@ export enum ScreenSecurityPage {
 
 let currentPage: ScreenSecurityPage = ScreenSecurityPage.ONBOARDING;
 let isWindowResumed: boolean = false;
+let isWindowFocused: boolean = false;
 
 function pageAllowsCapture(page: ScreenSecurityPage): boolean {
   return page === ScreenSecurityPage.ONBOARDING ||
@@ -27,7 +28,7 @@ function shouldUsePrivacyMode(context: common.Context): boolean {
     return true;
   }
 
-  if (isWindowResumed) {
+  if (isWindowResumed && isWindowFocused) {
     return false;
   }
 
@@ -59,6 +60,18 @@ export function handleWindowStageLifecycle(context: common.Context,
   event: window.WindowStageLifecycleEventType): void {
   isWindowResumed = event === window.WindowStageLifecycleEventType.RESUMED;
   applyPrivacyMode(context);
+}
+
+export function handleWindowFocus(context: common.Context, event: window.WindowStageEventType): void {
+  if (event === window.WindowStageEventType.INACTIVE) {
+    isWindowFocused = false;
+    applyPrivacyMode(context);
+    return;
+  }
+  if (event === window.WindowStageEventType.ACTIVE) {
+    isWindowFocused = true;
+    applyPrivacyMode(context);
+  }
 }
 
 export function refreshScreenSecurity(context: common.Context): void {
