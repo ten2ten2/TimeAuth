@@ -42,14 +42,31 @@ function isInteractive(): boolean {
 }
 
 function desiredPrivacy(): boolean {
-  return setupFailed || !contentReady || pageFramePending || !pageAllowsCapture() ||
+  // Keep native privacy enabled while a capture-allowed destination is replacing a
+  // sensitive page. The privacy flag itself is not visually intrusive, so this can
+  // wait for the destination frame without covering normal foreground navigation.
+  return setupFailed || !contentReady || !pageAllowsCapture() ||
+    (pageAllowsCapture() && pageFramePending) ||
     (hideTaskPreview && !isInteractive());
 }
 
+function shouldCoverContent(): boolean {
+  if (setupFailed || !contentReady) {
+    return true;
+  }
+
+  // The opaque cover is for inactive/task-switching states. Do not show it during
+  // ordinary foreground tab/page changes; native privacy mode can change silently.
+  if (!isInteractive()) {
+    return !pageAllowsCapture() || hideTaskPreview;
+  }
+
+  // If native protection actually fails on a sensitive foreground page, fail closed.
+  return !pageAllowsCapture() && failed;
+}
+
 function publishState(reason: string): void {
-  const covered: boolean = setupFailed || !contentReady || pageFramePending ||
-    ((!pageAllowsCapture() || hideTaskPreview) && !isInteractive()) ||
-    (!pageAllowsCapture() && (appliedPrivacy !== true || applying || failed));
+  const covered: boolean = shouldCoverContent();
   const update: () => void = (): void => {
     AppStorage.setOrCreate<boolean>(ERROR_KEY, failed || frameFailed || setupFailed);
     AppStorage.setOrCreate<boolean>(COVER_KEY, covered);
@@ -109,7 +126,7 @@ async function applyLatestPrivacy(): Promise<void> {
 }
 
 function reconcile(reason: string): void {
-  publishState(reason); // Hide the real UI immediately, before waiting for native acknowledgement.
+  publishState(reason);
   applyLatestPrivacy();
 }
 
@@ -140,7 +157,7 @@ function waitForPageFrame(): void {
   try {
     uiContext.postFrameCallback(new PageRenderedCallback(windowGeneration, pageRevision));
   } catch (error) {
-    // Do not relax capture protection before the replacement page has rendered.
+    // Keep native privacy enabled if the replacement frame cannot be observed.
     frameFailed = true;
     publishState('frame-error');
     console.error(`[ScreenSecurity] failed to observe rendered page: ${JSON.stringify(error)}`);
