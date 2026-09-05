@@ -1,5 +1,15 @@
 // Pure generation rules. The platform adapter is the only production source of random bytes.
+export enum GeneratorMode {
+  PASSWORD = 'password',
+  PASSPHRASE = 'passphrase'
+}
+
 export class GeneratorOptions {
+  mode: GeneratorMode = GeneratorMode.PASSWORD;
+  wordCount: number = 6;
+  separator: string = '-';
+  capitalize: boolean = false;
+  appendNumber: boolean = false;
   length: number = 16;
   includeLowercase: boolean = true;
   includeUppercase: boolean = true;
@@ -12,6 +22,9 @@ export class GeneratorOptions {
 
 export enum GeneratorValidation {
   VALID = 'valid',
+  INVALID_MODE = 'invalid_mode',
+  INVALID_WORD_COUNT = 'invalid_word_count',
+  INVALID_SEPARATOR = 'invalid_separator',
   INVALID_LENGTH = 'invalid_length',
   NO_CHARACTERS = 'no_characters',
   INVALID_SYMBOLS = 'invalid_symbols',
@@ -50,6 +63,18 @@ const MAX_PASSWORD_ATTEMPTS: number = 1024;
 const GENERATION_FAILURE: string = 'Secure password generation failed.';
 
 export function validateGeneratorOptions(options: GeneratorOptions): GeneratorValidation {
+  if (options.mode === GeneratorMode.PASSPHRASE) {
+    if (!Number.isInteger(options.wordCount) || options.wordCount < 4 || options.wordCount > 10) {
+      return GeneratorValidation.INVALID_WORD_COUNT;
+    }
+    if (['-', ' ', '_', '.'].indexOf(options.separator) < 0) {
+      return GeneratorValidation.INVALID_SEPARATOR;
+    }
+    return GeneratorValidation.VALID;
+  }
+  if (options.mode !== GeneratorMode.PASSWORD) {
+    return GeneratorValidation.INVALID_MODE;
+  }
   if (!Number.isInteger(options.length) || options.length < 8 || options.length > 128) {
     return GeneratorValidation.INVALID_LENGTH;
   }
@@ -134,6 +159,9 @@ export function estimatePasswordEntropy(options: GeneratorOptions): number {
   if (validateGeneratorOptions(options) !== GeneratorValidation.VALID) {
     throw new Error('Invalid password generator options.');
   }
+  if (options.mode === GeneratorMode.PASSPHRASE) {
+    return options.wordCount * Math.log2(7776) + (options.appendNumber ? Math.log2(10) : 0);
+  }
   return entropyForGroups(options.length, characterGroups(options), options.requireEach);
 }
 
@@ -148,27 +176,38 @@ class RandomByteReader {
   }
 
   uniformIndex(size: number): number {
-    const acceptanceLimit: number = Math.floor(256 / size) * size;
+    if (!Number.isInteger(size) || size < 1 || size > 65536) {
+      throw new Error(GENERATION_FAILURE);
+    }
+    const range: number = size > 256 ? 65536 : 256;
+    const acceptanceLimit: number = Math.floor(range / size) * size;
     while (this.draws < MAX_BYTE_DRAWS) {
-      if (this.offset >= this.bytes.length) {
-        this.clear();
-        const bytes: Uint8Array = this.randomBytes(RANDOM_CHUNK_SIZE);
-        if (!(bytes instanceof Uint8Array) || bytes.length !== RANDOM_CHUNK_SIZE) {
-          if (bytes instanceof Uint8Array) {
-            bytes.fill(0);
-          }
-          throw new Error(GENERATION_FAILURE);
-        }
-        this.bytes = bytes;
-      }
-      const value: number = this.bytes[this.offset++];
-      this.draws++;
-      // Discard the incomplete range; directly taking byte % size would bias characters.
+      const value: number = size > 256 ? this.nextByte() * 256 + this.nextByte() : this.nextByte();
+      // Discard the incomplete range rather than biasing characters or words with modulo.
       if (value < acceptanceLimit) {
         return value % size;
       }
     }
     throw new Error(GENERATION_FAILURE);
+  }
+
+  private nextByte(): number {
+    if (this.draws >= MAX_BYTE_DRAWS) {
+      throw new Error(GENERATION_FAILURE);
+    }
+    if (this.offset >= this.bytes.length) {
+      this.clear();
+      const bytes: Uint8Array = this.randomBytes(RANDOM_CHUNK_SIZE);
+      if (!(bytes instanceof Uint8Array) || bytes.length !== RANDOM_CHUNK_SIZE) {
+        if (bytes instanceof Uint8Array) {
+          bytes.fill(0);
+        }
+        throw new Error(GENERATION_FAILURE);
+      }
+      this.bytes = bytes;
+    }
+    this.draws++;
+    return this.bytes[this.offset++];
   }
 
   clear(): void {
@@ -180,7 +219,7 @@ class RandomByteReader {
 // randomBytes must supply fresh cryptographically secure bytes. Buffers are owned and cleared here.
 export function generatePasswordFromSource(options: GeneratorOptions,
   randomBytes: (length: number) => Uint8Array): PasswordResult {
-  if (validateGeneratorOptions(options) !== GeneratorValidation.VALID) {
+  if (options.mode !== GeneratorMode.PASSWORD || validateGeneratorOptions(options) !== GeneratorValidation.VALID) {
     throw new Error('Invalid password generator options.');
   }
   const groups: string[] = characterGroups(options);
@@ -210,6 +249,34 @@ export function generatePasswordFromSource(options: GeneratorOptions,
     throw new Error(GENERATION_FAILURE);
   } catch (error) {
     // Never propagate provider messages, which could contain sensitive diagnostic data.
+    throw new Error(GENERATION_FAILURE);
+  } finally {
+    reader.clear();
+  }
+}
+
+// The bundled list contains 7,776 unique lowercase words. Sampling is with replacement.
+export function generatePassphraseFromSource(options: GeneratorOptions,
+  randomBytes: (length: number) => Uint8Array, words: string[]): PasswordResult {
+  if (options.mode !== GeneratorMode.PASSPHRASE ||
+    validateGeneratorOptions(options) !== GeneratorValidation.VALID || words.length !== 7776) {
+    throw new Error('Invalid passphrase generator options.');
+  }
+  const reader: RandomByteReader = new RandomByteReader(randomBytes);
+  try {
+    const selected: string[] = [];
+    for (let index: number = 0; index < options.wordCount; index++) {
+      const word: string = words[reader.uniformIndex(words.length)];
+      selected.push(options.capitalize ? word.charAt(0).toUpperCase() + word.slice(1) : word);
+    }
+    let value: string = selected.join(options.separator);
+    if (options.appendNumber) {
+      value += `${reader.uniformIndex(10)}`;
+    }
+    // Separators and fixed capitalization add no entropy. A fresh appended digit adds log2(10).
+    return new PasswordResult(value,
+      options.wordCount * Math.log2(words.length) + (options.appendNumber ? Math.log2(10) : 0));
+  } catch (_) {
     throw new Error(GENERATION_FAILURE);
   } finally {
     reader.clear();

@@ -1,7 +1,9 @@
 import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 import {
-  GeneratorFailure, GeneratorOptions, PasswordGenerationError, PasswordResult, generatePasswordFromSource
+  GeneratorFailure, GeneratorMode, GeneratorOptions, PasswordGenerationError, PasswordResult,
+  generatePasswordFromSource, generatePassphraseFromSource
 } from './GeneratorCore';
+import { PASSPHRASE_WORDS } from './PassphraseWords';
 
 export function generatePassword(options: GeneratorOptions): PasswordResult {
   let failure: GeneratorFailure = GeneratorFailure.UNAVAILABLE;
@@ -9,14 +11,17 @@ export function generatePassword(options: GeneratorOptions): PasswordResult {
     // API 12+ exposes random generation through the dedicated Rand capability.
     if (canIUse('SystemCapability.Security.CryptoFramework.Rand')) {
       const random: cryptoFramework.Random = cryptoFramework.createRandom();
-      return generatePasswordFromSource(options, (length: number): Uint8Array => {
+      const randomBytes = (length: number): Uint8Array => {
         // Keep the check in the callback's scope for the SDK's SysCap analysis.
         if (canIUse('SystemCapability.Security.CryptoFramework.Rand')) {
           return random.generateRandomSync(length).data;
         }
         failure = GeneratorFailure.UNSUPPORTED;
         throw new Error('Secure password generation failed.');
-      });
+      };
+      return options.mode === GeneratorMode.PASSPHRASE ?
+        generatePassphraseFromSource(options, randomBytes, PASSPHRASE_WORDS) :
+        generatePasswordFromSource(options, randomBytes);
     }
     // Never substitute a noncryptographic source on unsupported devices.
     failure = GeneratorFailure.UNSUPPORTED;

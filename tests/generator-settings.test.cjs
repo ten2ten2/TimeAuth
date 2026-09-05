@@ -69,7 +69,7 @@ test('saved rules round-trip; output and unexpected fields never enter storage',
   assert.equal(writes[0].value.includes('DO_NOT_PERSIST'), false);
   assert.deepEqual(Object.keys(JSON.parse(writes[0].value)).sort(), [
     'length', 'includeLowercase', 'includeUppercase', 'includeNumbers', 'includeSymbols',
-    'avoidAmbiguous', 'requireEach', 'symbols'
+    'avoidAmbiguous', 'requireEach', 'symbols', 'mode', 'wordCount', 'separator', 'capitalize', 'appendNumber'
   ].sort());
   const read = settings.readGeneratorOptions({});
   assert.equal(read.succeeded, true);
@@ -85,6 +85,40 @@ test('the new default preserves an existing saved 20-character preference', () =
   const result = settings.readGeneratorOptions({});
   assert.equal(result.succeeded, true);
   assert.equal(result.options.length, 20);
+});
+
+test('legacy password-only settings acquire passphrase defaults without changing old rules', () => {
+  const legacy = { ...new core.GeneratorOptions(), length: 17, symbols: '!@' };
+  for (const key of ['mode', 'wordCount', 'separator', 'capitalize', 'appendNumber']) delete legacy[key];
+  stored = JSON.stringify(legacy);
+  const result = settings.readGeneratorOptions({});
+  assert.equal(result.succeeded, true);
+  assert.equal(result.options.length, 17);
+  assert.equal(result.options.symbols, '!@');
+  assert.equal(result.options.mode, core.GeneratorMode.PASSWORD);
+  assert.equal(result.options.wordCount, 6);
+});
+
+test('passphrase mode and rules persist while generated values remain excluded', async () => {
+  const configuration = Object.assign(new core.GeneratorOptions(), { mode: core.GeneratorMode.PASSPHRASE,
+    wordCount: 10, separator: '_', capitalize: true, appendNumber: true, value: 'DO_NOT_PERSIST' });
+  assert.equal(await settings.saveGeneratorOptions({}, configuration), true);
+  const result = settings.readGeneratorOptions({});
+  assert.equal(result.succeeded, true);
+  assert.equal(result.options.mode, core.GeneratorMode.PASSPHRASE);
+  assert.equal(result.options.wordCount, 10);
+  assert.equal(result.options.separator, '_');
+  assert.equal(result.options.capitalize, true);
+  assert.equal(result.options.appendNumber, true);
+  assert.equal(stored.includes('DO_NOT_PERSIST'), false);
+});
+
+test('malformed passphrase settings do not become active preferences', () => {
+  for (const bad of [{ mode: 'pin' }, { wordCount: 3 }, { wordCount: 11 }, { wordCount: '6' },
+    { separator: '' }, { separator: null }, { capitalize: 1 }, { appendNumber: 'false' }]) {
+    stored = JSON.stringify({ ...new core.GeneratorOptions(), ...bad });
+    assert.equal(settings.readGeneratorOptions({}).succeeded, false);
+  }
 });
 
 test('malformed and invalid persisted rules recover to defaults without throwing', () => {

@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit';
 import { preferences } from '@kit.ArkData';
-import { GeneratorOptions, GeneratorValidation, validateGeneratorOptions } from './GeneratorCore';
+import { GeneratorMode, GeneratorOptions, GeneratorValidation, validateGeneratorOptions } from './GeneratorCore';
 
 const PREFERENCES_NAME: string = 'timeauth_preferences';
 const OPTIONS_KEY: string = 'timeauth.generator.options.v1';
@@ -13,6 +13,12 @@ export class GeneratorPreferencesResult {
 // Keep a whitelist: a password/result must never enter the preferences payload.
 export function copyGeneratorOptions(source: GeneratorOptions): GeneratorOptions {
   const options: GeneratorOptions = new GeneratorOptions();
+  // Missing fields belong to the original password-only v1 settings format.
+  if (source.mode !== undefined) { options.mode = source.mode; }
+  if (source.wordCount !== undefined) { options.wordCount = source.wordCount; }
+  if (source.separator !== undefined) { options.separator = source.separator; }
+  if (source.capitalize !== undefined) { options.capitalize = source.capitalize; }
+  if (source.appendNumber !== undefined) { options.appendNumber = source.appendNumber; }
   options.length = source.length;
   options.includeLowercase = source.includeLowercase;
   options.includeUppercase = source.includeUppercase;
@@ -41,11 +47,21 @@ export function readGeneratorOptions(context: common.Context): GeneratorPreferen
       typeof saved.includeLowercase !== 'boolean' || typeof saved.includeUppercase !== 'boolean' ||
       typeof saved.includeNumbers !== 'boolean' || typeof saved.includeSymbols !== 'boolean' ||
       typeof saved.avoidAmbiguous !== 'boolean' || typeof saved.requireEach !== 'boolean' ||
-      typeof saved.symbols !== 'string' || validateGeneratorOptions(saved) !== GeneratorValidation.VALID) {
+      typeof saved.symbols !== 'string' ||
+      (saved.mode !== undefined && saved.mode !== GeneratorMode.PASSWORD && saved.mode !== GeneratorMode.PASSPHRASE) ||
+      (saved.wordCount !== undefined && (typeof saved.wordCount !== 'number' ||
+        !Number.isInteger(saved.wordCount) || saved.wordCount < 4 || saved.wordCount > 10)) ||
+      (saved.separator !== undefined && ['-', ' ', '_', '.'].indexOf(saved.separator) < 0) ||
+      (saved.capitalize !== undefined && typeof saved.capitalize !== 'boolean') ||
+      (saved.appendNumber !== undefined && typeof saved.appendNumber !== 'boolean')) {
       result.succeeded = false;
       return result;
     }
     result.options = copyGeneratorOptions(saved);
+    if (validateGeneratorOptions(result.options) !== GeneratorValidation.VALID) {
+      result.options = new GeneratorOptions();
+      result.succeeded = false;
+    }
   } catch (_) {
     // Do not log persisted contents or exception payloads.
     result.succeeded = false;

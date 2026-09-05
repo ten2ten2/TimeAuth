@@ -14,7 +14,7 @@ Do not commit signing material, OTP/Steam secrets, passwords, recovery keys or e
 
 ## License
 
-TimeAuth is proprietary, closed-source software. All rights reserved. Third-party and platform components remain subject to their own applicable terms and licenses.
+TimeAuth is proprietary, closed-source software. All rights reserved. Third-party and platform components remain subject to their own applicable terms and licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for EFF wordlist attribution and licensing.
 
 ## Current implementation
 
@@ -34,7 +34,8 @@ TimeAuth is proprietary, closed-source software. All rights reserved. Third-part
 | Authenticator import / export | Not implemented. |
 | OTP / password persistence | Not implemented; mock repository only. |
 | Real OTP generation | Not implemented. |
-| Passphrase / PIN generation | Not implemented; the generator currently supports random passwords only. |
+| Passphrase generation | Implemented: offline EFF wordlist, 4–10 words (default 6), four separators, optional capitalization and a random final digit. |
+| PIN generation | Not implemented. |
 
 ## Language mapping
 
@@ -56,7 +57,7 @@ Automatic clipboard clearing is best effort. TimeAuth checks the clipboard sourc
 
 See [docs/ui-ux-framework.md](docs/ui-ux-framework.md) for UI rules, preference behavior and the focused real-device acceptance checklist.
 
-See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 50 host tests passed: 15 generator-engine, 7 settings/session, 5 onboarding-persistence, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
+See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 63 host tests passed: 15 password-engine, 10 passphrase, 10 settings/session, 5 onboarding-persistence, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
 
 ## Next milestone
 

@@ -2,7 +2,7 @@ import { PageHeader } from '../../components/PageHeader';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 import { copySensitiveText } from '../../security/SecureClipboard';
 import {
-  GeneratorFailure, GeneratorOptions, GeneratorValidation, PasswordGenerationError, PasswordResult,
+  GeneratorFailure, GeneratorMode, GeneratorOptions, GeneratorValidation, PasswordGenerationError, PasswordResult,
   validateGeneratorOptions
 } from './GeneratorCore';
 import { generatePassword } from './PasswordGenerator';
@@ -199,6 +199,13 @@ export struct GeneratorPage {
   }
 
   private validationMessage(): Resource {
+    if (this.validation() === GeneratorValidation.INVALID_WORD_COUNT) {
+      return $r('app.string.generator_invalid_word_count');
+    }
+    if (this.validation() === GeneratorValidation.INVALID_SEPARATOR ||
+      this.validation() === GeneratorValidation.INVALID_MODE) {
+      return $r('app.string.generator_invalid_phrase_options');
+    }
     if (this.validation() === GeneratorValidation.INVALID_LENGTH) {
       return $r('app.string.generator_invalid_length');
     }
@@ -343,6 +350,133 @@ export struct GeneratorPage {
           })
       }
       .width('100%')
+    }
+    .width('100%')
+    .padding(AppSpacing.lg)
+    .backgroundColor($r('app.color.surface'))
+    .borderRadius(AppRadius.large)
+    .border({ width: 1, color: $r('app.color.border') })
+  }
+
+  @Builder
+  ModeButton(mode: GeneratorMode, title: Resource) {
+    Button(title)
+      .constraintSize({ minHeight: AppLayout.minimumTouchTarget })
+      .layoutWeight(1)
+      .fontSize(AppTypography.label)
+      .fontColor(this.options.mode === mode ? Color.White : $r('app.color.brand'))
+      .backgroundColor(this.options.mode === mode ? $r('app.color.brand') : $r('app.color.brand_soft'))
+      .onClick(() => {
+        if (this.options.mode !== mode) {
+          this.options.mode = mode;
+          this.optionsChanged();
+        }
+      })
+  }
+
+  @Builder
+  SeparatorButton(separator: string, title: Resource) {
+    Button(title)
+      .constraintSize({ minHeight: AppLayout.minimumTouchTarget })
+      .layoutWeight(1)
+      .fontSize(AppTypography.label)
+      .fontColor(this.options.separator === separator ? Color.White : $r('app.color.brand'))
+      .backgroundColor(this.options.separator === separator ? $r('app.color.brand') : $r('app.color.brand_soft'))
+      .onClick(() => {
+        this.options.separator = separator;
+        this.optionsChanged();
+      })
+  }
+
+  @Builder
+  PassphraseOptionsCard() {
+    Column({ space: AppSpacing.md }) {
+      Row({ space: AppSpacing.sm }) {
+        Text($r('app.string.generator_word_count'))
+          .fontSize(AppTypography.body)
+          .fontColor($r('app.color.text_primary'))
+          .layoutWeight(1)
+        Button('−')
+          .width(AppLayout.minimumTouchTarget)
+          .height(AppLayout.minimumTouchTarget)
+          .fontColor($r('app.color.brand'))
+          .backgroundColor($r('app.color.brand_soft'))
+          .enabled(this.options.wordCount > 4)
+          .accessibilityText($r('app.string.generator_fewer_words'))
+          .onClick(() => {
+            this.options.wordCount = Math.max(4, this.options.wordCount - 1);
+            this.optionsChanged();
+          })
+        Text(`${this.options.wordCount}`)
+          .width(32)
+          .textAlign(TextAlign.Center)
+          .fontSize(AppTypography.body)
+          .fontColor($r('app.color.text_primary'))
+        Button('+')
+          .width(AppLayout.minimumTouchTarget)
+          .height(AppLayout.minimumTouchTarget)
+          .fontColor($r('app.color.brand'))
+          .backgroundColor($r('app.color.brand_soft'))
+          .enabled(this.options.wordCount < 10)
+          .accessibilityText($r('app.string.generator_more_words'))
+          .onClick(() => {
+            this.options.wordCount = Math.min(10, this.options.wordCount + 1);
+            this.optionsChanged();
+          })
+      }
+      .width('100%')
+      Text($r('app.string.generator_word_count_hint'))
+        .fontSize(AppTypography.caption)
+        .fontColor($r('app.color.text_secondary'))
+        .width('100%')
+      Text($r('app.string.generator_separator'))
+        .fontSize(AppTypography.body)
+        .fontColor($r('app.color.text_primary'))
+        .width('100%')
+      Row({ space: AppSpacing.sm }) {
+        this.SeparatorButton('-', $r('app.string.generator_separator_hyphen'))
+        this.SeparatorButton(' ', $r('app.string.generator_separator_space'))
+      }
+      .width('100%')
+      Row({ space: AppSpacing.sm }) {
+        this.SeparatorButton('_', $r('app.string.generator_separator_underscore'))
+        this.SeparatorButton('.', $r('app.string.generator_separator_dot'))
+      }
+      .width('100%')
+      GeneratorOptionToggle({
+        title: $r('app.string.generator_capitalize'),
+        description: $r('app.string.generator_capitalize_detail'),
+        value: this.options.capitalize,
+        onValueChange: (value: boolean) => {
+          this.options.capitalize = value;
+          this.optionsChanged();
+        }
+      })
+      GeneratorOptionToggle({
+        title: $r('app.string.generator_append_number'),
+        description: $r('app.string.generator_append_number_detail'),
+        value: this.options.appendNumber,
+        onValueChange: (value: boolean) => {
+          this.options.appendNumber = value;
+          this.optionsChanged();
+        }
+      })
+      Text($r('app.string.generator_wordlist_notice'))
+        .fontSize(AppTypography.caption)
+        .fontColor($r('app.color.text_secondary'))
+        .width('100%')
+      if (this.validation() !== GeneratorValidation.VALID) {
+        Text(this.validationMessage())
+          .fontSize(AppTypography.label)
+          .fontColor($r('app.color.danger'))
+          .width('100%')
+      }
+      if (this.preferencesFailed) {
+        Text($r('app.string.generator_preferences_failed'))
+          .fontSize(AppTypography.label)
+          .fontColor($r('app.color.warning'))
+          .width('100%')
+      }
     }
     .width('100%')
     .padding(AppSpacing.lg)
@@ -533,8 +667,17 @@ export struct GeneratorPage {
       Scroll() {
         Column({ space: AppSpacing.md }) {
           PageHeader({ title: $r('app.string.generator_title'), subtitle: $r('app.string.generator_subtitle') })
+          Row({ space: AppSpacing.sm }) {
+            this.ModeButton(GeneratorMode.PASSWORD, $r('app.string.generator_mode_password'))
+            this.ModeButton(GeneratorMode.PASSPHRASE, $r('app.string.generator_mode_passphrase'))
+          }
+          .width('100%')
           this.ResultCard()
-          this.OptionsCard()
+          if (this.options.mode === GeneratorMode.PASSPHRASE) {
+            this.PassphraseOptionsCard()
+          } else {
+            this.OptionsCard()
+          }
           Text($r('app.string.generator_local_notice'))
             .fontSize(AppTypography.caption)
             .fontColor($r('app.color.text_secondary'))

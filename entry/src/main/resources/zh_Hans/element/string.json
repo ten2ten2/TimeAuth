@@ -70,7 +70,7 @@
     { "name": "vault_linked_code", "value": "已关联验证码" },
     { "name": "vault_feature_later_feedback", "value": "此项目类型将在本地密码库阶段接入" },
     { "name": "generator_title", "value": "密码生成器" },
-    { "name": "generator_subtitle", "value": "离线生成随机密码，确认后即可复制。" },
+    { "name": "generator_subtitle", "value": "离线生成随机密码或密码短语，确认后即可复制。" },
     { "name": "generator_mode_password", "value": "随机密码" },
     { "name": "generator_mode_passphrase", "value": "密码短语" },
     { "name": "generator_mode_pin", "value": "PIN" },

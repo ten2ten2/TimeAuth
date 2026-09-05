@@ -1,6 +1,6 @@
 # Password generator
 
-The Generator tab creates real random passwords locally. Authenticator codes, vault entries, and unlock remain preview features; there is no encrypted vault integration or real user authentication in this milestone.
+The Generator tab creates real random passwords and passphrases locally. Authenticator codes, vault entries, and unlock remain preview features; there is no encrypted vault integration or real user authentication in this milestone.
 
 ## Supported behavior
 
@@ -21,7 +21,7 @@ Editing options does not silently replace the current password. Changed options 
 
 The current result remains in memory while switching tabs, changing language or theme, and returning from the background in the same app process. OS process termination or an app restart discards that result. Generation settings survive restarts when preference storage succeeds. Storage failure is reported; do not assume settings were saved after an error.
 
-Passphrases, dedicated PIN controls, generation history, saving into the vault, and batch generation are future work. No placeholder mode selector presents these as completed features.
+Dedicated PIN controls, generation history, saving into the vault, and batch generation are future work. The mode selector exposes only implemented password and passphrase modes.
 
 ## Randomness and strength
 
@@ -54,12 +54,13 @@ From the repository root, with Node.js 22.13 or newer:
 node --test tests/*.test.cjs
 ```
 
-All 50 host tests passed:
+All 63 host tests passed:
 
 | Area | Passing tests |
 | --- | --- |
 | Generator engine | 15 |
-| Settings and session | 7 |
+| Passphrase engine and wordlist | 10 |
+| Settings and session | 10 |
 | Clipboard | 23 |
 | Onboarding persistence | 5 |
 
@@ -71,7 +72,7 @@ The native HAP build and real-device tests have not been executed. This feature 
 
 Use a development build with disposable generated values. Record the device model, HarmonyOS version, app version, and result for each case.
 
-1. **Build and offline start:** build and install the `entry` module using the configured compatible SDK. Open Generator in airplane mode. Confirm a real result appears without a network requirement or preview mode selector.
+1. **Build and offline start:** build and install the `entry` module using the configured compatible SDK. Open Generator in airplane mode. Confirm a real result appears without a network requirement. Confirm both password and passphrase modes are available.
 2. **Length boundaries:** generate at 8, 16, and 128 characters, checking the copied length. Confirm a fresh install defaults to 16 and an existing saved length (including 20) survives an update. Confirm the number field and slider agree. Swipe vertically starting on the track and on the thumb, and tap or drag from the track away from the thumb: the length must stay unchanged during page scrolling. Drag horizontally from the thumb's native touch target to adjust; confirm keyboard and accessibility adjustment still work. Enter an empty value, 7, 129, and a decimal if the keyboard permits; invalid drafts must not generate or copy. A 128-character result must remain readable by wrapping or scrolling, without truncating the copied password.
 3. **Character classes:** test each class alone and several combinations. Turn off the final remaining class; generating with no characters must be prevented and the UI must explain the requirement or retain one enabled type. Enable the every-type requirement and verify each selected class appears. Disable it and verify generation still obeys the allowed alphabet without promising every class.
 4. **Ambiguous characters:** with avoidance enabled, verify generated values exclude `0/O/1/I/l`. With it disabled, those characters become eligible; no individual result is required to contain them.
@@ -84,3 +85,17 @@ Use a development build with disposable generated values. Record the device mode
 11. **Failure recovery:** in a local debug-only build, make the Rand capability query return false and confirm the device-not-supported message. Separately make the query throw or the random provider fail and confirm the retry message. In each case confirm that the current result is cleared, copying is disabled, and the error category persists across tab, language, and theme changes. Restore the adapter and confirm regeneration recovers. Separately simulate preference read/write or flush failure; confirm a settings error is surfaced and no generated password is written as a fallback. Remove debug fault injection before shipping.
 
 Repeatedly generating different-looking values is not a proof of cryptographic randomness. Host verification checks selection logic; the native adapter and device behavior need the build and acceptance checks above.
+
+
+## Passphrase mode
+
+- Uses all 7,776 entries of the EFF Large Wordlist, bundled offline in `PassphraseWords.ets`. The exact original list and its checksum are checked by host tests; see `THIRD_PARTY_NOTICES.md` and the in-app About license notice for attribution.
+- Default: 6 English words, hyphen separator, lowercase, no appended digit. Word count supports 4–10 via plus/minus controls. The UI recommends at least 6 for important passwords.
+- Separators: hyphen, space, underscore, period. An empty separator is intentionally unavailable. The four hyphenated EFF entries do not have standalone first fragments in the list, so hyphen-delimited outputs remain uniquely decodable; a test verifies this property.
+- Optional capitalization changes only each word's first letter; optional number appends one independently sampled digit from 0 to 9 to the whole phrase.
+- Word draws use 16-bit rejection sampling: accept values below 62,208, then take modulo 7,776. Sampling is with replacement; repeated words are valid and are not silently replaced.
+- Entropy is word count × log2(7,776), plus log2(10) if a random digit is appended. Fixed capitalization and separator selection add no entropy. Six default words provide about 77.55 bits and retain the existing Strong label (Very strong begins at 80 bits).
+- Changing mode or rules preserves the current result and disables copying until Regenerate applies the new rules. Generation settings and selected mode persist; generated values remain memory-only, with existing show/hide, clipboard cleanup and screen protection.
+- Existing password-only v1 preferences gain default passphrase settings while preserving saved password rules. Password length remains 8–128, default 16. Inactive password rules do not block phrase generation.
+
+Device acceptance: switch to Passphrase, regenerate offline, and check 4/6/10 words, all four separators, capitalization, and digit on/off. Verify copied text exactly matches the shown result, including spaces and any hyphenated words. Switch tabs, language and theme, then restart the process to verify result retention within a session and settings-only retention across restart. Switch modes without regenerating and confirm that copying is disabled with a reminder; regenerate and confirm recovery. Check compact phones, large text, light/dark modes, unsupported capability and retryable failures.

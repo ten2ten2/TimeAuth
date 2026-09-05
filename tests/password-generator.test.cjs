@@ -51,11 +51,13 @@ before(async () => {
     if (missingOnSecondCheck && capabilityChecks > 1) return false;
     return capabilityAvailable;
   };
+  const wordsUrl = moduleUrl(readFileSync(join(generatorDirectory, 'PassphraseWords.ets'), 'utf8'));
   const kitUrl = moduleUrl('export const cryptoFramework = globalThis.__timeAuthTestCrypto;');
   const adapterSourceCode = 'const canIUse = globalThis.__timeAuthTestCanIUse;\n' +
     readFileSync(join(generatorDirectory, 'PasswordGenerator.ets'), 'utf8')
     .replace("'@kit.CryptoArchitectureKit'", JSON.stringify(kitUrl))
-    .replace("'./GeneratorCore'", JSON.stringify(coreUrl));
+    .replace("'./GeneratorCore'", JSON.stringify(coreUrl))
+    .replace("'./PassphraseWords'", JSON.stringify(wordsUrl));
   adapter = await import(moduleUrl(adapterSourceCode));
   delete globalThis.__timeAuthTestCrypto;
   delete globalThis.__timeAuthTestCanIUse;
