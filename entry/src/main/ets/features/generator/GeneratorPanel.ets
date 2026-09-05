@@ -12,7 +12,7 @@ import { GeneratorOptionToggle } from './GeneratorOptionToggle';
 @Component
 export struct GeneratorPanel {
   mode: GeneratorMode = GeneratorMode.PASSWORD;
-  @Prop @Watch('onTabActivityChanged') tabActive: boolean = false;
+  @Link @Watch('onSelectedIndexChanged') selectedIndex: number;
   @State private options: GeneratorOptions = new GeneratorOptions();
   @State private lengthInput: string = '16';
   @State private value: string = '';
@@ -33,24 +33,30 @@ export struct GeneratorPanel {
 
   aboutToAppear(): void {
     this.appeared = true;
-    if (this.tabActive) {
+    // Restore the fixed mode before the first render, including inactive/lazy tab instances.
+    this.restoreSession();
+    if (this.isSelectedTab()) {
       this.activateTab();
     }
   }
 
-  private onTabActivityChanged(): void {
+  private isSelectedTab(): boolean {
+    const index: number = this.mode === GeneratorMode.PIN ? 2 : this.mode === GeneratorMode.PASSPHRASE ? 1 : 0;
+    return this.selectedIndex === index;
+  }
+
+  private onSelectedIndexChanged(): void {
     if (!this.appeared) {
       return;
     }
-    if (this.tabActive) {
+    if (this.isSelectedTab()) {
       this.activateTab();
     } else {
       this.deactivateTab();
     }
   }
 
-  private activateTab(): void {
-    this.active = true;
+  private restoreSession(): void {
     const session: GeneratorSession = getGeneratorSession(this.mode);
     this.preferencesFailed = session.preferencesFailed;
     if (this.restored) {
@@ -77,6 +83,11 @@ export struct GeneratorPanel {
     this.generationFailure = session.generationFailure;
     // Native navigation can recreate the component. Do not overwrite an existing result.
     this.revealed = session.value.length === 0;
+  }
+
+  private activateTab(): void {
+    this.restoreSession();
+    this.active = true;
     if (this.value.length === 0 && this.generationFailure === GeneratorFailure.NONE &&
       this.validation() === GeneratorValidation.VALID) {
       this.regenerate(false);
@@ -792,9 +803,9 @@ export struct GeneratorPanel {
       Scroll() {
         Column({ space: AppSpacing.md }) {
           this.ResultCard()
-          if (this.options.mode === GeneratorMode.PASSPHRASE) {
+          if (this.mode === GeneratorMode.PASSPHRASE) {
             this.PassphraseOptionsCard()
-          } else if (this.options.mode === GeneratorMode.PIN) {
+          } else if (this.mode === GeneratorMode.PIN) {
             this.PinOptionsCard()
           } else {
             this.OptionsCard()

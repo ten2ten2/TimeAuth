@@ -49,7 +49,7 @@ Sensitive-page screenshot/recording protection is an application policy, not a u
 
 Recent-app task snapshots are partly controlled by the operating system compositor. Code-level privacy handling must therefore be verified on real hardware; the goal is to hide the card content, not remove the app itself from the task list.
 
-Generated passwords are kept in memory for the current app session, without disk persistence, logging, or network transmission. Copying writes the current password to the local-device clipboard. Generator preferences contain rules only, never password values or history.
+Each fresh app session opens Generator on Password. Tab selection is remembered only within that session; generation rules still persist separately for each tab. Generated passwords are kept in memory for the current app session, without disk persistence, logging, or network transmission. Copying writes the current password to the local-device clipboard. Generator preferences contain rules only, never password values or history.
 
 Automatic clipboard clearing is best effort. TimeAuth checks the clipboard source and change count before clearing, and retries pending deadlines when the app returns to the foreground. Background execution restrictions can delay clearing, and process termination can prevent it. The OS offers no atomic compare-and-clear operation, so the metadata guard cannot eliminate every cross-process race.
 
@@ -57,7 +57,7 @@ Automatic clipboard clearing is best effort. TimeAuth checks the clipboard sourc
 
 See [docs/ui-ux-framework.md](docs/ui-ux-framework.md) for UI rules, preference behavior and the focused real-device acceptance checklist.
 
-See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 89 host tests passed: 15 password-engine, 10 passphrase, 7 PIN-engine, 19 settings/session, 10 tab lifecycle, 5 onboarding-persistence, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
+See [docs/password-generator.md](docs/password-generator.md) for generation behavior, limitations, host checks, and the device acceptance checklist. With Node.js 22.13 or newer, run `node --test tests/*.test.cjs` from the repository root. All 92 host tests passed: 15 password-engine, 10 passphrase, 7 PIN-engine, 19 settings/session, 13 tab lifecycle, 5 onboarding-persistence, and 23 clipboard tests. Platform APIs are mocked; a native HAP build and real-device testing have not been executed.
 
 ## Next milestone
 

@@ -4,7 +4,6 @@ import { GeneratorMode, GeneratorOptions, GeneratorValidation, validateGenerator
 
 const PREFERENCES_NAME: string = 'timeauth_preferences';
 const OPTIONS_KEY: string = 'timeauth.generator.options.v1';
-const MODE_KEY: string = 'timeauth.generator.mode.v1';
 
 function tabOptionsKey(mode: GeneratorMode): string {
   return `timeauth.generator.options.${mode}.v2`;
@@ -13,49 +12,6 @@ function tabOptionsKey(mode: GeneratorMode): string {
 export class GeneratorPreferencesResult {
   options: GeneratorOptions = new GeneratorOptions();
   succeeded: boolean = true;
-}
-
-export class GeneratorModePreferencesResult {
-  mode: GeneratorMode = GeneratorMode.PASSWORD;
-  succeeded: boolean = true;
-}
-
-export function readGeneratorMode(context: common.Context): GeneratorModePreferencesResult {
-  const result: GeneratorModePreferencesResult = new GeneratorModePreferencesResult();
-  try {
-    const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
-    const raw: preferences.ValueType = store.getSync(MODE_KEY, '');
-    if (raw === GeneratorMode.PASSWORD || raw === GeneratorMode.PASSPHRASE || raw === GeneratorMode.PIN) {
-      result.mode = raw as GeneratorMode;
-    } else if (raw === '') {
-      const legacy: preferences.ValueType = store.getSync(OPTIONS_KEY, '');
-      if (typeof legacy === 'string' && legacy !== '') {
-        const saved: GeneratorOptions = JSON.parse(legacy) as GeneratorOptions;
-        if (saved !== null && saved.mode === GeneratorMode.PASSPHRASE) {
-          result.mode = GeneratorMode.PASSPHRASE;
-        }
-      }
-    } else {
-      result.succeeded = false;
-    }
-  } catch (_) {
-    result.succeeded = false;
-  }
-  return result;
-}
-
-export async function saveGeneratorMode(context: common.Context, mode: GeneratorMode): Promise<boolean> {
-  if (mode !== GeneratorMode.PASSWORD && mode !== GeneratorMode.PASSPHRASE && mode !== GeneratorMode.PIN) {
-    return false;
-  }
-  try {
-    const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
-    store.putSync(MODE_KEY, mode);
-    await store.flush();
-    return true;
-  } catch (_) {
-    return false;
-  }
 }
 
 // Keep a whitelist: a password/result must never enter the preferences payload.

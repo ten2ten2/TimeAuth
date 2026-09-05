@@ -19,7 +19,7 @@ export class GeneratorSession {
 let passwordSession: GeneratorSession = new GeneratorSession(GeneratorMode.PASSWORD);
 let passphraseSession: GeneratorSession = new GeneratorSession(GeneratorMode.PASSPHRASE);
 let pinSession: GeneratorSession = new GeneratorSession(GeneratorMode.PIN);
-let selectedMode: GeneratorMode | undefined = undefined;
+let selectedMode: GeneratorMode = GeneratorMode.PASSWORD;
 
 export function getGeneratorSession(mode: GeneratorMode = GeneratorMode.PASSWORD): GeneratorSession {
   if (mode === GeneratorMode.PIN) {
@@ -28,7 +28,7 @@ export function getGeneratorSession(mode: GeneratorMode = GeneratorMode.PASSWORD
   return mode === GeneratorMode.PASSPHRASE ? passphraseSession : passwordSession;
 }
 
-export function getSelectedGeneratorMode(): GeneratorMode | undefined {
+export function getSelectedGeneratorMode(): GeneratorMode {
   return selectedMode;
 }
 
@@ -45,5 +45,5 @@ export function clearGeneratorSession(): void {
   passwordSession = new GeneratorSession(GeneratorMode.PASSWORD);
   passphraseSession = new GeneratorSession(GeneratorMode.PASSPHRASE);
   pinSession = new GeneratorSession(GeneratorMode.PIN);
-  selectedMode = undefined;
+  selectedMode = GeneratorMode.PASSWORD;
 }

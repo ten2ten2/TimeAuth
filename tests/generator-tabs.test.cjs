@@ -24,12 +24,16 @@ function componentMethods(source, name) {
     .replace(/import .* from '.\/GeneratorOptionToggle';\n/g, '')
     .replace(/import .* from '.\/GeneratorPanel';\n/g, '')
     .replace('@Component\n', '').replace(`export struct ${name}`, `export class ${name}`)
-    .replace(/@Watch\('[^']+'\)\s*/g, '').replace(/@(Prop|State)\s*/g, '') + '\n}';
+    .replace(/@Watch\('[^']+'\)\s*/g, '').replace(/@(Prop|State|Link)\s*/g, '') + '\n}';
 }
-function activate(panel, value) { panel.tabActive = value; panel.onTabActivityChanged(); }
+function indexFor(mode) { return mode === core.GeneratorMode.PIN ? 2 : mode === core.GeneratorMode.PASSPHRASE ? 1 : 0; }
+function activate(panel, value) {
+  panel.selectedIndex = value ? indexFor(panel.mode) : (indexFor(panel.mode) + 1) % 3;
+  panel.onSelectedIndexChanged();
+}
 function panel(mode, active = true) {
   const value = new Panel();
-  value.mode = mode; value.tabActive = active;
+  value.mode = mode; value.selectedIndex = active ? indexFor(mode) : (indexFor(mode) + 1) % 3;
   panels.push(value); value.aboutToAppear();
   return value;
 }
@@ -196,20 +200,22 @@ test('late clipboard completion cannot announce success or clear a newer copy af
   assert.equal(password.feedback, 'app.string.security_copy_success');
 });
 
-test('tab selection is restored across shell recreation and process restart', async () => {
+test('cold launch ignores old saved tab selections while page recreation keeps the in-session tab', () => {
   storage.set('timeauth.generator.options.v1', JSON.stringify({ ...new core.GeneratorOptions(), mode: 'passphrase' }));
+  storage.set('timeauth.generator.mode.v1', 'pin');
   const first = new Page(); first.aboutToAppear();
-  assert.equal(first.selectedIndex, 1);
-  first.selectTab(0); await settle(); first.aboutToDisappear();
+  assert.equal(first.selectedIndex, 0);
+  first.selectTab(2); first.aboutToDisappear();
+  // A delayed native onChange during teardown must not change the remembered selection.
+  first.selectTab(0);
   const second = new Page(); second.aboutToAppear();
-  assert.equal(second.selectedIndex, 0);
-  second.selectTab(1); await settle(); second.aboutToDisappear();
-  sessions.clearGeneratorSession();
+  assert.equal(second.selectedIndex, 2);
+  second.aboutToDisappear(); sessions.clearGeneratorSession();
   const third = new Page(); third.aboutToAppear();
-  assert.equal(third.selectedIndex, 1);
+  assert.equal(third.selectedIndex, 0);
+  assert.equal(storage.get('timeauth.generator.mode.v1'), 'pin');
   third.aboutToDisappear();
 });
-
 
 test('a settings flush failure while hidden is shown on return and remains isolated to that tab', async () => {
   const password = panel(core.GeneratorMode.PASSWORD);
@@ -263,7 +269,7 @@ test('PIN first visit generates once; leading zeros, copying and draft rules sta
   assert.equal(generated.at(-1).pinLength, 8);
 });
 
-test('PIN is restored as the third tab with settings after restart and only retains results within a session', async () => {
+test('PIN selection survives navigation; restart opens Password and later restores only PIN settings', async () => {
   const first = new Page(); first.aboutToAppear(); first.selectTab(2);
   assert.equal(sessions.getSelectedGeneratorMode(), core.GeneratorMode.PIN);
   const pin = panel(core.GeneratorMode.PIN);
@@ -278,7 +284,8 @@ test('PIN is restored as the third tab with settings after restart and only reta
   for (const value of panels.splice(0)) value.aboutToDisappear();
   second.aboutToDisappear(); await settle(); sessions.clearGeneratorSession();
   const restarted = new Page(); restarted.aboutToAppear();
-  assert.equal(restarted.selectedIndex, 2);
+  assert.equal(restarted.selectedIndex, 0);
+  restarted.selectTab(2);
   const fresh = panel(core.GeneratorMode.PIN);
   assert.equal(fresh.options.pinLength, 4);
   assert.notEqual(fresh.value, original);
@@ -301,4 +308,70 @@ test('PIN failures stay in their tab and require explicit retry without altering
   assert.equal(phrase.value, originalPhrase);
   failureMode = undefined; pin.regenerate(false);
   assert.equal(pin.canCopy(), true);
+});
+
+
+test('inactive tab instances restore their own mode and retained result before first render', () => {
+  for (const mode of [core.GeneratorMode.PASSPHRASE, core.GeneratorMode.PIN]) {
+    const first = panel(mode);
+    const original = first.value;
+    first.aboutToDisappear();
+    const count = generated.length;
+    const restored = panel(mode, false);
+    assert.equal(restored.options.mode, mode);
+    assert.equal(restored.value, original);
+    assert.equal(restored.active, false);
+    assert.equal(generated.length, count);
+    activate(restored, true);
+    assert.equal(restored.value, original);
+    assert.equal(restored.active, true);
+    assert.equal(generated.length, count);
+  }
+});
+
+test('PIN → Password → Authenticator → Generator → PIN restores the PIN result and clipboard value', async () => {
+  const first = new Page(); first.aboutToAppear();
+  const password = panel(core.GeneratorMode.PASSWORD);
+  first.selectTab(2); activate(password, false);
+  const pin = panel(core.GeneratorMode.PIN);
+  const originalPassword = password.value, originalPin = pin.value;
+  first.selectTab(0); activate(pin, false); activate(password, true);
+  first.aboutToDisappear(); password.aboutToDisappear(); pin.aboutToDisappear();
+  // Returning from Authenticator recreates Generator and its cached/lazy contents.
+  const second = new Page(); second.aboutToAppear();
+  assert.equal(second.selectedIndex, 0);
+  const restoredPassword = panel(core.GeneratorMode.PASSWORD);
+  const restoredPin = panel(core.GeneratorMode.PIN, false);
+  assert.equal(restoredPin.options.mode, core.GeneratorMode.PIN);
+  assert.equal(restoredPin.value, originalPin);
+  const count = generated.length;
+  second.selectTab(2);
+  activate(restoredPassword, false); activate(restoredPin, true);
+  assert.equal(second.selectedIndex, 2);
+  assert.equal(restoredPin.isSelectedTab(), true);
+  assert.equal(restoredPassword.isSelectedTab(), false);
+  assert.equal(restoredPin.value, originalPin);
+  assert.equal(restoredPassword.value, originalPassword);
+  assert.equal(generated.length, count);
+  restoredPin.copyValue();
+  assert.equal(copies.at(-1).value, originalPin);
+  copies.at(-1).resolve(true); await settle();
+  assert.equal(restoredPin.feedback, 'app.string.security_copy_success');
+  second.aboutToDisappear();
+});
+
+test('selection notifications before lazy child appearance use the current index and generate exactly once', () => {
+  const pin = new Panel(); pin.mode = core.GeneratorMode.PIN; panels.push(pin);
+  pin.selectedIndex = 0;
+  pin.onSelectedIndexChanged();
+  assert.equal(generated.length, 0);
+  pin.selectedIndex = 2;
+  pin.onSelectedIndexChanged();
+  assert.equal(generated.length, 0);
+  pin.aboutToAppear();
+  assert.equal(pin.options.mode, core.GeneratorMode.PIN);
+  assert.match(pin.value, /^0\d{5}$/);
+  assert.equal(generated.length, 1);
+  pin.onSelectedIndexChanged();
+  assert.equal(generated.length, 1);
 });
