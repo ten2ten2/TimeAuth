@@ -12,8 +12,7 @@ export struct AppShell {
   @State private currentBreakpoint: string = 'xs';
   @State private showAbout: boolean = false;
   private contentTransitionEffect: TransitionEffect = TransitionEffect.OPACITY
-    .animation({ duration: 160, curve: Curve.EaseOut })
-    .combine(TransitionEffect.translate({ y: 6 }));
+    .animation({ duration: 160, curve: Curve.EaseOut });
 
   private isExpanded(): boolean {
     return this.currentBreakpoint === 'md' ||
