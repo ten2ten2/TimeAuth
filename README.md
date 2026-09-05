@@ -22,7 +22,7 @@ TimeAuth is proprietary, closed-source software. All rights reserved. Third-part
 | --- | --- |
 | App shell | Implemented: onboarding, mock unlock, Authenticator, Vault, Generator, Settings, About, responsive phone/tablet/2-in-1 navigation. |
 | Appearance | Implemented: System / Light / Dark, ArkData persistence, native color-mode API. |
-| Language | Implemented: System / Simplified Chinese / Traditional Chinese (Taiwan) / English, ArkData persistence, native app-language API, English fallback. |
+| Language | Implemented: System / Simplified Chinese / Traditional Chinese (Taiwan) / Traditional Chinese (Hong Kong) / English, with locale-specific resources and English fallback. |
 | Screen capture policy | Implemented in code: Onboarding, Settings and About allow capture; Unlock, Authenticator, Vault and Generator are protected. |
 | Recent-app preview protection | Implemented in code with native privacy mode plus an opaque root cover; still requires real-device acceptance testing on each target OS/device. |
 | Clipboard | Implemented: local-device clipboard writes and guarded 30-second automatic clearing. |
@@ -33,11 +33,11 @@ TimeAuth is proprietary, closed-source software. All rights reserved. Third-part
 | OTP / password persistence | Not implemented; mock repository only. |
 | Real OTP/password generation | Not implemented. |
 
-## Settings data flow
+## Language mapping
 
-Theme, language and security preferences use ArkData Preferences as the persistent source of truth. Settings keeps local reactive state for immediate UI feedback, while `EntryAbility` applies the saved native configuration after the page is loaded.
+Manual choices are `简体中文`, `正體中文 (台灣)`, `繁體中文 (香港)` and `English`, plus Follow system. Parentheses in Chinese language names are ASCII half-width.
 
-When Language is set to System, TimeAuth stores `SYSTEM` as the preference, resolves the current OS language, and refreshes it on app start, foreground entry and system locale changes.
+Follow system reads the OS language locale. `zh-Hant-TW` uses the Taiwan resource, `zh-Hant-HK` and `zh-Hant-MO` use the Hong Kong resource, and Simplified Chinese locales including Singapore and Malaysia use the Simplified Chinese resource. Unsupported system languages fall back to English.
 
 ## Security notes
 

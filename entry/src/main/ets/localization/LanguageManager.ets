@@ -14,7 +14,9 @@ export function readLanguagePreference(context: common.Context): LanguagePrefere
     const value: string = store.getSync(
       LANGUAGE_PREFERENCE_STORAGE_KEY, LanguagePreference.SYSTEM) as string;
     if (value === LanguagePreference.SIMPLIFIED_CHINESE ||
-      value === LanguagePreference.TRADITIONAL_CHINESE || value === LanguagePreference.ENGLISH) {
+      value === LanguagePreference.TRADITIONAL_CHINESE_TAIWAN ||
+      value === LanguagePreference.TRADITIONAL_CHINESE_HONG_KONG ||
+      value === LanguagePreference.ENGLISH) {
       return value as LanguagePreference;
     }
   } catch (error) {
@@ -33,7 +35,6 @@ export async function saveLanguagePreference(context: common.Context,
     await store.flush();
     return true;
   } catch (error) {
-    // putSync also changes the in-memory Preferences cache. Restore it on failure.
     if (store !== undefined) {
       try {
         store.putSync(LANGUAGE_PREFERENCE_STORAGE_KEY, previous);
@@ -51,29 +52,37 @@ export function resolveLanguageTag(preference: LanguagePreference, systemLanguag
   if (preference === LanguagePreference.SIMPLIFIED_CHINESE) {
     return 'zh-Hans';
   }
-  if (preference === LanguagePreference.TRADITIONAL_CHINESE) {
-    return 'zh-Hant';
+  if (preference === LanguagePreference.TRADITIONAL_CHINESE_TAIWAN) {
+    return 'zh-Hant-TW';
+  }
+  if (preference === LanguagePreference.TRADITIONAL_CHINESE_HONG_KONG) {
+    return 'zh-Hant-HK';
   }
   if (preference === LanguagePreference.ENGLISH) {
     return 'en';
   }
+
   const tag: string = systemLanguage.replace(/_/g, '-').toLowerCase();
   const parts: string[] = tag.split('-');
   if (parts[0] !== 'zh') {
     return 'en';
   }
-  if (parts.includes('hant')) {
-    return 'zh-Hant';
-  }
   if (parts.includes('hans')) {
     return 'zh-Hans';
   }
-  return parts.includes('tw') || parts.includes('hk') || parts.includes('mo') ? 'zh-Hant' : 'zh-Hans';
+  if (parts.includes('hant')) {
+    return parts.includes('hk') || parts.includes('mo') ? 'zh-Hant-HK' : 'zh-Hant-TW';
+  }
+  if (parts.includes('tw')) {
+    return 'zh-Hant-TW';
+  }
+  if (parts.includes('hk') || parts.includes('mo')) {
+    return 'zh-Hant-HK';
+  }
+  return 'zh-Hans';
 }
 
-// Call after loadContent. The native 'default' preference takes effect on cold start,
-// so SYSTEM is resolved now and re-evaluated on locale events, foreground and launch.
-// Only the user's SYSTEM choice is persisted in our Preferences, never this resolved tag.
+// SYSTEM follows the current OS language. Region only chooses the Chinese variant.
 export function applyLanguagePreference(context: common.Context,
   preference: LanguagePreference, force: boolean = true): boolean {
   try {

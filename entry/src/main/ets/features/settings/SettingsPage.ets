@@ -41,7 +41,8 @@ export struct SettingsPage {
       radioContent: [
         { title: $r('app.string.language_system'), action: () => { this.selectLanguage(LanguagePreference.SYSTEM); } },
         { title: $r('app.string.language_simplified_chinese'), action: () => { this.selectLanguage(LanguagePreference.SIMPLIFIED_CHINESE); } },
-        { title: $r('app.string.language_traditional_chinese'), action: () => { this.selectLanguage(LanguagePreference.TRADITIONAL_CHINESE); } },
+        { title: $r('app.string.language_traditional_chinese_taiwan'), action: () => { this.selectLanguage(LanguagePreference.TRADITIONAL_CHINESE_TAIWAN); } },
+        { title: $r('app.string.language_traditional_chinese_hong_kong'), action: () => { this.selectLanguage(LanguagePreference.TRADITIONAL_CHINESE_HONG_KONG); } },
         { title: $r('app.string.language_english'), action: () => { this.selectLanguage(LanguagePreference.ENGLISH); } }
       ]
     }),
@@ -65,7 +66,6 @@ export struct SettingsPage {
 
   private onScreenCoverChanged(): void {
     if (this.screenCovered) {
-      // Native dialogs must not remain above the root privacy cover.
       this.closePreferenceDialogs();
     }
   }
@@ -83,10 +83,13 @@ export struct SettingsPage {
     if (this.languagePreference === LanguagePreference.SIMPLIFIED_CHINESE) {
       return 1;
     }
-    if (this.languagePreference === LanguagePreference.TRADITIONAL_CHINESE) {
+    if (this.languagePreference === LanguagePreference.TRADITIONAL_CHINESE_TAIWAN) {
       return 2;
     }
-    return this.languagePreference === LanguagePreference.ENGLISH ? 3 : 0;
+    if (this.languagePreference === LanguagePreference.TRADITIONAL_CHINESE_HONG_KONG) {
+      return 3;
+    }
+    return this.languagePreference === LanguagePreference.ENGLISH ? 4 : 0;
   }
 
   private async selectTheme(preference: ThemePreference): Promise<void> {
@@ -150,7 +153,7 @@ export struct SettingsPage {
     const context: common.Context | undefined = this.getUIContext().getHostContext();
     if (context !== undefined) {
       saveHideTaskPreview(context, value);
-      refreshScreenSecurity(context); // Apply now, not only on the next lifecycle event.
+      refreshScreenSecurity(context);
     }
   }
 
@@ -179,12 +182,13 @@ export struct SettingsPage {
     if (preference === LanguagePreference.SIMPLIFIED_CHINESE) {
       return $r('app.string.language_simplified_chinese');
     }
-    return preference === LanguagePreference.TRADITIONAL_CHINESE ?
-      $r('app.string.language_traditional_chinese') : $r('app.string.language_system');
+    if (preference === LanguagePreference.TRADITIONAL_CHINESE_TAIWAN) {
+      return $r('app.string.language_traditional_chinese_taiwan');
+    }
+    return preference === LanguagePreference.TRADITIONAL_CHINESE_HONG_KONG ?
+      $r('app.string.language_traditional_chinese_hong_kong') : $r('app.string.language_system');
   }
 
-  // Only the static row identity is passed by value. Read reactive state inside
-  // Text's render scope; passing a computed ResourceStr into @Builder freezes it.
   @Builder
   PreferenceSelectionRow(isAppearance: boolean) {
     Button({ type: ButtonType.Normal }) {

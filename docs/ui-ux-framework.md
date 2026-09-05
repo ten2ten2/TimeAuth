@@ -7,41 +7,31 @@ Primary destinations are Authenticator, Vault, Generator and Settings. About is 
 - Compact layouts use bottom navigation and 16 vp page padding.
 - Expanded layouts use a 216 vp side rail and a constrained content column.
 - Primary navigation icons use monochrome local SVG assets with theme-aware tinting.
-- Onboarding uses a non-looping `Swiper`: users can move between the three introduction pages with horizontal gestures or the existing buttons.
-- Primary-page, About and root-stage changes use a short 160–180 ms opacity + small vertical-translation transition. Motion stays intentionally subtle and does not move the persistent bottom/side navigation.
+- Onboarding uses a non-looping `Swiper`; users can move between the three introduction pages with horizontal gestures or buttons.
+- Primary-page, About and root-stage changes use a short 160–180 ms opacity + small vertical-translation transition.
 
 ## Settings interaction
 
-Appearance and Language use full-row `SelectDialog` selection:
-
-- current value is shown on the right;
-- the whole row is clickable;
-- choices are mutually exclusive;
-- the selected value updates immediately in the row;
-- persistence and native application happen separately.
+Appearance and Language use full-row `SelectDialog` selection. The current value is shown on the right, the whole row is clickable, choices are mutually exclusive, and the selected value updates immediately. ArkData Preferences remains the persistent source of truth.
 
 Preview-only features are status rows rather than fake toggles or dead navigation items.
 
-ArkData Preferences is the persistent source of truth for theme, language and security settings. UI components use local reactive state for rendering; the application applies native configuration after content is loaded.
-
 ## Language behavior
 
-Supported application languages:
+Supported manual application languages:
 
-- Follow system
-- Simplified Chinese (`zh-Hans`)
-- Traditional Chinese, Taiwan usage (`zh-Hant`)
-- English (`en`)
+- `简体中文` → `zh-Hans`
+- `正體中文 (台灣)` → `zh-Hant-TW`
+- `繁體中文 (香港)` → `zh-Hant-HK`
+- `English` → `en`
 
-English is the base resource and fallback for unsupported system languages. The Traditional Chinese resource uses Taiwan terminology and wording rather than a generic Mainland-to-Traditional conversion.
+The language names use ASCII half-width parentheses. Taiwan and Hong Kong are separate resource sets, not one generic `zh-Hant` translation. Taiwan wording follows Taiwan usage; Hong Kong wording follows Hong Kong usage.
 
-When Follow system is selected, the stored preference remains `SYSTEM`. TimeAuth resolves the current OS language and refreshes it on startup, foreground entry and locale-change events. Explicit language selections do not follow later OS language changes.
+Follow system reads the OS language locale. Explicit script subtags take priority. Traditional Chinese for Taiwan uses `zh-Hant-TW`; Hong Kong and Macau use `zh-Hant-HK`; Simplified Chinese, including Singapore and Malaysia, uses `zh-Hans`. Unsupported system languages fall back to English.
 
 ## About
 
-About shows the installed application version, privacy/security information, proprietary-license information, platform notices and the minimum supported HarmonyOS version. It does not expose a source-code repository or public-source link.
-
-Privacy and license details use ArkUI `CustomContentDialog`, keeping the HarmonyOS dialog shell, motion and button layout while allowing longer scrollable text. The application is currently proprietary and closed source; platform and third-party components remain under their own terms.
+About shows the installed application version, privacy/security information, proprietary-license information, platform notices and the minimum supported HarmonyOS version. It does not expose a source-code repository or public-source link. Privacy and license details use ArkUI `CustomContentDialog`.
 
 ## Screen security
 
@@ -52,20 +42,9 @@ Foreground capture policy:
 
 The recent-app preview switch adds protection to capture-allowed pages while the app is inactive. Sensitive pages stay protected regardless of that switch.
 
-Protection uses:
+Protection uses the actual main window, API 20 `windowStageLifecycleEvent`, main-window focus events, UIAbility foreground/background callbacks, native window privacy mode and an opaque root cover for inactive/task-switching states and fail-closed errors.
 
-- the actual main window;
-- API 20 `windowStageLifecycleEvent`;
-- main-window focus events;
-- UIAbility foreground/background callbacks;
-- native window privacy mode;
-- an opaque root cover for inactive/task-switching states and fail-closed errors.
-
-Normal foreground page/tab navigation must not show the opaque privacy cover. Native privacy mode can remain enabled across a sensitive-to-safe transition until the safe replacement frame is rendered without obscuring the visible UI. The cover is reserved for losing interactivity or for a real protection failure.
-
-The root cover keeps page state mounted while hiding pixels and accessibility descendants. Preference dialogs are closed when the cover appears. Native privacy requests are serialized so an older request cannot override a newer protection state.
-
-Task snapshots are ultimately produced by the operating system. Real-device testing is therefore required; code-level checks cannot prove that every device captures the task card at the same lifecycle point.
+Normal foreground page/tab navigation must not show the opaque privacy cover. Native privacy mode can remain enabled across a sensitive-to-safe transition until the safe replacement frame is rendered without obscuring the visible UI.
 
 ## Clipboard
 
@@ -75,18 +54,18 @@ Sensitive values copied by TimeAuth are restricted to the local device. When aut
 
 | Test | Expected result |
 | --- | --- |
-| Swipe left/right through Onboarding | Page follows the finger, indicator updates, and buttons remain synchronized with the selected page. |
-| Switch repeatedly between the four primary tabs | Content uses the short page transition; no privacy-cover flash appears between tabs. |
-| Open/close About | Uses the same lightweight page motion without moving the persistent navigation. |
+| Swipe left/right through Onboarding | Page follows the finger, indicator updates, and buttons remain synchronized. |
+| Switch repeatedly between the four primary tabs | Content uses the short transition; no privacy-cover flash appears. |
+| Open/close About | Uses lightweight page motion without moving persistent navigation. |
 | Dark → Light → Dark in Settings | Actual appearance, right-side value and reopened dialog selection stay in sync. |
-| English → 简体中文 → 繁體中文（台灣） | Current page, navigation labels and Settings value switch consistently. |
-| App English → Follow system while OS is Chinese | App switches to the current supported system Chinese variant immediately; Settings still shows Follow system. |
-| Follow system, then change OS language | App follows after returning to the foreground. |
+| English → 简体中文 → 正體中文 (台灣) → 繁體中文 (香港) | Current page, navigation labels and Settings value switch consistently. |
+| Follow system with OS `zh-Hant-TW` | Taiwan wording is used. |
+| Follow system with OS `zh-Hant-HK` or `zh-Hant-MO` | Hong Kong wording is used. |
+| Follow system with OS Simplified Chinese (including Singapore/Malaysia) | Simplified Chinese is used. |
 | Explicit English, then change OS language | App remains English. |
 | Kill and reopen | Saved theme/language match the actual UI. |
 | Hide recent-app preview ON, enter recents from Settings/About/Onboarding | Task card content is masked/covered. |
 | Enter recents with a preference dialog open | Dialog and page content are not exposed. |
 | Return from recents | Cover is removed only after the app is active/resumed again. |
-| Hide recent-app preview OFF on a sensitive page | Sensitive page remains protected. |
 
 If recent-app protection still fails on a device, inspect HiLog entries containing `[ScreenSecurity]` together with the device model and HarmonyOS version.
