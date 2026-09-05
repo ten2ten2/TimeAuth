@@ -173,30 +173,42 @@ export struct AuthenticatorPage {
   @Builder
   SwipeActions(item: OtpItem) {
     Row({ space: AppSpacing.xs }) {
-      Button($r('app.string.auth_edit'))
-        .type(ButtonType.Normal)
-        .width(68)
-        .height('100%')
-        .fontSize(AppTypography.label)
-        .fontColor($r('app.color.brand'))
-        .backgroundColor($r('app.color.brand_soft'))
-        .borderRadius(AppRadius.medium)
-        .accessibilityText($r('app.string.auth_edit_accessibility', item.issuer, item.account))
-        .onClick(() => {
-          this.openEditor(item.id);
-        })
-      Button($r('app.string.auth_delete'))
-        .type(ButtonType.Normal)
-        .width(68)
-        .height('100%')
-        .fontSize(AppTypography.label)
-        .fontColor(Color.White)
-        .backgroundColor($r('app.color.danger'))
-        .borderRadius(AppRadius.medium)
-        .accessibilityText($r('app.string.auth_delete_accessibility', item.issuer, item.account))
-        .onClick(() => {
-          this.confirmDelete(item.id);
-        })
+      Button({ type: ButtonType.Normal, stateEffect: true }) {
+        Image($r('app.media.action_edit'))
+          .width(24)
+          .height(24)
+          .objectFit(ImageFit.Contain)
+          .fillColor($r('app.color.brand'))
+          .draggable(false)
+          .accessibilityLevel('no')
+      }
+      .width(68)
+      .height('100%')
+      .padding(0)
+      .backgroundColor($r('app.color.brand_soft'))
+      .borderRadius(AppRadius.medium)
+      .accessibilityText($r('app.string.auth_edit_accessibility', item.issuer, item.account))
+      .onClick(() => {
+        this.openEditor(item.id);
+      })
+      Button({ type: ButtonType.Normal, stateEffect: true }) {
+        Image($r('app.media.action_delete'))
+          .width(24)
+          .height(24)
+          .objectFit(ImageFit.Contain)
+          .fillColor(Color.White)
+          .draggable(false)
+          .accessibilityLevel('no')
+      }
+      .width(68)
+      .height('100%')
+      .padding(0)
+      .backgroundColor($r('app.color.danger'))
+      .borderRadius(AppRadius.medium)
+      .accessibilityText($r('app.string.auth_delete_accessibility', item.issuer, item.account))
+      .onClick(() => {
+        this.confirmDelete(item.id);
+      })
     }
     .height('100%')
     .width(152)
