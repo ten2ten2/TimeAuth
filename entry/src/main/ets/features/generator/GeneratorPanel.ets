@@ -336,7 +336,21 @@ export struct GeneratorPanel {
             $r('app.color.danger') : $r('app.color.text_secondary'))
           .width('100%')
       } else {
-        if (this.revealed) {
+        if (this.mode === GeneratorMode.PIN) {
+          Text(this.revealed ? this.value : '•'.repeat(this.value.length))
+            .fontSize(28)
+            .minFontSize(18)
+            .maxFontSize(28)
+            .maxLines(1)
+            .fontFamily('monospace')
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.revealed ? $r('app.color.brand') : $r('app.color.text_primary'))
+            .letterSpacing(6)
+            .textAlign(TextAlign.Center)
+            .width('100%')
+            .copyOption(CopyOptions.None)
+            .onClick(() => { this.copyValue(); })
+        } else if (this.revealed) {
           Text() {
             ForEach(this.value.split(''), (character: string) => {
               Span(character).fontColor(this.characterColor(character))
@@ -348,18 +362,32 @@ export struct GeneratorPanel {
           .wordBreak(WordBreak.BREAK_ALL)
           .width('100%')
           .copyOption(CopyOptions.None)
+          .onClick(() => { this.copyValue(); })
         } else {
           Text('••••••••••••')
             .fontSize(24)
             .fontColor($r('app.color.text_primary'))
             .width('100%')
+            .copyOption(CopyOptions.None)
+            .onClick(() => { this.copyValue(); })
+        }
+        if (!this.rulesChanged() && this.validation() === GeneratorValidation.VALID) {
+          Text($r('app.string.generator_tap_to_copy'))
+            .fontSize(AppTypography.caption)
+            .fontColor($r('app.color.text_secondary'))
+            .textAlign(this.mode === GeneratorMode.PIN ? TextAlign.Center : TextAlign.Start)
+            .width('100%')
         }
         Row({ space: AppSpacing.sm }) {
-          Text(this.strengthLabel())
-            .fontSize(AppTypography.label)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.strengthColor())
-            .layoutWeight(1)
+          if (this.mode !== GeneratorMode.PIN) {
+            Text(this.strengthLabel())
+              .fontSize(AppTypography.label)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.strengthColor())
+              .layoutWeight(1)
+          } else {
+            Blank().layoutWeight(1)
+          }
           Button(this.visibilityLabel())
             .height(AppLayout.minimumTouchTarget)
             .fontSize(AppTypography.label)
@@ -370,10 +398,12 @@ export struct GeneratorPanel {
             })
         }
         .width('100%')
-        Text($r('app.string.generator_strength_detail', `${Math.floor(this.entropyBits)}`))
-          .fontSize(AppTypography.caption)
-          .fontColor($r('app.color.text_secondary'))
-          .width('100%')
+        if (this.mode !== GeneratorMode.PIN) {
+          Text($r('app.string.generator_strength_detail', `${Math.floor(this.entropyBits)}`))
+            .fontSize(AppTypography.caption)
+            .fontColor($r('app.color.text_secondary'))
+            .width('100%')
+        }
       }
 
       if (this.rulesChanged()) {

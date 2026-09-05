@@ -1,5 +1,6 @@
 {
   "string": [
+    {"name": "generator_tap_to_copy", "value": "点按结果即可复制"},
     {"name": "generator_pin_length", "value": "PIN 位数"},
     {"name": "generator_pin_digits", "value": "%s 位"},
     {"name": "generator_pin_length_hint", "value": "默认 6 位。每一位均可为 0～9，保留开头的 0。"},

@@ -1,5 +1,6 @@
 {
   "string": [
+    {"name": "generator_tap_to_copy", "value": "Tap the result to copy"},
     {"name": "generator_pin_length", "value": "PIN length"},
     {"name": "generator_pin_digits", "value": "%s digits"},
     {"name": "generator_pin_length_hint", "value": "Default: 6 digits. Every position can be 0–9, including the first."},
