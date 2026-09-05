@@ -427,20 +427,6 @@ export struct GeneratorPanel {
   @Builder
   ResultCard() {
     Column({ space: AppSpacing.md }) {
-      if (this.mode !== GeneratorMode.PIN && this.value.length > 0) {
-        Row({ space: AppSpacing.sm }) {
-          Text(this.strengthLabel())
-            .fontSize(AppTypography.label)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.strengthColor())
-            .layoutWeight(1)
-          Text($r('app.string.generator_character_count', `${this.value.length}`))
-            .fontSize(AppTypography.label)
-            .fontColor($r('app.color.text_secondary'))
-        }
-        .width('100%')
-      }
-
       if (this.value.length === 0) {
         Text(this.resultPlaceholder())
           .fontSize(AppTypography.body)
@@ -477,10 +463,15 @@ export struct GeneratorPanel {
         // The native recognizer owns movement/scroll cancellation and non-touch activation.
         .onClick(() => { this.onResultClick(); }, 8)
         if (this.mode !== GeneratorMode.PIN) {
-          Text($r('app.string.generator_strength_detail', `${Math.floor(this.entropyBits)}`))
-            .fontSize(AppTypography.caption)
-            .fontColor($r('app.color.text_secondary'))
-            .width('100%')
+          Text() {
+            Span($r('app.string.generator_strength_prefix'))
+            Span(this.strengthLabel())
+              .fontColor(this.strengthColor())
+            Span($r('app.string.generator_strength_detail', `${Math.floor(this.entropyBits)}`))
+          }
+          .fontSize(AppTypography.caption)
+          .fontColor($r('app.color.text_secondary'))
+          .width('100%')
         }
       }
 
