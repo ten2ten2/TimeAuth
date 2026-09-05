@@ -7,6 +7,8 @@ Primary destinations are Authenticator, Vault, Generator and Settings. About is 
 - Compact layouts use bottom navigation and 16 vp page padding.
 - Expanded layouts use a 216 vp side rail and a constrained content column.
 - Primary navigation icons use monochrome local SVG assets with theme-aware tinting.
+- Onboarding uses a non-looping `Swiper`: users can move between the three introduction pages with horizontal gestures or the existing buttons.
+- Primary-page, About and root-stage changes use a short 160–180 ms opacity + small vertical-translation transition. Motion stays intentionally subtle and does not move the persistent bottom/side navigation.
 
 ## Settings interaction
 
@@ -57,7 +59,9 @@ Protection uses:
 - main-window focus events;
 - UIAbility foreground/background callbacks;
 - native window privacy mode;
-- an opaque root cover shown before native privacy changes complete.
+- an opaque root cover for inactive/task-switching states and fail-closed errors.
+
+Normal foreground page/tab navigation must not show the opaque privacy cover. Native privacy mode can remain enabled across a sensitive-to-safe transition until the safe replacement frame is rendered without obscuring the visible UI. The cover is reserved for losing interactivity or for a real protection failure.
 
 The root cover keeps page state mounted while hiding pixels and accessibility descendants. Preference dialogs are closed when the cover appears. Native privacy requests are serialized so an older request cannot override a newer protection state.
 
@@ -71,6 +75,9 @@ Sensitive values copied by TimeAuth are restricted to the local device. When aut
 
 | Test | Expected result |
 | --- | --- |
+| Swipe left/right through Onboarding | Page follows the finger, indicator updates, and buttons remain synchronized with the selected page. |
+| Switch repeatedly between the four primary tabs | Content uses the short page transition; no privacy-cover flash appears between tabs. |
+| Open/close About | Uses the same lightweight page motion without moving the persistent navigation. |
 | Dark → Light → Dark in Settings | Actual appearance, right-side value and reopened dialog selection stay in sync. |
 | English → 简体中文 → 繁體中文（台灣） | Current page, navigation labels and Settings value switch consistently. |
 | App English → Follow system while OS is Chinese | App switches to the current supported system Chinese variant immediately; Settings still shows Follow system. |
