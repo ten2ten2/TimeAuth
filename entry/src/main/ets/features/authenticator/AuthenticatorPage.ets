@@ -157,12 +157,12 @@ export struct AuthenticatorPage {
   @Builder
   AddMenu() {
     Menu() {
-      MenuItem({ content: $r('app.string.auth_scan_qr') })
+      MenuItem({ startIcon: $r('app.media.menu_scan_qr'), content: $r('app.string.auth_scan_qr') })
         .onClick(() => {
           this.closeSwipeActions();
           this.showFeedback($r('app.string.auth_feature_later_feedback'));
         })
-      MenuItem({ content: $r('app.string.auth_manual_entry') })
+      MenuItem({ startIcon: $r('app.media.menu_manual_entry'), content: $r('app.string.auth_manual_entry') })
         .onClick(() => {
           this.closeSwipeActions();
           this.showFeedback($r('app.string.auth_feature_later_feedback'));

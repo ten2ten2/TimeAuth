@@ -1,4 +1,7 @@
 import { AppRadius, AppSpacing, AppTypography } from '../design/Tokens';
+import {
+  resolveServiceIcon, ServiceIconKey, ServiceIconMatch, serviceInitial
+} from '../features/authenticator/ServiceIconRegistry';
 import { OtpItem, OtpKind } from '../models/AppModels';
 
 @Component
@@ -6,18 +9,74 @@ export struct OtpCard {
   @Prop item: OtpItem;
   onCopy: (code: string, issuer: string) => void = () => {};
 
+  private serviceIconMatch(): ServiceIconMatch | undefined {
+    return resolveServiceIcon(this.item.issuer);
+  }
+
+  private serviceIconBackground(): string {
+    const match: ServiceIconMatch | undefined = this.serviceIconMatch();
+    return match === undefined ? this.item.accentColor : match.backgroundColor;
+  }
+
+  private serviceIconResource(): Resource {
+    const match: ServiceIconMatch | undefined = this.serviceIconMatch();
+    if (match === undefined) {
+      return $r('app.media.nav_authenticator');
+    }
+    switch (match.key) {
+      case ServiceIconKey.ALIBABA_CLOUD: return $r('app.media.service_alibaba_cloud');
+      case ServiceIconKey.TENCENT_CLOUD: return $r('app.media.service_tencent_cloud');
+      case ServiceIconKey.HUAWEI_CLOUD: return $r('app.media.service_huawei_cloud');
+      case ServiceIconKey.BAIDU_AI_CLOUD: return $r('app.media.service_baidu_ai_cloud');
+      case ServiceIconKey.VOLCANO_ENGINE: return $r('app.media.service_volcano_engine');
+      case ServiceIconKey.GOOGLE: return $r('app.media.service_google');
+      case ServiceIconKey.MICROSOFT: return $r('app.media.service_microsoft');
+      case ServiceIconKey.GITHUB: return $r('app.media.service_github');
+      case ServiceIconKey.APPLE: return $r('app.media.service_apple');
+      case ServiceIconKey.AWS: return $r('app.media.service_aws');
+      case ServiceIconKey.CLOUDFLARE: return $r('app.media.service_cloudflare');
+      case ServiceIconKey.STEAM: return $r('app.media.service_steam');
+      case ServiceIconKey.DISCORD: return $r('app.media.service_discord');
+      case ServiceIconKey.DROPBOX: return $r('app.media.service_dropbox');
+      case ServiceIconKey.SLACK: return $r('app.media.service_slack');
+      case ServiceIconKey.BITWARDEN: return $r('app.media.service_bitwarden');
+      case ServiceIconKey.ONE_PASSWORD: return $r('app.media.service_1password');
+      case ServiceIconKey.GITLAB: return $r('app.media.service_gitlab');
+      case ServiceIconKey.PROTON: return $r('app.media.service_proton');
+      case ServiceIconKey.OPENAI: return $r('app.media.service_openai');
+      default: return $r('app.media.nav_authenticator');
+    }
+  }
+
   @Builder
   ServiceBadge() {
-    Text(this.item.issuer.substring(0, 1).toUpperCase())
-      .fontSize(AppTypography.section)
-      .fontWeight(FontWeight.Bold)
-      .fontColor(Color.White)
-      .textAlign(TextAlign.Center)
+    if (this.serviceIconMatch() !== undefined) {
+      Stack({ alignContent: Alignment.Center }) {
+        Image(this.serviceIconResource())
+          .width(28)
+          .height(28)
+          .objectFit(ImageFit.Contain)
+          .fillColor(Color.White)
+          .draggable(false)
+          .accessibilityLevel('no')
+      }
       .width(48)
       .height(48)
-      .backgroundColor(this.item.accentColor)
+      .backgroundColor(this.serviceIconBackground())
       .borderRadius(AppRadius.medium)
       .accessibilityLevel('no')
+    } else {
+      Text(serviceInitial(this.item.issuer))
+        .fontSize(AppTypography.section)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(Color.White)
+        .textAlign(TextAlign.Center)
+        .width(48)
+        .height(48)
+        .backgroundColor(this.item.accentColor)
+        .borderRadius(AppRadius.medium)
+        .accessibilityLevel('no')
+    }
   }
 
   @Builder
@@ -42,7 +101,6 @@ export struct OtpCard {
   }
 
   build() {
-    // A single native button owns the whole card. There is no separate copy/detail hit target.
     Button({ type: ButtonType.Normal, stateEffect: true }) {
       Column({ space: AppSpacing.md }) {
         Row({ space: AppSpacing.sm }) {

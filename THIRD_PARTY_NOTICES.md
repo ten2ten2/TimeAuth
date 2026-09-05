@@ -14,3 +14,15 @@ Copyright Electronic Frontier Foundation (EFF), 2016. Wordlist created by Joseph
 The bundled ArkTS representation removes dice labels and changes formatting only. All 7,776 words and their ordering are unchanged. Output capitalization is an optional application setting.
 
 EFF does not endorse TimeAuth. This license applies to the wordlist, not to TimeAuth's proprietary application code.
+
+## Authenticator service icon paths
+
+Several monochrome service-icon SVG paths bundled under `entry/src/main/resources/base/media/service_*.svg` are adapted from the Simple Icons project.
+
+- Project: Simple Icons
+- Source: https://github.com/simple-icons/simple-icons
+- License: CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
+- Included first-batch service paths include Alibaba Cloud, Huawei, Baidu, Google, Microsoft, GitHub, Apple, AWS, Cloudflare, Steam, Discord, Dropbox, Slack, Bitwarden, 1Password, GitLab, Proton and OpenAI. Some paths were obtained from historical Simple Icons revisions where the current project no longer ships the brand.
+- Tencent Cloud and Volcano Engine currently use locally drawn simplified monochrome marks for the preview and are not claimed to be official brand artwork.
+
+Brand names and logos may be trademarks of their respective owners. Simple Icons' CC0 dedication does not waive third-party trademark rights. Inclusion in TimeAuth is solely for helping users visually identify the issuer of an authenticator entry and does not imply sponsorship or endorsement.
