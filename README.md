@@ -9,17 +9,39 @@ The project currently provides the application shell and security foundation:
 - responsive phone, tablet, foldable, and 2-in-1 navigation;
 - flat local SVG navigation icons with theme-aware tinting;
 - Simplified Chinese, Traditional Chinese, English, and system-following language preferences;
-- persistent theme and security preferences;
+- ArkData Preferences persistence for theme, language, and available security settings;
 - API 20 `windowStageLifecycleEvent` based privacy handling;
 - mandatory screenshot/screen-recording protection on Unlock, Authenticator, Vault, and Generator screens;
 - screenshot/screen-recording allowed on Onboarding, Settings, and About screens;
 - optional recent-app preview protection while the window is paused or hidden;
 - real system clipboard writes for preview OTP/password/generator values;
 - local-device clipboard restriction and guarded automatic clearing after 30 seconds;
-- a complete About screen with real package version information, privacy/security notes, third-party notices, and a source-repository link;
-- authenticator, password vault, and generator UI still backed by mock data.
+- a dedicated About screen with real package version information, privacy/security notes, third-party notices, and a source-repository link;
+- authenticator, password vault, and generator content still backed by mock data.
 
 Real OTP secret persistence, cryptographic OTP generation, encrypted password-vault persistence, biometric unlock, camera scanning, and encrypted backup/import/export are not implemented yet.
+
+## Settings implementation status
+
+| Setting / entry | Status | Behavior |
+| --- | --- | --- |
+| Appearance | Implemented | Uses the HarmonyOS application color-mode API and persists System / Light / Dark in ArkData Preferences. |
+| Language | Implemented | Uses the HarmonyOS preferred-language API and persists System / zh-Hans / zh-Hant / English in ArkData Preferences. |
+| Hide recent-app preview | Implemented | Adds privacy mode while the window is not resumed, including otherwise capture-allowed screens. |
+| Clear clipboard automatically | Implemented | Clears TimeAuth-owned sensitive clipboard data after 30 seconds without deleting newer content copied by another app. |
+| About | Implemented | Shows the real installed version, privacy/security information, dependency/licensing notes, and the source repository. |
+| Biometric unlock | Preview only | No User Authentication Kit / HUKS-backed unlock is performed yet. |
+| Backup and restore | Not implemented | UI status only; no encrypted backup format or restore pipeline exists yet. |
+| Import authenticator codes | Not implemented | UI status only; QR / otpauth / migration import is not wired yet. |
+| Local data | Preview only | Authenticator and password-vault entries are still mock data rather than encrypted persistent records. |
+
+Screenshot/recording blocking is an application security policy rather than a user-disableable Settings switch.
+
+## Preview vs real device
+
+DevEco Studio Preview is useful for layout and interaction checks, but it is not authoritative for platform services. In particular, color-mode and preferred-language APIs may be partially emulated or may not force the Preview surface to reload exactly like a real application process.
+
+The Settings rows update their selected values locally as soon as a choice is made. Real system behavior should still be validated with Run/Debug on an emulator or device.
 
 ## Open in DevEco Studio
 
@@ -31,11 +53,11 @@ Real OTP secret persistence, cryptographic OTP generation, encrypted password-va
 
 ## Language behavior
 
-The default preference follows the system. TimeAuth provides `zh-Hans`, `zh-Hant`, and English resources. English lives in the base resource directory, so unsupported system languages fall back to English. The localized product names are `时钥`, `時鑰`, and `TimeAuth`.
+The default preference follows the system. TimeAuth provides `zh-Hans`, `zh-Hant`, and English resources. English lives in the base resource directory, so unsupported system languages fall back to English. Language preference is stored in ArkData Preferences and applied during `EntryAbility.onCreate()`.
 
 ## Brand and theme behavior
 
-The launcher icon keeps a stable product identity. In-app colors use semantic light/dark resources. The System, Light, and Dark preferences persist across launches.
+The launcher icon keeps a stable product identity. In-app colors use semantic light/dark resources. Theme preference is stored in ArkData Preferences and applied during `EntryAbility.onCreate()` before the page content is loaded.
 
 ## Screen security
 
