@@ -2,7 +2,7 @@
 
 ## Product structure
 
-The preview starts with a three-step onboarding flow and a mock unlock state. After unlocking, the UI shell has four primary destinations: Authenticator, Password Vault, Generator, and Settings. Compact devices use bottom navigation; expanded devices use a side rail and a constrained content column.
+The app starts with a three-step onboarding flow and a mock unlock state. After unlocking, the primary destinations are Authenticator, Password Vault, Generator, and Settings. Compact devices use bottom navigation; expanded devices use a side rail and a constrained content column.
 
 Settings contains an About entry that opens a dedicated About screen while keeping Settings as the selected primary destination.
 
@@ -14,16 +14,33 @@ Settings contains an About entry that opens a dedicated About screen while keepi
 4. Keep import and export available in the free product.
 5. Do not present preview-only controls as working settings: unavailable items are status rows, not fake toggles or dead navigation targets.
 6. Use full-row hit targets and clear selected/current-value feedback in settings lists.
+7. Use HarmonyOS selection dialogs for mutually exclusive preference values such as Appearance and Language.
 
-## Theme
+## Settings interaction
 
-Colors are semantic resources with matching `base` and `dark` values. The default preference follows the system. Explicit light and dark overrides are exposed in Settings and persist across launches.
+Appearance and Language use a compact settings-list pattern:
 
-Theme preference is persisted once through ArkData Preferences so it can be read by `UIAbility` before page content is loaded. AppStorage is used only as the in-memory reactive value shared by UI components.
+- the full row is clickable;
+- the current value is shown on the right;
+- a chevron indicates that tapping the row opens a selection surface;
+- `SelectDialog` presents the mutually exclusive choices with a radio-style selected state;
+- selecting an option updates the row immediately, persists the value, closes the dialog, and then applies the platform setting.
 
-## Language
+The row value uses component-local `@State` so the UI does not depend on Preview emulation of system services. Persistence is handled separately through ArkData Preferences.
 
-The UI supports Simplified Chinese (`zh-Hans`), Traditional Chinese (`zh-Hant`), English, and a persistent system-following preference. English is the base resource and therefore the fallback for unsupported system languages. User-owned account names and labels are not translated.
+## Theme and language state
+
+Theme and language use the same architecture:
+
+1. ArkData Preferences is the single persistent source of truth.
+2. `EntryAbility.onCreate()` reads and applies stored values at application startup.
+3. Settings reads the stored values when the page appears.
+4. Component-local `@State` provides immediate selected-value feedback.
+5. Platform APIs apply the actual color mode or preferred app language.
+
+`PersistentStorage`, `AppStorage`, and duplicated preference initialization are intentionally not used for these preferences.
+
+DevEco Studio Preview validates layout and interaction but is not considered proof that a system service has taken effect. Platform behavior must be verified with Run/Debug on an emulator or real device.
 
 ## Navigation icons
 
@@ -34,7 +51,7 @@ Primary navigation uses four monochrome local SVG assets instead of Unicode glyp
 - Generator: magic wand/spark;
 - Settings: sliders.
 
-ArkUI applies the active/inactive tint at runtime, providing consistent geometry, baseline alignment, and light/dark behavior.
+ArkUI applies active/inactive tint at runtime, providing consistent geometry, baseline alignment, and light/dark behavior.
 
 ## Screen security
 
@@ -50,6 +67,23 @@ The screenshot policy is not user-disableable. The separate Hide recent-app prev
 ## Clipboard security
 
 Preview OTP, password, and generated values are written to the real system clipboard. Clipboard data is restricted to the local device. When automatic clearing is enabled, TimeAuth schedules clearing after 30 seconds and cancels/guards the clear operation when newer clipboard data has been written by another app.
+
+## Current Settings status
+
+Implemented:
+
+- Appearance;
+- Language;
+- Hide recent-app preview;
+- automatic clipboard clearing;
+- About.
+
+Preview / not implemented:
+
+- biometric unlock;
+- encrypted backup and restore;
+- authenticator import/export;
+- encrypted persistent local OTP/password data.
 
 ## Responsive behavior
 
