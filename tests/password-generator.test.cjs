@@ -17,6 +17,9 @@ let adapter;
 let adapterSource;
 let adapterCalls;
 let factoryFailure = false;
+let factoryCalls = 0;
+let capabilityAvailable = true;
+let capabilityFailure = false;
 
 function moduleUrl(source) {
   const javascript = stripTypeScriptTypes(source, { mode: 'transform' });
@@ -29,6 +32,7 @@ before(async () => {
   // Only the platform API is substituted. The production wrapper itself is loaded unchanged otherwise.
   globalThis.__timeAuthTestCrypto = {
     createRandom() {
+      factoryCalls++;
       if (factoryFailure) throw new Error('SENSITIVE_PROVIDER_DETAIL');
       return {
         generateRandomSync(length) {
@@ -38,12 +42,19 @@ before(async () => {
       };
     }
   };
+  globalThis.__timeAuthTestCanIUse = (capability) => {
+    assert.equal(capability, 'SystemCapability.Security.CryptoFramework.Rand');
+    if (capabilityFailure) throw new Error('SENSITIVE_CAPABILITY_DETAIL');
+    return capabilityAvailable;
+  };
   const kitUrl = moduleUrl('export const cryptoFramework = globalThis.__timeAuthTestCrypto;');
-  const adapterSourceCode = readFileSync(join(generatorDirectory, 'PasswordGenerator.ets'), 'utf8')
+  const adapterSourceCode = 'const canIUse = globalThis.__timeAuthTestCanIUse;\n' +
+    readFileSync(join(generatorDirectory, 'PasswordGenerator.ets'), 'utf8')
     .replace("'@kit.CryptoArchitectureKit'", JSON.stringify(kitUrl))
     .replace("'./GeneratorCore'", JSON.stringify(coreUrl));
   adapter = await import(moduleUrl(adapterSourceCode));
   delete globalThis.__timeAuthTestCrypto;
+  delete globalThis.__timeAuthTestCanIUse;
 });
 
 function options(overrides = {}) {
@@ -259,5 +270,21 @@ test('production adapter reads system synchronous random bytes and sanitizes pla
     assert.throws(() => adapter.generatePassword(options()), { message: 'Secure password generation failed.' });
   } finally {
     factoryFailure = false;
+  }
+});
+
+test('unsupported or failing system capability checks stop before creating a random source', () => {
+  const beforeCalls = factoryCalls;
+  capabilityAvailable = false;
+  try {
+    assert.throws(() => adapter.generatePassword(options()), { message: 'Secure password generation failed.' });
+    assert.equal(factoryCalls, beforeCalls);
+    capabilityAvailable = true;
+    capabilityFailure = true;
+    assert.throws(() => adapter.generatePassword(options()), { message: 'Secure password generation failed.' });
+    assert.equal(factoryCalls, beforeCalls);
+  } finally {
+    capabilityAvailable = true;
+    capabilityFailure = false;
   }
 });

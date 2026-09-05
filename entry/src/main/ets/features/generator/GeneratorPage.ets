@@ -380,7 +380,7 @@ export struct GeneratorPage {
       GeneratorOptionToggle({
         title: $r('app.string.generator_lowercase'),
         description: $r('app.string.generator_lowercase_detail'),
-        value: this.options.includeLowercase, enabled: !this.options.includeLowercase || this.characterTypeCount() > 1,
+        value: this.options.includeLowercase, optionEnabled: !this.options.includeLowercase || this.characterTypeCount() > 1,
         onValueChange: (value: boolean) => {
           this.options.includeLowercase = value;
           this.optionsChanged();
@@ -389,7 +389,7 @@ export struct GeneratorPage {
       GeneratorOptionToggle({
         title: $r('app.string.generator_uppercase'),
         description: $r('app.string.generator_uppercase_detail'),
-        value: this.options.includeUppercase, enabled: !this.options.includeUppercase || this.characterTypeCount() > 1,
+        value: this.options.includeUppercase, optionEnabled: !this.options.includeUppercase || this.characterTypeCount() > 1,
         onValueChange: (value: boolean) => {
           this.options.includeUppercase = value;
           this.optionsChanged();
@@ -398,7 +398,7 @@ export struct GeneratorPage {
       GeneratorOptionToggle({
         title: $r('app.string.generator_numbers'),
         description: $r('app.string.generator_numbers_detail'),
-        value: this.options.includeNumbers, enabled: !this.options.includeNumbers || this.characterTypeCount() > 1,
+        value: this.options.includeNumbers, optionEnabled: !this.options.includeNumbers || this.characterTypeCount() > 1,
         onValueChange: (value: boolean) => {
           this.options.includeNumbers = value;
           this.optionsChanged();
@@ -407,7 +407,7 @@ export struct GeneratorPage {
       GeneratorOptionToggle({
         title: $r('app.string.generator_symbols'),
         description: $r('app.string.generator_symbols_detail'),
-        value: this.options.includeSymbols, enabled: !this.options.includeSymbols || this.characterTypeCount() > 1,
+        value: this.options.includeSymbols, optionEnabled: !this.options.includeSymbols || this.characterTypeCount() > 1,
         onValueChange: (value: boolean) => {
           this.options.includeSymbols = value;
           this.optionsChanged();
@@ -416,7 +416,7 @@ export struct GeneratorPage {
       GeneratorOptionToggle({
         title: $r('app.string.generator_avoid_ambiguous'),
         description: $r('app.string.generator_avoid_ambiguous_detail'),
-        value: this.options.avoidAmbiguous, enabled: true,
+        value: this.options.avoidAmbiguous, optionEnabled: true,
         onValueChange: (value: boolean) => {
           this.options.avoidAmbiguous = value;
           this.optionsChanged();

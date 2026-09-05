@@ -25,7 +25,7 @@ Passphrases, dedicated PIN controls, generation history, saving into the vault, 
 
 ## Randomness and strength
 
-Production randomness comes from HarmonyOS CryptoArchitectureKit. Character selection uses rejection sampling to avoid modulo bias. Each enabled class is adjusted for the ambiguous-character option, and duplicate custom symbols do not increase the sampling weight or entropy estimate. The generator accounts for the requirement to include every selected type when estimating the password space.
+Production randomness comes from HarmonyOS CryptoArchitectureKit. The adapter checks the dedicated `SystemCapability.Security.CryptoFramework.Rand` capability before creating or reading the random source; an unsupported device fails safely without substituting another source. Character selection uses rejection sampling to avoid modulo bias. Each enabled class is adjusted for the ambiguous-character option, and duplicate custom symbols do not increase the sampling weight or entropy estimate. The generator accounts for the requirement to include every selected type when estimating the password space.
 
 The displayed labels are product guidance, with these thresholds:
 
@@ -54,11 +54,11 @@ From the repository root, with Node.js 22.13 or newer:
 node --test tests/*.test.cjs
 ```
 
-All 40 host tests passed:
+All 41 host tests passed:
 
 | Area | Passing tests |
 | --- | --- |
-| Generator engine | 11 |
+| Generator engine | 12 |
 | Settings and session | 6 |
 | Clipboard | 23 |
 

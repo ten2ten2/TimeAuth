@@ -5,7 +5,7 @@ export struct GeneratorOptionToggle {
   title: Resource = $r('app.string.generator_lowercase');
   description: Resource = $r('app.string.generator_lowercase_detail');
   @Prop value: boolean = false;
-  @Prop enabled: boolean = true;
+  @Prop optionEnabled: boolean = true;
   onValueChange: (value: boolean) => void = () => {};
 
   build() {
@@ -23,7 +23,7 @@ export struct GeneratorOptionToggle {
 
       Toggle({ type: ToggleType.Switch, isOn: this.value })
         .selectedColor($r('app.color.brand'))
-        .enabled(this.enabled)
+        .enabled(this.optionEnabled)
         .accessibilityText(this.title)
         .onChange((isOn: boolean) => {
           this.onValueChange(isOn);
