@@ -1,5 +1,4 @@
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
-import { BusinessError } from '@kit.BasicServicesKit';
 import { preferences } from '@kit.ArkData';
 import { ThemePreference } from '../models/AppModels';
 
@@ -25,19 +24,17 @@ export function readThemePreference(context: common.Context): ThemePreference {
   return ThemePreference.SYSTEM;
 }
 
-export function saveThemePreference(context: common.Context, preference: ThemePreference): void {
+export async function saveThemePreference(context: common.Context, preference: ThemePreference): Promise<boolean> {
   try {
     const store: preferences.Preferences = preferences.getPreferencesSync(context, {
       name: THEME_PREFERENCES_NAME
     });
     store.putSync(THEME_PREFERENCE_STORAGE_KEY, preference);
-    store.flush((error: BusinessError) => {
-      if (error) {
-        console.error(`Failed to persist TimeAuth theme preference: ${JSON.stringify(error)}`);
-      }
-    });
+    await store.flush();
+    return true;
   } catch (error) {
     console.error(`Failed to save TimeAuth theme preference: ${JSON.stringify(error)}`);
+    return false;
   }
 }
 
