@@ -1,6 +1,5 @@
 {
   "string": [
-    { "name": "settings_about_detail_private", "value": "Version, privacy, license, and third-party notices" },
     { "name": "about_license_title", "value": "License & third-party notices" },
     { "name": "about_license_summary", "value": "Proprietary license and platform components" },
     { "name": "about_license_body", "value": "TimeAuth is proprietary, closed-source software. © 2026 TimeAuth. All rights reserved. Unless you have prior written permission, you may not copy, modify, redistribute, reverse engineer, publish, sublicense, or create derivative works from the application or its assets, except where applicable law expressly permits otherwise.\n\nHarmonyOS system frameworks and other platform components are provided under their own applicable terms and licenses." },
