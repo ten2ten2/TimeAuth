@@ -11,7 +11,7 @@ export struct AppShell {
   @State private selectedIndex: number = 0;
   @State private currentBreakpoint: string = 'xs';
   @State private showAbout: boolean = false;
-  private pageTransition: TransitionEffect = TransitionEffect.OPACITY
+  private contentTransitionEffect: TransitionEffect = TransitionEffect.OPACITY
     .animation({ duration: 160, curve: Curve.EaseOut })
     .combine(TransitionEffect.translate({ y: 6 }));
 
@@ -81,21 +81,21 @@ export struct AppShell {
       }
       .width('100%')
       .height('100%')
-      .transition(this.pageTransition)
+      .transition(this.contentTransitionEffect)
     } else if (this.selectedIndex === 1) {
       Column() {
         PasswordVaultPage()
       }
       .width('100%')
       .height('100%')
-      .transition(this.pageTransition)
+      .transition(this.contentTransitionEffect)
     } else if (this.selectedIndex === 2) {
       Column() {
         GeneratorPage()
       }
       .width('100%')
       .height('100%')
-      .transition(this.pageTransition)
+      .transition(this.contentTransitionEffect)
     } else if (this.showAbout) {
       Column() {
         AboutPage({
@@ -106,7 +106,7 @@ export struct AppShell {
       }
       .width('100%')
       .height('100%')
-      .transition(this.pageTransition)
+      .transition(this.contentTransitionEffect)
     } else {
       Column() {
         SettingsPage({
@@ -117,7 +117,7 @@ export struct AppShell {
       }
       .width('100%')
       .height('100%')
-      .transition(this.pageTransition)
+      .transition(this.contentTransitionEffect)
     }
   }
 
