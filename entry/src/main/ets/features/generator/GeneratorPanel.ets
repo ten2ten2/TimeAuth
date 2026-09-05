@@ -455,7 +455,7 @@ export struct GeneratorPanel {
               Text($r('app.string.generator_tap_to_copy'))
                 .fontSize(AppTypography.caption)
                 .fontColor($r('app.color.text_secondary'))
-                .textAlign(this.mode === GeneratorMode.PIN ? TextAlign.Center : TextAlign.Start)
+                .textAlign(TextAlign.Center)
                 .width('100%')
             }
           }
