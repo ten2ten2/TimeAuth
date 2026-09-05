@@ -8,13 +8,10 @@ const PREFERENCES_NAME: string = 'timeauth_preferences';
 let lastAppliedTag: string = '';
 let lastAppliedPreference: LanguagePreference = LanguagePreference.SYSTEM;
 
-function getStore(context: common.Context): preferences.Preferences {
-  return preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
-}
-
 export function readLanguagePreference(context: common.Context): LanguagePreference {
   try {
-    const value: string = getStore(context).getSync(
+    const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
+    const value: string = store.getSync(
       LANGUAGE_PREFERENCE_STORAGE_KEY, LanguagePreference.SYSTEM) as string;
     if (value === LanguagePreference.SIMPLIFIED_CHINESE ||
       value === LanguagePreference.TRADITIONAL_CHINESE || value === LanguagePreference.ENGLISH) {
@@ -31,7 +28,7 @@ export async function saveLanguagePreference(context: common.Context,
   let store: preferences.Preferences | undefined = undefined;
   const previous: LanguagePreference = readLanguagePreference(context);
   try {
-    store = getStore(context);
+    store = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
     store.putSync(LANGUAGE_PREFERENCE_STORAGE_KEY, preference);
     await store.flush();
     return true;
