@@ -487,6 +487,7 @@ export struct GeneratorPanel {
         Button($r('app.string.generator_regenerate'))
           .type(ButtonType.Capsule)
           .height(AppLayout.minimumTouchTarget)
+          .fontSize(AppTypography.label)
           .fontColor($r('app.color.background'))
           .backgroundColor($r('app.color.brand'))
           .layoutWeight(1)
