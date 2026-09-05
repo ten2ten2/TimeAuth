@@ -8,7 +8,7 @@ Primary destinations are Authenticator, Vault, Generator and Settings. About is 
 - Expanded layouts use a 216 vp side rail and a constrained content column.
 - Primary navigation icons use monochrome local SVG assets with theme-aware tinting.
 - Onboarding uses a non-looping `Swiper`; users can move between the three introduction pages with horizontal gestures or buttons.
-- Primary-page, About and root-stage changes use a short 160–180 ms opacity + small vertical-translation transition.
+- Primary-page, About and root-stage changes use a short 160–180 ms opacity transition with no directional translation. Directional motion is reserved for the onboarding `Swiper`, where it directly matches the user's horizontal gesture.
 
 ## Settings interaction
 
@@ -57,8 +57,8 @@ See [password-generator.md](password-generator.md) for the real password generat
 | Test | Expected result |
 | --- | --- |
 | Swipe left/right through Onboarding | Page follows the finger, indicator updates, and buttons remain synchronized. |
-| Switch repeatedly between the four primary tabs | Content uses the short transition; no privacy-cover flash appears. |
-| Open/close About | Uses lightweight page motion without moving persistent navigation. |
+| Switch repeatedly between the four primary tabs | Content uses a short neutral fade; no directional jump and no privacy-cover flash appear. |
+| Open/close About | Uses the same neutral fade without moving persistent navigation. |
 | Dark → Light → Dark in Settings | Actual appearance, right-side value and reopened dialog selection stay in sync. |
 | English → 简体中文 → 正體中文 (台灣) → 繁體中文 (香港) | Current page, navigation labels and Settings value switch consistently. |
 | Follow system with OS `zh-Hant-TW` | Taiwan wording is used. |
