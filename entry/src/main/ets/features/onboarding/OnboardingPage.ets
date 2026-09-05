@@ -4,36 +4,87 @@ import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/To
 @Component
 export struct OnboardingPage {
   @State private pageIndex: number = 0;
+  private swiperController: SwiperController = new SwiperController();
   onComplete: () => void = () => {};
 
-  private title(): ResourceStr {
-    if (this.pageIndex === 0) {
+  private title(index: number): ResourceStr {
+    if (index === 0) {
       return $r('app.string.onboarding_title_local');
     }
-    if (this.pageIndex === 1) {
+    if (index === 1) {
       return $r('app.string.onboarding_title_separate');
     }
     return $r('app.string.onboarding_title_control');
   }
 
-  private message(): ResourceStr {
-    if (this.pageIndex === 0) {
+  private message(index: number): ResourceStr {
+    if (index === 0) {
       return $r('app.string.onboarding_message_local');
     }
-    if (this.pageIndex === 1) {
+    if (index === 1) {
       return $r('app.string.onboarding_message_separate');
     }
     return $r('app.string.onboarding_message_control');
   }
 
-  private symbol(): string {
-    if (this.pageIndex === 0) {
+  private symbol(index: number): string {
+    if (index === 0) {
       return '◈';
     }
-    if (this.pageIndex === 1) {
+    if (index === 1) {
       return '⇄';
     }
     return '◆';
+  }
+
+  @Builder
+  OnboardingSlide(index: number) {
+    Column() {
+      Blank()
+
+      Column({ space: AppSpacing.xl }) {
+        Stack({ alignContent: Alignment.Center }) {
+          Row()
+            .width(172)
+            .height(172)
+            .backgroundColor($r('app.color.brand_soft'))
+            .borderRadius(86)
+          Row()
+            .width(116)
+            .height(116)
+            .backgroundColor($r('app.color.brand'))
+            .borderRadius(58)
+          Text(this.symbol(index))
+            .fontSize(40)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(Color.White)
+        }
+        .width(180)
+        .height(180)
+
+        Column({ space: AppSpacing.sm }) {
+          Text(this.title(index))
+            .fontSize(AppTypography.hero)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+            .textAlign(TextAlign.Center)
+          Text(this.message(index))
+            .fontSize(AppTypography.body)
+            .fontColor($r('app.color.text_secondary'))
+            .lineHeight(25)
+            .textAlign(TextAlign.Center)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .constraintSize({ maxWidth: 560 })
+      .alignItems(HorizontalAlign.Center)
+
+      Blank()
+    }
+    .width('100%')
+    .height('100%')
+    .alignItems(HorizontalAlign.Center)
   }
 
   build() {
@@ -57,46 +108,20 @@ export struct OnboardingPage {
       }
       .width('100%')
 
-      Blank()
-
-      Column({ space: AppSpacing.xl }) {
-        Stack({ alignContent: Alignment.Center }) {
-          Row()
-            .width(172)
-            .height(172)
-            .backgroundColor($r('app.color.brand_soft'))
-            .borderRadius(86)
-          Row()
-            .width(116)
-            .height(116)
-            .backgroundColor($r('app.color.brand'))
-            .borderRadius(58)
-          Text(this.symbol())
-            .fontSize(40)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(Color.White)
-        }
-        .width(180)
-        .height(180)
-
-        Column({ space: AppSpacing.sm }) {
-          Text(this.title())
-            .fontSize(AppTypography.hero)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-            .textAlign(TextAlign.Center)
-          Text(this.message())
-            .fontSize(AppTypography.body)
-            .fontColor($r('app.color.text_secondary'))
-            .lineHeight(25)
-            .textAlign(TextAlign.Center)
-        }
-        .width('100%')
+      Swiper(this.swiperController) {
+        this.OnboardingSlide(0)
+        this.OnboardingSlide(1)
+        this.OnboardingSlide(2)
       }
+      .layoutWeight(1)
       .width('100%')
-      .constraintSize({ maxWidth: 560 })
-
-      Blank()
+      .indicator(false)
+      .loop(false)
+      .duration(220)
+      .curve(Curve.EaseOut)
+      .onChange((index: number) => {
+        this.pageIndex = index;
+      })
 
       Row({ space: AppSpacing.xs }) {
         ForEach([0, 1, 2], (index: number) => {
@@ -118,7 +143,7 @@ export struct OnboardingPage {
             .backgroundColor($r('app.color.brand_soft'))
             .layoutWeight(1)
             .onClick(() => {
-              this.pageIndex -= 1;
+              this.swiperController.showPrevious();
             })
         }
 
@@ -131,7 +156,7 @@ export struct OnboardingPage {
           .layoutWeight(1)
           .onClick(() => {
             if (this.pageIndex < 2) {
-              this.pageIndex += 1;
+              this.swiperController.showNext();
               return;
             }
             this.onComplete();
