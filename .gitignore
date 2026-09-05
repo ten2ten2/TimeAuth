@@ -1,0 +1,51 @@
+# DevEco Studio / IntelliJ local project state
+.idea/
+*.iml
+.deveco/
+.preview/
+local.properties
+
+# Hvigor caches and generated build output (keep hvigor/ configuration)
+.hvigor/
+build/
+.cxx/
+.externalNativeBuild/
+
+# Downloaded dependencies (keep manifests and oh-package-lock.json5)
+oh_modules/
+node_modules/
+
+# Generated application packages; keep reusable .har library dependencies
+*.hap
+*.hsp
+
+# Local signing material
+*.p12
+*.p7b
+*.cer
+*.csr
+*.jks
+*.keystore
+*.pem
+*.key
+
+# Tool logs and test coverage
+ohpm-debug.log*
+hvigor-debug.log*
+coverage/
+
+# macOS metadata
+.DS_Store
+._*
+.Spotlight-V100/
+.Trashes/
+.fseventsd/
+.TemporaryItems/
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+
+# Keep shared build profiles, hvigor configuration, and dependency lockfiles
+# under version control. Do not put signing passwords in tracked profiles.
