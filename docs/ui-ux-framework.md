@@ -31,7 +31,7 @@ Follow system reads the OS language locale. Explicit script subtags take priorit
 
 ## About
 
-About shows the installed application version, privacy/security information, proprietary-license information, platform notices and the minimum supported HarmonyOS version. It does not expose a source-code repository or public-source link. Privacy and license details use ArkUI `CustomContentDialog`.
+About shows the installed application version, privacy/security information, proprietary-license information and platform/third-party notices. The user-facing version displays only `versionName`; the internal `versionCode` is not shown. It does not expose a source-code repository or public-source link. Privacy and license details use ArkUI `CustomContentDialog`.
 
 ## Screen security
 
