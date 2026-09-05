@@ -107,69 +107,76 @@ export struct OtpCard {
   }
 
   build() {
-    Button({ type: ButtonType.Normal, stateEffect: true }) {
-      Column({ space: AppSpacing.md }) {
-        Row({ space: AppSpacing.sm }) {
-          this.ServiceBadge()
+    // The outer container owns the visual card shape so native Button rendering cannot flatten the corners.
+    Column() {
+      // Keep a single full-card button for copy semantics, pressed feedback and accessibility.
+      Button({ type: ButtonType.Normal, stateEffect: true }) {
+        Column({ space: AppSpacing.md }) {
+          Row({ space: AppSpacing.sm }) {
+            this.ServiceBadge()
 
-          Column({ space: AppSpacing.xxs }) {
-            Row({ space: AppSpacing.xs }) {
-              Text(this.item.issuer)
-                .fontSize(AppTypography.body)
-                .fontWeight(FontWeight.Medium)
-                .fontColor($r('app.color.text_primary'))
+            Column({ space: AppSpacing.xxs }) {
+              Row({ space: AppSpacing.xs }) {
+                Text(this.item.issuer)
+                  .fontSize(AppTypography.body)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor($r('app.color.text_primary'))
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .layoutWeight(1)
+
+                if (this.item.kind === OtpKind.STEAM) {
+                  Text('STEAM')
+                    .fontSize(10)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor($r('app.color.brand'))
+                    .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+                    .backgroundColor($r('app.color.brand_soft'))
+                    .borderRadius(AppRadius.pill)
+                }
+              }
+              .width('100%')
+
+              Text(this.item.account)
+                .fontSize(AppTypography.label)
+                .fontColor($r('app.color.text_secondary'))
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .layoutWeight(1)
-
-              if (this.item.kind === OtpKind.STEAM) {
-                Text('STEAM')
-                  .fontSize(10)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor($r('app.color.brand'))
-                  .padding({ left: 7, right: 7, top: 3, bottom: 3 })
-                  .backgroundColor($r('app.color.brand_soft'))
-                  .borderRadius(AppRadius.pill)
-              }
             }
-            .width('100%')
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
 
-            Text(this.item.account)
-              .fontSize(AppTypography.label)
-              .fontColor($r('app.color.text_secondary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
+            this.Countdown()
           }
-          .layoutWeight(1)
-          .alignItems(HorizontalAlign.Start)
+          .width('100%')
 
-          this.Countdown()
+          Text(this.item.code)
+            .fontSize(AppTypography.otp)
+            .fontFamily('monospace')
+            .fontWeight(FontWeight.Medium)
+            .letterSpacing(1.5)
+            .fontColor(this.item.remainingSeconds <= 5 ? $r('app.color.warning') : $r('app.color.brand'))
+            .width('100%')
+            .maxLines(1)
+            .textAlign(TextAlign.Start)
         }
         .width('100%')
-
-        Text(this.item.code)
-          .fontSize(AppTypography.otp)
-          .fontFamily('monospace')
-          .fontWeight(FontWeight.Medium)
-          .letterSpacing(1.5)
-          .fontColor(this.item.remainingSeconds <= 5 ? $r('app.color.warning') : $r('app.color.brand'))
-          .width('100%')
-          .maxLines(1)
-          .textAlign(TextAlign.Start)
       }
       .width('100%')
+      .padding(AppSpacing.md)
+      .backgroundColor(Color.Transparent)
+      .accessibilityGroup(true)
+      .accessibilityText($r('app.string.auth_card_accessibility',
+        this.item.issuer, this.item.account, this.item.code))
+      .accessibilityDescription($r('app.string.auth_card_hint'))
+      .onClick(() => {
+        this.onCopy(this.item.code, this.item.issuer);
+      })
     }
     .width('100%')
-    .padding(AppSpacing.md)
     .backgroundColor($r('app.color.surface'))
     .borderRadius(AppRadius.large)
     .border({ width: 1, color: $r('app.color.border') })
-    .accessibilityGroup(true)
-    .accessibilityText($r('app.string.auth_card_accessibility',
-      this.item.issuer, this.item.account, this.item.code))
-    .accessibilityDescription($r('app.string.auth_card_hint'))
-    .onClick(() => {
-      this.onCopy(this.item.code, this.item.issuer);
-    })
+    .clip(true)
   }
 }
