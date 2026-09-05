@@ -1,10 +1,10 @@
 import { AppRoot } from '../app/AppRoot';
-import { applyThemePreference, readThemePreference, THEME_PREFERENCE_STORAGE_KEY } from '../design/ThemeManager';
+import { readThemePreference, THEME_PREFERENCE_STORAGE_KEY } from '../design/ThemeManager';
 import { applyLanguagePreference, LANGUAGE_PREFERENCE_STORAGE_KEY } from '../localization/LanguageManager';
 import { LanguagePreference, ThemePreference } from '../models/AppModels';
 
 PersistentStorage.persistProp(LANGUAGE_PREFERENCE_STORAGE_KEY, LanguagePreference.SYSTEM);
-PersistentStorage.persistProp(THEME_PREFERENCE_STORAGE_KEY, ThemePreference.SYSTEM);
+AppStorage.setOrCreate(THEME_PREFERENCE_STORAGE_KEY, ThemePreference.SYSTEM);
 
 @Entry
 @Component
@@ -16,12 +16,10 @@ struct Index {
   aboutToAppear(): void {
     applyLanguagePreference(this.languagePreference);
     const context = this.getUIContext().getHostContext();
-    if (!context) {
+    if (context === undefined) {
       return;
     }
-    const storedTheme: ThemePreference = readThemePreference(context);
-    this.themePreference = storedTheme;
-    applyThemePreference(context, storedTheme);
+    this.themePreference = readThemePreference(context);
   }
 
   build() {
