@@ -11,13 +11,9 @@ export interface SecuritySettings {
   clearClipboard: boolean;
 }
 
-function getStore(context: common.Context): preferences.Preferences {
-  return preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
-}
-
 export function readSecuritySettings(context: common.Context): SecuritySettings {
   try {
-    const store: preferences.Preferences = getStore(context);
+    const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
     return {
       hideTaskPreview: store.getSync(HIDE_TASK_PREVIEW_KEY, true) as boolean,
       clearClipboard: store.getSync(CLEAR_CLIPBOARD_KEY, true) as boolean
@@ -33,7 +29,7 @@ export function readSecuritySettings(context: common.Context): SecuritySettings 
 
 function saveBoolean(context: common.Context, key: string, value: boolean): void {
   try {
-    const store: preferences.Preferences = getStore(context);
+    const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
     store.putSync(key, value);
     store.flush((error: BusinessError) => {
       if (error) {
