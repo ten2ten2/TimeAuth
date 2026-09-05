@@ -390,18 +390,29 @@ export struct GeneratorPanel {
   @Builder
   ResultValue() {
     if (this.mode === GeneratorMode.PIN) {
-      Text(this.revealed ? this.value : '•'.repeat(this.value.length))
-        .fontSize(28)
-        .minFontSize(18)
-        .maxFontSize(28)
-        .maxLines(1)
-        .fontFamily('monospace')
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.revealed ? $r('app.color.brand') : $r('app.color.text_primary'))
-        .letterSpacing(6)
-        .textAlign(TextAlign.Center)
-        .width('100%')
-        .copyOption(CopyOptions.None)
+      Row() {
+        Row({ space: 6 }) {
+          ForEach(this.value.split(''), (digit: string) => {
+            Text(this.revealed ? digit : '•')
+              .fontSize(28)
+              .minFontSize(18)
+              .maxFontSize(28)
+              .maxLines(1)
+              .fontFamily('monospace')
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.revealed ? $r('app.color.brand') : $r('app.color.text_primary'))
+              .textAlign(TextAlign.Center)
+              .layoutWeight(1)
+              .copyOption(CopyOptions.None)
+          }, (digit: string, index: number) => `${index}:${digit}`)
+        }
+        // Equal cells with gaps only between them; no trailing letter spacing.
+        // Constrain the group so cells can shrink on narrow screens.
+        .width(this.value.length * 20 + Math.max(0, this.value.length - 1) * 6)
+        .constraintSize({ maxWidth: '100%' })
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Center)
     } else if (this.revealed) {
       Text() {
         ForEach(this.value.split(''), (character: string) => {
