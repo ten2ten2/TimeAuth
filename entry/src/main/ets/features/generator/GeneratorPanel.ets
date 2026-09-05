@@ -417,6 +417,7 @@ export struct GeneratorPanel {
     } else {
       Text('••••••••••••')
         .fontSize(24)
+        .maxLines(1)
         .fontColor($r('app.color.text_primary'))
         .width('100%')
         .copyOption(CopyOptions.None)
