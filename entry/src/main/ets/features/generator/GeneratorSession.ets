@@ -18,9 +18,13 @@ export class GeneratorSession {
 // Memory only. Survives page recreation and language/theme changes, never process restart.
 let passwordSession: GeneratorSession = new GeneratorSession(GeneratorMode.PASSWORD);
 let passphraseSession: GeneratorSession = new GeneratorSession(GeneratorMode.PASSPHRASE);
+let pinSession: GeneratorSession = new GeneratorSession(GeneratorMode.PIN);
 let selectedMode: GeneratorMode | undefined = undefined;
 
 export function getGeneratorSession(mode: GeneratorMode = GeneratorMode.PASSWORD): GeneratorSession {
+  if (mode === GeneratorMode.PIN) {
+    return pinSession;
+  }
   return mode === GeneratorMode.PASSPHRASE ? passphraseSession : passwordSession;
 }
 
@@ -33,12 +37,13 @@ export function setSelectedGeneratorMode(mode: GeneratorMode): void {
 }
 
 export function clearGeneratorSession(): void {
-  for (const session of [passwordSession, passphraseSession]) {
+  for (const session of [passwordSession, passphraseSession, pinSession]) {
     session.value = '';
     session.generatedFor = '';
     session.entropyBits = 0;
   }
   passwordSession = new GeneratorSession(GeneratorMode.PASSWORD);
   passphraseSession = new GeneratorSession(GeneratorMode.PASSPHRASE);
+  pinSession = new GeneratorSession(GeneratorMode.PIN);
   selectedMode = undefined;
 }

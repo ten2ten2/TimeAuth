@@ -1,11 +1,13 @@
 // Pure generation rules. The platform adapter is the only production source of random bytes.
 export enum GeneratorMode {
   PASSWORD = 'password',
-  PASSPHRASE = 'passphrase'
+  PASSPHRASE = 'passphrase',
+  PIN = 'pin'
 }
 
 export class GeneratorOptions {
   mode: GeneratorMode = GeneratorMode.PASSWORD;
+  pinLength: number = 6;
   wordCount: number = 6;
   separator: string = '-';
   capitalize: boolean = false;
@@ -23,6 +25,7 @@ export class GeneratorOptions {
 export enum GeneratorValidation {
   VALID = 'valid',
   INVALID_MODE = 'invalid_mode',
+  INVALID_PIN_LENGTH = 'invalid_pin_length',
   INVALID_WORD_COUNT = 'invalid_word_count',
   INVALID_SEPARATOR = 'invalid_separator',
   INVALID_LENGTH = 'invalid_length',
@@ -63,6 +66,10 @@ const MAX_PASSWORD_ATTEMPTS: number = 1024;
 const GENERATION_FAILURE: string = 'Secure password generation failed.';
 
 export function validateGeneratorOptions(options: GeneratorOptions): GeneratorValidation {
+  if (options.mode === GeneratorMode.PIN) {
+    return [4, 6, 8].indexOf(options.pinLength) >= 0 ?
+      GeneratorValidation.VALID : GeneratorValidation.INVALID_PIN_LENGTH;
+  }
   if (options.mode === GeneratorMode.PASSPHRASE) {
     if (!Number.isInteger(options.wordCount) || options.wordCount < 4 || options.wordCount > 10) {
       return GeneratorValidation.INVALID_WORD_COUNT;
@@ -159,10 +166,33 @@ export function estimatePasswordEntropy(options: GeneratorOptions): number {
   if (validateGeneratorOptions(options) !== GeneratorValidation.VALID) {
     throw new Error('Invalid password generator options.');
   }
+  if (options.mode === GeneratorMode.PIN) {
+    return options.pinLength * Math.log2(10);
+  }
   if (options.mode === GeneratorMode.PASSPHRASE) {
     return options.wordCount * Math.log2(7776) + (options.appendNumber ? Math.log2(10) : 0);
   }
   return entropyForGroups(options.length, characterGroups(options), options.requireEach);
+}
+
+// PINs are strings: all ten digits are eligible at every position, including a leading zero.
+export function generatePinFromSource(options: GeneratorOptions,
+  randomBytes: (length: number) => Uint8Array): PasswordResult {
+  if (options.mode !== GeneratorMode.PIN || validateGeneratorOptions(options) !== GeneratorValidation.VALID) {
+    throw new Error('Invalid PIN generator options.');
+  }
+  const reader: RandomByteReader = new RandomByteReader(randomBytes);
+  try {
+    let value: string = '';
+    for (let index: number = 0; index < options.pinLength; index++) {
+      value += `${reader.uniformIndex(10)}`;
+    }
+    return new PasswordResult(value, options.pinLength * Math.log2(10));
+  } catch (_) {
+    throw new Error(GENERATION_FAILURE);
+  } finally {
+    reader.clear();
+  }
 }
 
 class RandomByteReader {

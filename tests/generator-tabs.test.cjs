@@ -40,8 +40,12 @@ before(async () => {
   core = await import(coreUrl);
   globalThis.__generatorTabsMock = {
     generate(options) {
-      generated.push({ mode: options.mode, length: options.length, words: options.wordCount });
+      generated.push({ mode: options.mode, length: options.length, words: options.wordCount, pinLength: options.pinLength });
       if (options.mode === failureMode) throw new core.PasswordGenerationError(core.GeneratorFailure.UNAVAILABLE);
+      if (options.mode === core.GeneratorMode.PIN) {
+        return new core.PasswordResult('0' + String(generated.length).padStart(options.pinLength - 1, '1'),
+          options.pinLength * Math.log2(10));
+      }
       return new core.PasswordResult(`${options.mode}-result-${generated.length}`, options.mode === 'password' ? 100 : 77.55);
     },
     copy(_context, value) { return new Promise(resolve => copies.push({ value, resolve })); },
@@ -222,4 +226,79 @@ test('a settings flush failure while hidden is shown on return and remains isola
   assert.equal(password.preferencesFailed, true);
   password.persistOptions(); await settle();
   assert.equal(password.preferencesFailed, false);
+});
+
+test('PIN first visit generates once; leading zeros, copying and draft rules stay with the PIN tab', async () => {
+  const password = panel(core.GeneratorMode.PASSWORD);
+  const phrase = panel(core.GeneratorMode.PASSPHRASE);
+  const pin = panel(core.GeneratorMode.PIN, false);
+  const passwordValue = password.value, phraseValue = phrase.value;
+  assert.equal(generated.length, 2);
+  activate(password, false); activate(phrase, false); activate(pin, true);
+  const originalPin = pin.value;
+  assert.match(originalPin, /^0\d{5}$/);
+  assert.equal(pin.options.pinLength, 6);
+  assert.equal(pin.visibilityLabel(), 'app.string.generator_pin_hide');
+  pin.revealed = false;
+  assert.equal(pin.visibilityLabel(), 'app.string.generator_pin_show');
+  pin.copyValue();
+  assert.equal(copies[0].value, originalPin);
+  copies[0].resolve(true); await settle();
+  pin.options.pinLength = 8; pin.optionsChanged();
+  assert.equal(pin.value, originalPin);
+  assert.equal(pin.canCopy(), false);
+  activate(pin, false); activate(password, true);
+  assert.equal(password.value, passwordValue);
+  assert.equal(password.canCopy(), true);
+  activate(password, false); activate(phrase, true);
+  assert.equal(phrase.value, phraseValue);
+  assert.equal(phrase.canCopy(), true);
+  activate(phrase, false); activate(pin, true);
+  assert.equal(pin.value, originalPin);
+  assert.equal(generated.length, 3);
+  pin.regenerate();
+  assert.equal(pin.feedback, 'app.string.generator_pin_generated');
+  assert.match(pin.value, /^0\d{7}$/);
+  assert.equal(pin.canCopy(), true);
+  assert.equal(generated.at(-1).pinLength, 8);
+});
+
+test('PIN is restored as the third tab with settings after restart and only retains results within a session', async () => {
+  const first = new Page(); first.aboutToAppear(); first.selectTab(2);
+  assert.equal(sessions.getSelectedGeneratorMode(), core.GeneratorMode.PIN);
+  const pin = panel(core.GeneratorMode.PIN);
+  pin.options.pinLength = 4; pin.optionsChanged(); pin.regenerate(false);
+  const original = pin.value;
+  pin.aboutToDisappear(); first.aboutToDisappear();
+  const second = new Page(); second.aboutToAppear();
+  assert.equal(second.selectedIndex, 2);
+  const restored = panel(core.GeneratorMode.PIN);
+  assert.equal(restored.value, original);
+  assert.equal(restored.options.pinLength, 4);
+  for (const value of panels.splice(0)) value.aboutToDisappear();
+  second.aboutToDisappear(); await settle(); sessions.clearGeneratorSession();
+  const restarted = new Page(); restarted.aboutToAppear();
+  assert.equal(restarted.selectedIndex, 2);
+  const fresh = panel(core.GeneratorMode.PIN);
+  assert.equal(fresh.options.pinLength, 4);
+  assert.notEqual(fresh.value, original);
+  restarted.aboutToDisappear();
+});
+
+test('PIN failures stay in their tab and require explicit retry without altering other results', () => {
+  const password = panel(core.GeneratorMode.PASSWORD);
+  const phrase = panel(core.GeneratorMode.PASSPHRASE);
+  const originalPassword = password.value, originalPhrase = phrase.value;
+  failureMode = core.GeneratorMode.PIN;
+  const pin = panel(core.GeneratorMode.PIN);
+  assert.equal(pin.value, '');
+  assert.equal(pin.generationFailure, core.GeneratorFailure.UNAVAILABLE);
+  assert.equal(pin.canCopy(), false);
+  const count = generated.length;
+  activate(pin, false); activate(pin, true);
+  assert.equal(generated.length, count);
+  assert.equal(password.value, originalPassword);
+  assert.equal(phrase.value, originalPhrase);
+  failureMode = undefined; pin.regenerate(false);
+  assert.equal(pin.canCopy(), true);
 });

@@ -1,7 +1,7 @@
 import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 import {
   GeneratorFailure, GeneratorMode, GeneratorOptions, PasswordGenerationError, PasswordResult,
-  generatePasswordFromSource, generatePassphraseFromSource
+  generatePasswordFromSource, generatePassphraseFromSource, generatePinFromSource
 } from './GeneratorCore';
 import { PASSPHRASE_WORDS } from './PassphraseWords';
 
@@ -19,6 +19,9 @@ export function generatePassword(options: GeneratorOptions): PasswordResult {
         failure = GeneratorFailure.UNSUPPORTED;
         throw new Error('Secure password generation failed.');
       };
+      if (options.mode === GeneratorMode.PIN) {
+        return generatePinFromSource(options, randomBytes);
+      }
       return options.mode === GeneratorMode.PASSPHRASE ?
         generatePassphraseFromSource(options, randomBytes, PASSPHRASE_WORDS) :
         generatePasswordFromSource(options, randomBytes);

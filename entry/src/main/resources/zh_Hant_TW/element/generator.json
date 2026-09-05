@@ -1,5 +1,14 @@
 {
   "string": [
+    {"name": "generator_pin_length", "value": "PIN 位數"},
+    {"name": "generator_pin_digits", "value": "%s 位"},
+    {"name": "generator_pin_length_hint", "value": "預設 6 位。每一位均可為 0～9，保留開頭的 0。"},
+    {"name": "generator_pin_notice", "value": "這是固定數字密碼，不是動態驗證碼。PIN 較短，應搭配裝置或應用程式的嘗試次數限制使用。"},
+    {"name": "generator_invalid_pin_length", "value": "請選擇 4、6 或 8 位 PIN。"},
+    {"name": "generator_pin_show", "value": "顯示 PIN"},
+    {"name": "generator_pin_hide", "value": "隱藏 PIN"},
+    {"name": "generator_pin_empty", "value": "產生一個 PIN 開始使用"},
+    {"name": "generator_pin_generated", "value": "已產生新的 PIN"},
     { "name": "generator_word_count", "value": "單字數量" },
     { "name": "generator_fewer_words", "value": "減少單字" },
     { "name": "generator_more_words", "value": "增加單字" },

@@ -72,7 +72,7 @@ test('saved rules round-trip; output and unexpected fields never enter storage',
   assert.equal(writes[0].value.includes('DO_NOT_PERSIST'), false);
   assert.deepEqual(Object.keys(JSON.parse(writes[0].value)).sort(), [
     'length', 'includeLowercase', 'includeUppercase', 'includeNumbers', 'includeSymbols',
-    'avoidAmbiguous', 'requireEach', 'symbols', 'mode', 'wordCount', 'separator', 'capitalize', 'appendNumber'
+    'avoidAmbiguous', 'requireEach', 'symbols', 'mode', 'pinLength', 'wordCount', 'separator', 'capitalize', 'appendNumber'
   ].sort());
   const read = settings.readGeneratorOptions({});
   assert.equal(read.succeeded, true);
@@ -92,7 +92,7 @@ test('the new default preserves an existing saved 20-character preference', () =
 
 test('legacy password-only settings acquire passphrase defaults without changing old rules', () => {
   const legacy = { ...new core.GeneratorOptions(), length: 17, symbols: '!@' };
-  for (const key of ['mode', 'wordCount', 'separator', 'capitalize', 'appendNumber']) delete legacy[key];
+  for (const key of ['mode', 'pinLength', 'wordCount', 'separator', 'capitalize', 'appendNumber']) delete legacy[key];
   stored = JSON.stringify(legacy);
   const result = settings.readGeneratorOptions({});
   assert.equal(result.succeeded, true);
@@ -117,7 +117,7 @@ test('passphrase mode and rules persist while generated values remain excluded',
 });
 
 test('malformed passphrase settings do not become active preferences', () => {
-  for (const bad of [{ mode: 'pin' }, { wordCount: 3 }, { wordCount: 11 }, { wordCount: '6' },
+  for (const bad of [{ mode: 'unknown' }, { wordCount: 3 }, { wordCount: 11 }, { wordCount: '6' },
     { separator: '' }, { separator: null }, { capitalize: 1 }, { appendNumber: 'false' }]) {
     stored = JSON.stringify({ ...new core.GeneratorOptions(), ...bad });
     assert.equal(settings.readGeneratorOptions({}).succeeded, false);
@@ -238,7 +238,7 @@ test('selected tab migrates, persists separately and handles storage failures', 
   assert.equal(settings.readGeneratorMode({}).mode, core.GeneratorMode.PASSPHRASE);
   await settings.saveGeneratorMode({}, core.GeneratorMode.PASSWORD);
   assert.equal(settings.readGeneratorMode({}).mode, core.GeneratorMode.PASSWORD);
-  assert.equal(await settings.saveGeneratorMode({}, 'pin'), false);
+  assert.equal(await settings.saveGeneratorMode({}, 'unknown'), false);
   tabStorage.set('timeauth.generator.mode.v1', 42);
   assert.equal(settings.readGeneratorMode({}).succeeded, false);
   failRead = true;
@@ -274,4 +274,71 @@ test('sessions isolate results, drafts and errors; teardown clears both retained
   assert.equal(phrase.entropyBits, 0);
   assert.equal(session.getSelectedGeneratorMode(), undefined);
   assert.notEqual(session.getGeneratorSession(core.GeneratorMode.PASSPHRASE), phrase);
+});
+
+test('upgrading existing password and phrase settings adds PIN defaults without changing either tab', () => {
+  const old = { ...new core.GeneratorOptions(), length: 31, wordCount: 9, separator: '_' };
+  delete old.pinLength;
+  tabStorage.set('timeauth.generator.options.password.v2', JSON.stringify(old));
+  tabStorage.set('timeauth.generator.options.passphrase.v2', JSON.stringify({ ...old, mode: 'passphrase' }));
+  assert.equal(settings.readGeneratorOptions({}, core.GeneratorMode.PASSWORD).options.length, 31);
+  assert.equal(settings.readGeneratorOptions({}, core.GeneratorMode.PASSPHRASE).options.wordCount, 9);
+  // PIN is a new tab and must not inherit a password length or a corrupted legacy record.
+  stored = '{';
+  const pin = settings.readGeneratorOptions({}, core.GeneratorMode.PIN);
+  assert.equal(pin.succeeded, true);
+  assert.equal(pin.options.mode, core.GeneratorMode.PIN);
+  assert.equal(pin.options.pinLength, 6);
+});
+
+test('PIN settings and selected tab persist separately without writing any generated PIN', async () => {
+  const password = Object.assign(new core.GeneratorOptions(), { length: 64 });
+  const phrase = Object.assign(new core.GeneratorOptions(), { mode: core.GeneratorMode.PASSPHRASE, wordCount: 8 });
+  const pin = Object.assign(new core.GeneratorOptions(), { mode: core.GeneratorMode.PIN, pinLength: 4,
+    value: '001234', pin: '001234', generatedFor: 'SECRET_RESULT' });
+  await Promise.all([settings.saveGeneratorOptions({}, password), settings.saveGeneratorOptions({}, phrase),
+    settings.saveGeneratorOptions({}, pin), settings.saveGeneratorMode({}, core.GeneratorMode.PIN)]);
+  assert.equal(settings.readGeneratorOptions({}, core.GeneratorMode.PASSWORD).options.length, 64);
+  assert.equal(settings.readGeneratorOptions({}, core.GeneratorMode.PASSPHRASE).options.wordCount, 8);
+  assert.equal(settings.readGeneratorOptions({}, core.GeneratorMode.PIN).options.pinLength, 4);
+  assert.equal(settings.readGeneratorMode({}).mode, core.GeneratorMode.PIN);
+  assert.equal([...tabStorage.values()].some(value => value.includes('001234') || value.includes('SECRET_RESULT')), false);
+});
+
+test('invalid PIN preferences cannot overwrite the last saved valid PIN length', async () => {
+  const pin = Object.assign(new core.GeneratorOptions(), { mode: core.GeneratorMode.PIN, pinLength: 8 });
+  await settings.saveGeneratorOptions({}, pin);
+  const key = 'timeauth.generator.options.pin.v2';
+  const prior = tabStorage.get(key);
+  for (const pinLength of [0, 3, 5, 7, 9, 6.5, '6', null]) {
+    assert.equal(await settings.saveGeneratorOptions({}, { ...pin, pinLength }), false);
+    assert.equal(tabStorage.get(key), prior);
+  }
+  for (const raw of ['{', JSON.stringify({ ...pin, pinLength: '6' }), JSON.stringify({ ...pin, pinLength: 5 })]) {
+    tabStorage.set(key, raw);
+    const result = settings.readGeneratorOptions({}, core.GeneratorMode.PIN);
+    assert.equal(result.succeeded, false);
+    assert.equal(result.options.mode, core.GeneratorMode.PIN);
+    assert.equal(result.options.pinLength, 6);
+  }
+});
+
+test('PIN session is independent and teardown discards all three retained results', () => {
+  const all = [core.GeneratorMode.PASSWORD, core.GeneratorMode.PASSPHRASE, core.GeneratorMode.PIN]
+    .map(mode => session.getGeneratorSession(mode));
+  assert.equal(new Set(all).size, 3);
+  for (const item of all) { item.value = 'SESSION_ONLY'; item.generatedFor = 'rules'; item.entropyBits = 20; }
+  all[2].options.pinLength = 4;
+  all[2].generationFailure = core.GeneratorFailure.UNSUPPORTED;
+  assert.equal(all[0].generationFailure, core.GeneratorFailure.NONE);
+  assert.equal(all[1].generationFailure, core.GeneratorFailure.NONE);
+  session.clearGeneratorSession();
+  for (const item of all) {
+    assert.equal(item.value, ''); assert.equal(item.generatedFor, ''); assert.equal(item.entropyBits, 0);
+  }
+  const fresh = session.getGeneratorSession(core.GeneratorMode.PIN);
+  assert.notEqual(fresh, all[2]);
+  assert.equal(fresh.options.mode, core.GeneratorMode.PIN);
+  assert.equal(fresh.options.pinLength, 6);
+  assert.equal(fresh.generationFailure, core.GeneratorFailure.NONE);
 });

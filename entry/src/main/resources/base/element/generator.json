@@ -1,5 +1,14 @@
 {
   "string": [
+    {"name": "generator_pin_length", "value": "PIN length"},
+    {"name": "generator_pin_digits", "value": "%s digits"},
+    {"name": "generator_pin_length_hint", "value": "Default: 6 digits. Every position can be 0–9, including the first."},
+    {"name": "generator_pin_notice", "value": "A fixed numeric code, not a one-time verification code. Short PINs need a device or app that limits guessing attempts."},
+    {"name": "generator_invalid_pin_length", "value": "Choose a 4-, 6-, or 8-digit PIN."},
+    {"name": "generator_pin_show", "value": "Show PIN"},
+    {"name": "generator_pin_hide", "value": "Hide PIN"},
+    {"name": "generator_pin_empty", "value": "Generate a PIN to get started"},
+    {"name": "generator_pin_generated", "value": "New PIN generated"},
     { "name": "generator_word_count", "value": "Words" },
     { "name": "generator_fewer_words", "value": "Fewer words" },
     { "name": "generator_more_words", "value": "More words" },

@@ -27,7 +27,7 @@ export struct GeneratorPage {
       }
       setSelectedGeneratorMode(mode);
     }
-    this.selectedIndex = mode === GeneratorMode.PASSPHRASE ? 1 : 0;
+    this.selectedIndex = mode === GeneratorMode.PIN ? 2 : mode === GeneratorMode.PASSPHRASE ? 1 : 0;
   }
 
   aboutToDisappear(): void {
@@ -40,7 +40,8 @@ export struct GeneratorPage {
       return;
     }
     this.selectedIndex = index;
-    const mode: GeneratorMode = index === 1 ? GeneratorMode.PASSPHRASE : GeneratorMode.PASSWORD;
+    const mode: GeneratorMode = index === 2 ? GeneratorMode.PIN :
+      index === 1 ? GeneratorMode.PASSPHRASE : GeneratorMode.PASSWORD;
     setSelectedGeneratorMode(mode);
     const context = this.getUIContext().getHostContext();
     if (context === undefined) {
@@ -82,6 +83,12 @@ export struct GeneratorPage {
           GeneratorPanel({ mode: GeneratorMode.PASSPHRASE, tabActive: this.selectedIndex === 1 })
         }
         .tabBar(SubTabBarStyle.of($r('app.string.generator_mode_passphrase'))
+          .indicator({ color: $r('app.color.brand') })
+          .labelStyle({ selectedColor: $r('app.color.brand'), unselectedColor: $r('app.color.text_secondary') }))
+        TabContent() {
+          GeneratorPanel({ mode: GeneratorMode.PIN, tabActive: this.selectedIndex === 2 })
+        }
+        .tabBar(SubTabBarStyle.of($r('app.string.generator_mode_pin'))
           .indicator({ color: $r('app.color.brand') })
           .labelStyle({ selectedColor: $r('app.color.brand'), unselectedColor: $r('app.color.text_secondary') }))
       }

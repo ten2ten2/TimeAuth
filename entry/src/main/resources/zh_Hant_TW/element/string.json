@@ -70,7 +70,7 @@
     { "name": "vault_linked_code", "value": "已連結驗證碼" },
     { "name": "vault_feature_later_feedback", "value": "此項目類型會在本機密碼庫功能完成後提供" },
     { "name": "generator_title", "value": "密碼產生器" },
-    { "name": "generator_subtitle", "value": "離線產生隨機密碼或密碼短語，確認後即可複製。" },
+    { "name": "generator_subtitle", "value": "離線產生隨機密碼、密碼片語或 PIN，確認後即可複製。" },
     { "name": "generator_mode_password", "value": "隨機密碼" },
     { "name": "generator_mode_passphrase", "value": "密碼片語" },
     { "name": "generator_mode_pin", "value": "PIN" },

@@ -192,7 +192,8 @@ export struct GeneratorPanel {
       session.options = copyGeneratorOptions(this.options);
       this.persistOptions();
       if (notify) {
-        this.showFeedback($r('app.string.generator_generated'));
+        this.showFeedback(this.mode === GeneratorMode.PIN ?
+          $r('app.string.generator_pin_generated') : $r('app.string.generator_generated'));
       }
     } catch (error) {
       // Never fall back to predictable demo values or log a password/error payload.
@@ -244,6 +245,9 @@ export struct GeneratorPanel {
   }
 
   private validationMessage(): Resource {
+    if (this.validation() === GeneratorValidation.INVALID_PIN_LENGTH) {
+      return $r('app.string.generator_invalid_pin_length');
+    }
     if (this.validation() === GeneratorValidation.INVALID_WORD_COUNT) {
       return $r('app.string.generator_invalid_word_count');
     }
@@ -270,7 +274,14 @@ export struct GeneratorPanel {
     if (this.generationFailure === GeneratorFailure.UNAVAILABLE) {
       return $r('app.string.generator_generate_failed');
     }
-    return $r('app.string.generator_empty');
+    return this.mode === GeneratorMode.PIN ? $r('app.string.generator_pin_empty') : $r('app.string.generator_empty');
+  }
+
+  private visibilityLabel(): Resource {
+    if (this.mode === GeneratorMode.PIN) {
+      return this.revealed ? $r('app.string.generator_pin_hide') : $r('app.string.generator_pin_show');
+    }
+    return this.revealed ? $r('app.string.generator_hide') : $r('app.string.generator_show');
   }
 
   private strengthLabel(): Resource {
@@ -349,7 +360,7 @@ export struct GeneratorPanel {
             .fontWeight(FontWeight.Medium)
             .fontColor(this.strengthColor())
             .layoutWeight(1)
-          Button(this.revealed ? $r('app.string.generator_hide') : $r('app.string.generator_show'))
+          Button(this.visibilityLabel())
             .height(AppLayout.minimumTouchTarget)
             .fontSize(AppTypography.label)
             .fontColor($r('app.color.brand'))
@@ -395,6 +406,61 @@ export struct GeneratorPanel {
           })
       }
       .width('100%')
+    }
+    .width('100%')
+    .padding(AppSpacing.lg)
+    .backgroundColor($r('app.color.surface'))
+    .borderRadius(AppRadius.large)
+    .border({ width: 1, color: $r('app.color.border') })
+  }
+
+  @Builder
+  PinLengthButton(length: number) {
+    Button($r('app.string.generator_pin_digits', `${length}`))
+      .constraintSize({ minHeight: AppLayout.minimumTouchTarget })
+      .layoutWeight(1)
+      .fontSize(AppTypography.label)
+      .fontColor(this.options.pinLength === length ? Color.White : $r('app.color.brand'))
+      .backgroundColor(this.options.pinLength === length ? $r('app.color.brand') : $r('app.color.brand_soft'))
+      .onClick(() => {
+        this.options.pinLength = length;
+        this.optionsChanged();
+      })
+  }
+
+  @Builder
+  PinOptionsCard() {
+    Column({ space: AppSpacing.md }) {
+      Text($r('app.string.generator_pin_length'))
+        .fontSize(AppTypography.body)
+        .fontColor($r('app.color.text_primary'))
+        .width('100%')
+      Row({ space: AppSpacing.sm }) {
+        this.PinLengthButton(4)
+        this.PinLengthButton(6)
+        this.PinLengthButton(8)
+      }
+      .width('100%')
+      Text($r('app.string.generator_pin_length_hint'))
+        .fontSize(AppTypography.caption)
+        .fontColor($r('app.color.text_secondary'))
+        .width('100%')
+      Text($r('app.string.generator_pin_notice'))
+        .fontSize(AppTypography.caption)
+        .fontColor($r('app.color.text_secondary'))
+        .width('100%')
+      if (this.validation() !== GeneratorValidation.VALID) {
+        Text(this.validationMessage())
+          .fontSize(AppTypography.label)
+          .fontColor($r('app.color.danger'))
+          .width('100%')
+      }
+      if (this.preferencesFailed) {
+        Text($r('app.string.generator_preferences_failed'))
+          .fontSize(AppTypography.label)
+          .fontColor($r('app.color.warning'))
+          .width('100%')
+      }
     }
     .width('100%')
     .padding(AppSpacing.lg)
@@ -698,6 +764,8 @@ export struct GeneratorPanel {
           this.ResultCard()
           if (this.options.mode === GeneratorMode.PASSPHRASE) {
             this.PassphraseOptionsCard()
+          } else if (this.options.mode === GeneratorMode.PIN) {
+            this.PinOptionsCard()
           } else {
             this.OptionsCard()
           }

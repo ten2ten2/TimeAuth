@@ -70,7 +70,7 @@
     { "name": "vault_linked_code", "value": "Authenticator linked" },
     { "name": "vault_feature_later_feedback", "value": "This item type will be added in the local vault phase" },
     { "name": "generator_title", "value": "Password generator" },
-    { "name": "generator_subtitle", "value": "Generate a password or passphrase offline, then copy it when ready." },
+    { "name": "generator_subtitle", "value": "Generate passwords, passphrases or PINs offline, then copy them when ready." },
     { "name": "generator_mode_password", "value": "Password" },
     { "name": "generator_mode_passphrase", "value": "Passphrase" },
     { "name": "generator_mode_pin", "value": "PIN" },

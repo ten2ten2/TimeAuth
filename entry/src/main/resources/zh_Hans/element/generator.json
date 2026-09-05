@@ -1,5 +1,14 @@
 {
   "string": [
+    {"name": "generator_pin_length", "value": "PIN 位数"},
+    {"name": "generator_pin_digits", "value": "%s 位"},
+    {"name": "generator_pin_length_hint", "value": "默认 6 位。每一位均可为 0～9，保留开头的 0。"},
+    {"name": "generator_pin_notice", "value": "这是固定数字口令，不是动态验证码。PIN 较短，应配合设备或应用的尝试次数限制使用。"},
+    {"name": "generator_invalid_pin_length", "value": "请选择 4、6 或 8 位 PIN。"},
+    {"name": "generator_pin_show", "value": "显示 PIN"},
+    {"name": "generator_pin_hide", "value": "隐藏 PIN"},
+    {"name": "generator_pin_empty", "value": "生成一个 PIN 开始使用"},
+    {"name": "generator_pin_generated", "value": "已生成新的 PIN"},
     { "name": "generator_word_count", "value": "单词数量" },
     { "name": "generator_fewer_words", "value": "减少单词" },
     { "name": "generator_more_words", "value": "增加单词" },

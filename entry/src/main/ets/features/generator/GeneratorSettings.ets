@@ -25,7 +25,7 @@ export function readGeneratorMode(context: common.Context): GeneratorModePrefere
   try {
     const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
     const raw: preferences.ValueType = store.getSync(MODE_KEY, '');
-    if (raw === GeneratorMode.PASSWORD || raw === GeneratorMode.PASSPHRASE) {
+    if (raw === GeneratorMode.PASSWORD || raw === GeneratorMode.PASSPHRASE || raw === GeneratorMode.PIN) {
       result.mode = raw as GeneratorMode;
     } else if (raw === '') {
       const legacy: preferences.ValueType = store.getSync(OPTIONS_KEY, '');
@@ -45,7 +45,7 @@ export function readGeneratorMode(context: common.Context): GeneratorModePrefere
 }
 
 export async function saveGeneratorMode(context: common.Context, mode: GeneratorMode): Promise<boolean> {
-  if (mode !== GeneratorMode.PASSWORD && mode !== GeneratorMode.PASSPHRASE) {
+  if (mode !== GeneratorMode.PASSWORD && mode !== GeneratorMode.PASSPHRASE && mode !== GeneratorMode.PIN) {
     return false;
   }
   try {
@@ -63,6 +63,7 @@ export function copyGeneratorOptions(source: GeneratorOptions): GeneratorOptions
   const options: GeneratorOptions = new GeneratorOptions();
   // Missing fields belong to the original password-only v1 settings format.
   if (source.mode !== undefined) { options.mode = source.mode; }
+  if (source.pinLength !== undefined) { options.pinLength = source.pinLength; }
   if (source.wordCount !== undefined) { options.wordCount = source.wordCount; }
   if (source.separator !== undefined) { options.separator = source.separator; }
   if (source.capitalize !== undefined) { options.capitalize = source.capitalize; }
@@ -86,7 +87,7 @@ export function readGeneratorOptions(context: common.Context,
     const store: preferences.Preferences = preferences.getPreferencesSync(context, { name: PREFERENCES_NAME });
     // Migrate each tab lazily, so saving one tab cannot erase the other tab's legacy rules.
     let raw: preferences.ValueType = store.getSync(tabOptionsKey(mode), '');
-    if (raw === '') {
+    if (raw === '' && mode !== GeneratorMode.PIN) {
       raw = store.getSync(OPTIONS_KEY, '');
     }
     if (raw === '') {
@@ -102,7 +103,9 @@ export function readGeneratorOptions(context: common.Context,
       typeof saved.includeNumbers !== 'boolean' || typeof saved.includeSymbols !== 'boolean' ||
       typeof saved.avoidAmbiguous !== 'boolean' || typeof saved.requireEach !== 'boolean' ||
       typeof saved.symbols !== 'string' ||
-      (saved.mode !== undefined && saved.mode !== GeneratorMode.PASSWORD && saved.mode !== GeneratorMode.PASSPHRASE) ||
+      (saved.mode !== undefined && saved.mode !== GeneratorMode.PASSWORD &&
+        saved.mode !== GeneratorMode.PASSPHRASE && saved.mode !== GeneratorMode.PIN) ||
+      (saved.pinLength !== undefined && [4, 6, 8].indexOf(saved.pinLength) < 0) ||
       (saved.wordCount !== undefined && (typeof saved.wordCount !== 'number' ||
         !Number.isInteger(saved.wordCount) || saved.wordCount < 4 || saved.wordCount > 10)) ||
       (saved.separator !== undefined && ['-', ' ', '_', '.'].indexOf(saved.separator) < 0) ||
