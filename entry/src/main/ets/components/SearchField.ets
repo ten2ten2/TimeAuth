@@ -8,8 +8,12 @@ export struct SearchField {
   build() {
     Row({ space: AppSpacing.sm }) {
       Text('⌕')
-        .fontSize(22)
+        .fontSize(20)
         .fontColor($r('app.color.text_secondary'))
+        .width(24)
+        .height(24)
+        .lineHeight(24)
+        .textAlign(TextAlign.Center)
         .accessibilityText($r('app.string.common_search'))
 
       TextInput({ text: this.value, placeholder: this.placeholder })
@@ -41,6 +45,7 @@ export struct SearchField {
     .width('100%')
     .height(52)
     .padding({ left: AppSpacing.md, right: AppSpacing.sm })
+    .alignItems(VerticalAlign.Center)
     .backgroundColor($r('app.color.surface'))
     .borderRadius(AppRadius.medium)
     .border({ width: 1, color: $r('app.color.border') })

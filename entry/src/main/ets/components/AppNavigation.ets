@@ -11,15 +11,23 @@ export struct BottomNavigation {
     Button({ type: ButtonType.Normal }) {
       Column({ space: AppSpacing.xxs }) {
         Text(symbol)
-          .fontSize(20)
+          .fontSize(19)
           .fontWeight(this.selectedIndex === index ? FontWeight.Bold : FontWeight.Regular)
           .fontColor(this.selectedIndex === index ? $r('app.color.brand') : $r('app.color.text_secondary'))
+          .width(26)
+          .height(24)
+          .lineHeight(24)
+          .textAlign(TextAlign.Center)
         Text(label)
           .fontSize(AppTypography.caption)
           .fontWeight(this.selectedIndex === index ? FontWeight.Medium : FontWeight.Regular)
           .fontColor(this.selectedIndex === index ? $r('app.color.brand') : $r('app.color.text_secondary'))
+          .height(16)
+          .lineHeight(16)
+          .textAlign(TextAlign.Center)
       }
       .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
       .width('100%')
       .height(56)
     }
@@ -44,6 +52,7 @@ export struct BottomNavigation {
     .width('100%')
     .height(80)
     .padding({ left: AppSpacing.sm, right: AppSpacing.sm, top: AppSpacing.xs, bottom: AppSpacing.xs })
+    .alignItems(VerticalAlign.Center)
     .backgroundColor($r('app.color.surface'))
     .border({ width: { top: 1 }, color: $r('app.color.border') })
   }
@@ -63,16 +72,21 @@ export struct NavigationRail {
           .fontWeight(FontWeight.Bold)
           .fontColor(this.selectedIndex === index ? $r('app.color.brand') : $r('app.color.text_secondary'))
           .width(28)
+          .height(24)
+          .lineHeight(24)
+          .textAlign(TextAlign.Center)
         Text(label)
           .fontSize(AppTypography.body)
           .fontWeight(this.selectedIndex === index ? FontWeight.Medium : FontWeight.Regular)
           .fontColor(this.selectedIndex === index ? $r('app.color.brand') : $r('app.color.text_primary'))
+          .lineHeight(22)
           .layoutWeight(1)
           .textAlign(TextAlign.Start)
       }
       .width('100%')
       .height(52)
       .padding({ left: AppSpacing.md, right: AppSpacing.md })
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .height(52)
@@ -92,9 +106,11 @@ export struct NavigationRail {
           .fontSize(AppTypography.section)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
+          .lineHeight(26)
       }
       .width('100%')
       .padding({ bottom: AppSpacing.lg })
+      .alignItems(VerticalAlign.Center)
 
       this.RailItem(0, '⏱', $r('app.string.nav_authenticator'))
       this.RailItem(1, '◆', $r('app.string.nav_vault'))
