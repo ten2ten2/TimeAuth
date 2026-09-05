@@ -41,6 +41,14 @@ export function saveThemePreference(context: common.Context, preference: ThemePr
   }
 }
 
+export function applyThemePreference(context: common.Context, preference: ThemePreference): void {
+  try {
+    context.getApplicationContext().setColorMode(colorModeForTheme(preference));
+  } catch (error) {
+    console.error(`Failed to apply TimeAuth theme preference: ${JSON.stringify(error)}`);
+  }
+}
+
 export function colorModeForTheme(preference: ThemePreference): ConfigurationConstant.ColorMode {
   if (preference === ThemePreference.LIGHT) {
     return ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;

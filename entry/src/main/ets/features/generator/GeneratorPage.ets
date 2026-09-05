@@ -31,7 +31,7 @@ export struct GeneratorPage {
   }
 
   @Builder
-  ModeButton(value: GeneratorMode, label: ResourceStr) {
+  ModeButton(value: GeneratorMode, label: Resource) {
     Button(label)
       .type(ButtonType.Normal)
       .height(44)
@@ -68,7 +68,7 @@ export struct GeneratorPage {
         })
     }
     .width('100%')
-    .minHeight(56)
+    .constraintSize({ minHeight: 56 })
   }
 
   build() {

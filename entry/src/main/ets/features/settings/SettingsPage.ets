@@ -1,5 +1,5 @@
 import { PageHeader } from '../../components/PageHeader';
-import { colorModeForTheme, saveThemePreference } from '../../design/ThemeManager';
+import { applyThemePreference, saveThemePreference } from '../../design/ThemeManager';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 import { applyLanguagePreference } from '../../localization/LanguageManager';
 import { LanguagePreference, ThemePreference } from '../../models/AppModels';
@@ -16,8 +16,12 @@ export struct SettingsPage {
 
   private setTheme(preference: ThemePreference): void {
     this.themePreference = preference;
-    saveThemePreference(getContext(this), preference);
-    getContext(this).getApplicationContext().setColorMode(colorModeForTheme(preference));
+    const context = this.getUIContext().getHostContext();
+    if (!context) {
+      return;
+    }
+    saveThemePreference(context, preference);
+    applyThemePreference(context, preference);
   }
 
   private setLanguage(preference: LanguagePreference): void {
@@ -107,7 +111,7 @@ export struct SettingsPage {
         })
     }
     .width('100%')
-    .minHeight(64)
+    .constraintSize({ minHeight: 64 })
   }
 
   @Builder
@@ -133,7 +137,7 @@ export struct SettingsPage {
         .fontColor($r('app.color.text_secondary'))
     }
     .width('100%')
-    .minHeight(58)
+    .constraintSize({ minHeight: 58 })
   }
 
   build() {

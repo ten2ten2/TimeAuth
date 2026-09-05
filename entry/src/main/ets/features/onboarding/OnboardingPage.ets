@@ -40,7 +40,7 @@ export struct OnboardingPage {
     Column() {
       Row() {
         Row({ space: AppSpacing.xs }) {
-          BrandMark({ size: 28 })
+          BrandMark({ markSize: 28 })
           Text($r('app.string.brand_name'))
             .fontSize(AppTypography.section)
             .fontWeight(FontWeight.Bold)
@@ -61,14 +61,16 @@ export struct OnboardingPage {
 
       Column({ space: AppSpacing.xl }) {
         Stack({ alignContent: Alignment.Center }) {
-          Circle()
+          Row()
             .width(172)
             .height(172)
-            .fill($r('app.color.brand_soft'))
-          Circle()
+            .backgroundColor($r('app.color.brand_soft'))
+            .borderRadius(86)
+          Row()
             .width(116)
             .height(116)
-            .fill($r('app.color.brand'))
+            .backgroundColor($r('app.color.brand'))
+            .borderRadius(58)
           Text(this.symbol())
             .fontSize(40)
             .fontWeight(FontWeight.Bold)
@@ -98,10 +100,11 @@ export struct OnboardingPage {
 
       Row({ space: AppSpacing.xs }) {
         ForEach([0, 1, 2], (index: number) => {
-          Circle()
+          Row()
             .width(this.pageIndex === index ? 24 : 8)
             .height(8)
-            .fill(this.pageIndex === index ? $r('app.color.brand') : $r('app.color.border'))
+            .backgroundColor(this.pageIndex === index ? $r('app.color.brand') : $r('app.color.border'))
+            .borderRadius(AppRadius.pill)
             .animation({ duration: 180, curve: Curve.EaseOut })
         })
       }

@@ -7,7 +7,7 @@ export struct BottomNavigation {
   onSelect: (index: number) => void = () => {};
 
   @Builder
-  NavItem(index: number, symbol: string, label: ResourceStr) {
+  NavItem(index: number, symbol: string, label: Resource) {
     Button({ type: ButtonType.Normal }) {
       Column({ space: AppSpacing.xxs }) {
         Text(symbol)
@@ -55,7 +55,7 @@ export struct NavigationRail {
   onSelect: (index: number) => void = () => {};
 
   @Builder
-  RailItem(index: number, symbol: string, label: ResourceStr) {
+  RailItem(index: number, symbol: string, label: Resource) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: AppSpacing.sm }) {
         Text(symbol)
@@ -87,7 +87,7 @@ export struct NavigationRail {
   build() {
     Column({ space: AppSpacing.xs }) {
       Row({ space: AppSpacing.sm }) {
-        BrandMark({ size: 42 })
+        BrandMark({ markSize: 42 })
         Text($r('app.string.brand_name'))
           .fontSize(AppTypography.section)
           .fontWeight(FontWeight.Bold)

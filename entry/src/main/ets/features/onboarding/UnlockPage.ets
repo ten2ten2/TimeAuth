@@ -10,7 +10,7 @@ export struct UnlockPage {
     Column() {
       Row() {
         Row({ space: AppSpacing.xs }) {
-          BrandMark({ size: 28 })
+          BrandMark({ markSize: 28 })
           Text($r('app.string.brand_name'))
             .fontSize(AppTypography.section)
             .fontWeight(FontWeight.Bold)
@@ -26,7 +26,7 @@ export struct UnlockPage {
       Blank()
 
       Column({ space: AppSpacing.lg }) {
-        BrandMark({ size: 88 })
+        BrandMark({ markSize: 88 })
 
         Column({ space: AppSpacing.xs }) {
           Text($r('app.string.unlock_title'))

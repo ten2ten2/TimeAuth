@@ -1,5 +1,5 @@
 import { AppRoot } from '../app/AppRoot';
-import { colorModeForTheme, readThemePreference, THEME_PREFERENCE_STORAGE_KEY } from '../design/ThemeManager';
+import { applyThemePreference, readThemePreference, THEME_PREFERENCE_STORAGE_KEY } from '../design/ThemeManager';
 import { applyLanguagePreference, LANGUAGE_PREFERENCE_STORAGE_KEY } from '../localization/LanguageManager';
 import { LanguagePreference, ThemePreference } from '../models/AppModels';
 
@@ -15,14 +15,22 @@ struct Index {
 
   aboutToAppear(): void {
     applyLanguagePreference(this.languagePreference);
-    const storedTheme: ThemePreference = readThemePreference(getContext(this));
+    const context = this.getUIContext().getHostContext();
+    if (!context) {
+      return;
+    }
+    const storedTheme: ThemePreference = readThemePreference(context);
     this.themePreference = storedTheme;
-    getContext(this).getApplicationContext().setColorMode(colorModeForTheme(storedTheme));
+    applyThemePreference(context, storedTheme);
   }
 
   build() {
-    AppRoot()
-      .width('100%')
-      .height('100%')
+    Column() {
+      AppRoot()
+        .width('100%')
+        .height('100%')
+    }
+    .width('100%')
+    .height('100%')
   }
 }
