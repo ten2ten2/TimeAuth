@@ -12,7 +12,8 @@ import {
   handleWindowStageLifecycle, markScreenContentReady, reportScreenSecuritySetupFailure, setScreenAbilityForeground
 } from '../security/ScreenSecurityManager';
 import { disposeSensitiveClipboard, resumeSensitiveClipboardClear } from '../security/SecureClipboard';
-import { lockAppSession, setAppSessionForeground } from '../security/AppSession';
+import { configureAppUnlock, lockAppSession, setAppSessionForeground } from '../security/AppSession';
+import { readSecuritySettings } from '../security/SecuritySettingsManager';
 
 export default class EntryAbility extends UIAbility {
   private windowStage: window.WindowStage | undefined = undefined;
@@ -23,18 +24,16 @@ export default class EntryAbility extends UIAbility {
   private contentLoaded: boolean = false;
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    lockAppSession();
+    // App unlock is opt-in. Screen privacy and encrypted storage are independent of this preference.
+    configureAppUnlock(readSecuritySettings(this.context).appUnlockEnabled);
     hilog.info(0x0000, 'TimeAuth', 'EntryAbility created');
-    // System locale events still arrive when an explicit app-language override is active.
     try {
       const subscriber: commonEventManager.CommonEventSubscriber = commonEventManager.createSubscriberSync({
         events: [commonEventManager.Support.COMMON_EVENT_LOCALE_CHANGED]
       });
       this.localeSubscriber = subscriber;
       commonEventManager.subscribe(subscriber, (error: BusinessError, data: commonEventManager.CommonEventData) => {
-        if (this.localeSubscriber !== subscriber) {
-          return;
-        }
+        if (this.localeSubscriber !== subscriber) { return; }
         if (error) {
           hilog.error(0x0000, 'TimeAuth', 'Locale subscription failed: %{public}s', JSON.stringify(error));
           return;
@@ -73,15 +72,12 @@ export default class EntryAbility extends UIAbility {
     }
 
     windowStage.loadContent('pages/Index', (error) => {
-      if (this.windowStage !== windowStage) {
-        return;
-      }
+      if (this.windowStage !== windowStage) { return; }
       if (error.code) {
         hilog.error(0x0000, 'TimeAuth', 'Failed to load content: %{public}s', JSON.stringify(error));
         return;
       }
       this.contentLoaded = true;
-      // ApplicationContext configuration APIs require a created window and loaded page.
       applyLanguagePreference(this.context, readLanguagePreference(this.context));
       applyThemePreference(this.context, readThemePreference(this.context));
       if (this.mainWindow !== undefined) {
@@ -91,18 +87,18 @@ export default class EntryAbility extends UIAbility {
   }
 
   onForeground(): void {
+    // When app unlock is disabled this restores the transient session automatically; when enabled it remains locked.
     setAppSessionForeground(true);
     resumeSensitiveClipboardClear();
     if (this.contentLoaded) {
-      // Covers missed/delayed locale broadcasts after changing the system language in Settings.
       refreshSystemLanguage(this.context);
     }
-    // Returning to the ability alone must not remove the cover: focus + RESUMED are also required.
     setScreenAbilityForeground(true);
   }
 
   onBackground(): void {
     setScreenAbilityForeground(false);
+    // Always close the transient session so decrypted authenticator material is released on backgrounding.
     setAppSessionForeground(false);
   }
 

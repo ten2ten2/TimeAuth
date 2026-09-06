@@ -26,14 +26,14 @@ export struct AppRoot {
     this.stage = context !== undefined && isOnboardingCompleted(context) ?
       AppStage.APPLICATION : AppStage.ONBOARDING;
     this.applyScreenSecurity(this.stage === AppStage.APPLICATION ?
-      ScreenSecurityPage.UNLOCK : ScreenSecurityPage.ONBOARDING);
+      (this.unlocked ? ScreenSecurityPage.AUTHENTICATOR : ScreenSecurityPage.UNLOCK) : ScreenSecurityPage.ONBOARDING);
   }
 
   private onSessionChanged(): void {
     if (!this.unlocked && this.stage === AppStage.APPLICATION) {
       this.applyScreenSecurity(ScreenSecurityPage.UNLOCK);
     }
-    // AppShell restores the selected page's policy after a successful unlock.
+    // AppShell restores the selected page's policy whenever the session becomes available.
   }
 
   private async finishOnboarding(): Promise<void> {
@@ -46,7 +46,7 @@ export struct AppRoot {
     this.savingOnboarding = false;
     this.onboardingSaveFailed = !success;
     if (success) {
-      this.applyScreenSecurity(ScreenSecurityPage.UNLOCK);
+      this.applyScreenSecurity(this.unlocked ? ScreenSecurityPage.AUTHENTICATOR : ScreenSecurityPage.UNLOCK);
       this.stage = AppStage.APPLICATION;
     }
   }
@@ -57,7 +57,7 @@ export struct AppRoot {
         OnboardingPage({ saving: this.savingOnboarding, saveFailed: this.onboardingSaveFailed,
           onComplete: () => { this.finishOnboarding(); } })
       } else {
-        // Keep pending native scan callbacks alive, but make app content inaccessible while locked.
+        // App content remains mounted for native callbacks, but is inaccessible whenever the transient session is closed.
         AppShell()
           .visibility(this.unlocked ? Visibility.Visible : Visibility.Hidden)
           .enabled(this.unlocked)

@@ -41,14 +41,16 @@
     {"name": "auth_live_unlock_privacy", "value": "身份验证由系统完成，TimeAuth 不获取锁屏密码或生物特征数据。应用进入后台后立即锁定。"},
     {"name": "auth_live_onboarding_local", "value": "验证密钥保存在本机加密数据库中，根据系统时间离线生成验证码。"},
     {"name": "auth_live_onboarding_separate", "value": "验证器与密码生成器可用。密码库仍为预览功能，请勿在其中保存真实密码。"},
-    {"name": "auth_live_onboarding_control", "value": "使用系统身份验证解锁。请妥善保管各服务的恢复码：当前尚未提供备份和同步。"},
-    {"name": "auth_live_security_title", "value": "系统身份验证"},
+    {"name": "auth_live_onboarding_control", "value": "验证解锁为可选功能且默认关闭，可在设置中开启。请妥善保管各服务的恢复码：当前尚未提供备份和同步。"},
+    {"name": "auth_live_security_title", "value": "验证解锁"},
+    {"name": "auth_live_unlock_setting_detail", "value": "默认关闭。开启后，打开 TimeAuth 或从后台返回时需要通过系统身份验证。"},
+    {"name": "auth_live_unlock_setting_failed", "value": "无法更改验证解锁设置。身份验证可能已取消，或设置保存失败。"},
     {"name": "auth_live_enabled", "value": "已启用"},
     {"name": "auth_live_available", "value": "可用"},
     {"name": "auth_live_not_available", "value": "暂未实现"},
     {"name": "auth_live_import_detail", "value": "在验证器页面点击 + 添加标准 TOTP 账号。暂不支持批量迁移。"},
     {"name": "auth_live_local_data_detail", "value": "验证器账号使用本机加密存储，密码库仍为预览功能。"},
-    {"name": "auth_live_privacy_summary", "value": "本机加密保存、离线生成与系统身份验证"},
-    {"name": "auth_live_privacy_body", "value": "验证器的服务名称、账号、设置密钥和参数保存在本机 ArkData 加密数据库中，加密密钥由系统管理。TimeAuth 不将这些记录上传到自己的服务器，也不联网下载服务图标。\n\n查看内容前需完成系统身份验证。应用进入后台即锁定，并释放活动会话中的已解密密钥和验证码；无法保证 JavaScript 内存被物理擦除。TimeAuth 不获取锁屏密码或生物特征数据。\n\n扫码使用系统 Scan Kit 界面及其相机、相册控件，识别到支持的二维码后，由你核对并保存。点击验证码会将其写入系统剪贴板，自动清除遵循你的设置。\n\n当前未实现备份、导出、云同步、HOTP 和批量迁移。卸载应用、清除数据或丢失设备可能导致密钥丢失，请保存服务恢复码。密码库仍是独立的预览功能；密码生成和验证器已接入真实功能。"}
+    {"name": "auth_live_privacy_summary", "value": "本机加密保存、离线生成与可选验证解锁"},
+    {"name": "auth_live_privacy_body", "value": "验证器的服务名称、账号、设置密钥和参数保存在本机 ArkData 加密数据库中，加密密钥由系统管理。TimeAuth 不将这些记录上传到自己的服务器，也不联网下载服务图标。\n\n验证解锁默认关闭，可在设置中开启。开启后，由系统身份验证控制访问，TimeAuth 不获取锁屏密码或生物特征数据。无论是否开启验证解锁，应用进入后台时都会关闭当前验证器会话并释放活动会话中的已解密密钥和验证码；关闭验证解锁时，回到前台会自动重新打开会话，不弹出身份验证。无法保证 JavaScript 内存被物理擦除。\n\n扫码使用系统 Scan Kit 界面及其相机、相册控件，识别到支持的二维码后，由你核对并保存。点击验证码会将其写入系统剪贴板，自动清除遵循你的设置。\n\n当前未实现备份、导出、云同步、HOTP 和批量迁移。卸载应用、清除数据或丢失设备可能导致密钥丢失，请保存服务恢复码。密码库仍是独立的预览功能；密码生成和验证器已接入真实功能。"}
   ]
 }

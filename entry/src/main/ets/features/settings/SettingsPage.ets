@@ -5,9 +5,14 @@ import { applyThemePreference, readThemePreference, saveThemePreference } from '
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
 import { applyLanguagePreference, readLanguagePreference, saveLanguagePreference } from '../../localization/LanguageManager';
 import { LanguagePreference, ThemePreference } from '../../models/AppModels';
+import { configureAppUnlock } from '../../security/AppSession';
+import { DeviceUnlock } from '../../security/DeviceUnlock';
 import { cancelPendingSensitiveClipboardClear } from '../../security/SecureClipboard';
 import { refreshScreenSecurity } from '../../security/ScreenSecurityManager';
-import { readSecuritySettings, saveClearClipboard, saveHideTaskPreview, SecuritySettings } from '../../security/SecuritySettingsManager';
+import {
+  readSecuritySettings, saveAppUnlockEnabled, saveClearClipboard,
+  saveHideTaskPreview, SecuritySettings
+} from '../../security/SecuritySettingsManager';
 
 @Component
 export struct SettingsPage {
@@ -16,10 +21,16 @@ export struct SettingsPage {
   @State private languagePreference: LanguagePreference = LanguagePreference.SYSTEM;
   @State private hideTaskPreview: boolean = true;
   @State private clearClipboard: boolean = true;
+  @State private appUnlockEnabled: boolean = false;
+  @State private appUnlockPending: boolean = false;
+  @State private appUnlockFailed: boolean = false;
   @State private preferencePending: boolean = false;
   @State private preferenceFailed: boolean = false;
   @StorageLink('timeauth.screenCovered') @Watch('onScreenCoverChanged') private screenCovered: boolean = false;
   @StorageLink('timeauth.screenProtectionFailed') private protectionFailed: boolean = false;
+  private appUnlockRequest: DeviceUnlock = new DeviceUnlock();
+  private active: boolean = false;
+  private appUnlockRevision: number = 0;
 
   private themeDialogController: CustomDialogController = new CustomDialogController({
     builder: SelectDialog({
@@ -45,6 +56,7 @@ export struct SettingsPage {
   });
 
   aboutToAppear(): void {
+    this.active = true;
     const context: common.Context | undefined = this.getUIContext().getHostContext();
     if (context !== undefined) {
       this.themePreference = readThemePreference(context);
@@ -52,9 +64,16 @@ export struct SettingsPage {
       const settings: SecuritySettings = readSecuritySettings(context);
       this.hideTaskPreview = settings.hideTaskPreview;
       this.clearClipboard = settings.clearClipboard;
+      this.appUnlockEnabled = settings.appUnlockEnabled;
     }
   }
-  aboutToDisappear(): void { this.closePreferenceDialogs(); }
+  aboutToDisappear(): void {
+    this.active = false;
+    this.appUnlockRevision += 1;
+    this.appUnlockRequest.cancel();
+    this.appUnlockPending = false;
+    this.closePreferenceDialogs();
+  }
   private onScreenCoverChanged(): void { if (this.screenCovered) { this.closePreferenceDialogs(); } }
   private closePreferenceDialogs(): void {
     this.themeDialogController.close();
@@ -118,6 +137,44 @@ export struct SettingsPage {
     if (context !== undefined) { saveClearClipboard(context, value); }
     if (!value) { cancelPendingSensitiveClipboardClear(); }
   }
+  private async setAppUnlock(value: boolean): Promise<void> {
+    if (this.appUnlockPending || value === this.appUnlockEnabled) { return; }
+    const context: common.Context | undefined = this.getUIContext().getHostContext();
+    if (context === undefined) { this.appUnlockFailed = true; return; }
+    const revision: number = ++this.appUnlockRevision;
+    this.appUnlockPending = true;
+    this.appUnlockFailed = false;
+    if (value) {
+      try {
+        const title: string = context.resourceManager.getStringSync($r('app.string.auth_live_unlock_title').id);
+        const verified: boolean = await this.appUnlockRequest.verify(title);
+        if (!this.active || revision !== this.appUnlockRevision) { return; }
+        if (!verified) {
+          this.appUnlockFailed = true;
+          this.appUnlockPending = false;
+          return;
+        }
+      } catch {
+        if (this.active && revision === this.appUnlockRevision) {
+          this.appUnlockFailed = true;
+          this.appUnlockPending = false;
+        }
+        return;
+      }
+    }
+    const saved: boolean = await saveAppUnlockEnabled(context, value);
+    if (saved) {
+      // A successful enable just completed system authentication, so keep the current foreground session open.
+      configureAppUnlock(value, value);
+    }
+    if (!this.active || revision !== this.appUnlockRevision) { return; }
+    this.appUnlockPending = false;
+    if (!saved) {
+      this.appUnlockFailed = true;
+      return;
+    }
+    this.appUnlockEnabled = value;
+  }
   private themeLabel(preference: ThemePreference): ResourceStr {
     if (preference === ThemePreference.LIGHT) { return $r('app.string.theme_light'); }
     return preference === ThemePreference.DARK ? $r('app.string.theme_dark') : $r('app.string.theme_system');
@@ -156,6 +213,25 @@ export struct SettingsPage {
       if (isAppearance) { this.themeDialogController.open(); }
       else { this.languageDialogController.open(); }
     })
+  }
+
+  @Builder
+  AppUnlockToggle() {
+    Row({ space: AppSpacing.md }) {
+      Column({ space: 2 }) {
+        Text($r('app.string.auth_live_security_title'))
+          .fontSize(AppTypography.body).fontColor($r('app.color.text_primary')).lineHeight(22)
+        Text($r('app.string.auth_live_unlock_setting_detail'))
+          .fontSize(AppTypography.caption).fontColor($r('app.color.text_secondary')).lineHeight(16)
+      }
+      .layoutWeight(1).alignItems(HorizontalAlign.Start)
+      Toggle({ type: ToggleType.Switch, isOn: this.appUnlockEnabled })
+        .selectedColor($r('app.color.brand')).enabled(!this.appUnlockPending).id('settings-app-unlock')
+        .onChange((isOn: boolean) => { this.setAppUnlock(isOn); })
+    }
+    .width('100%').constraintSize({ minHeight: 60 })
+    .padding({ left: AppSpacing.md, right: AppSpacing.md, top: AppSpacing.xs, bottom: AppSpacing.xs })
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
@@ -234,6 +310,10 @@ export struct SettingsPage {
           Text($r('app.string.settings_apply_failed')).fontSize(AppTypography.label)
             .fontColor($r('app.color.danger')).width('100%')
         }
+        if (this.appUnlockFailed) {
+          Text($r('app.string.auth_live_unlock_setting_failed')).fontSize(AppTypography.label)
+            .fontColor($r('app.color.danger')).width('100%')
+        }
         if (this.protectionFailed) {
           Text($r('app.string.screen_protection_error')).fontSize(AppTypography.label)
             .fontColor($r('app.color.danger')).width('100%')
@@ -247,8 +327,7 @@ export struct SettingsPage {
         .border({ width: 1, color: $r('app.color.border') })
         Column() {
           this.SectionTitle($r('app.string.settings_security'))
-          this.StatusRow($r('app.string.auth_live_security_title'),
-            $r('app.string.auth_live_unlock_privacy'), $r('app.string.auth_live_enabled'))
+          this.AppUnlockToggle()
           this.SectionDivider()
           this.SettingToggle(true)
           this.SectionDivider()
