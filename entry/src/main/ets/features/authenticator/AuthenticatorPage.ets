@@ -4,6 +4,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { OtpCard } from '../../components/OtpCard';
 import { PageHeader } from '../../components/PageHeader';
 import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../../design/Tokens';
+import { OtpKind } from '../../models/AppModels';
 import { isAppSessionUnlocked } from '../../security/AppSession';
 import { copySensitiveText } from '../../security/SecureClipboard';
 import { emptyOtpDraft, OtpDraft, OtpError, parseOtpAuthUri, validateDraft } from './OtpCore';
@@ -184,7 +185,7 @@ export struct AuthenticatorPage {
     const context = this.getUIContext().getHostContext();
     if (context === undefined) { this.showFeedback($r('app.string.security_copy_failed')); return; }
     try {
-      // Recalculate at tap time; never copy a stale last-frame value at a time-step boundary.
+      // TOTP/Steam are recalculated at tap time; HOTP copies the current counter without advancing it.
       const code: string = await this.session.freshCode(id);
       if (!this.active || !isAppSessionUnlocked() || revision !== this.copyRevision) { return; }
       const success: boolean = await copySensitiveText(context, code);
@@ -195,6 +196,28 @@ export struct AuthenticatorPage {
       if (this.active && isAppSessionUnlocked() && revision === this.copyRevision) {
         this.showFeedback($r('app.string.security_copy_failed'));
       }
+    }
+  }
+
+  private async advanceHOTP(id: string): Promise<void> {
+    if (!this.ready || this.busy || !isAppSessionUnlocked() || this.session === undefined) { return; }
+    if (this.swipedItemId.length > 0) { this.closeSwipeActions(); return; }
+    const item: OtpViewItem | undefined = this.items.find((value: OtpViewItem) => value.id === id);
+    if (item === undefined || item.kind !== OtpKind.HOTP) { return; }
+    const revision: number = this.revision;
+    this.busy = true;
+    this.copyRevision += 1;
+    try {
+      await this.session.advanceHOTP(id);
+      if (this.active && revision === this.revision && isAppSessionUnlocked()) {
+        this.showFeedback($r('app.string.auth_live_hotp_advanced'));
+      }
+    } catch (error) {
+      if (this.active && revision === this.revision) {
+        this.showFeedback(otpErrorMessage((error as OtpError).code));
+      }
+    } finally {
+      if (revision === this.revision) { this.busy = false; }
     }
   }
 
@@ -327,7 +350,7 @@ export struct AuthenticatorPage {
       });
       if (!this.active || lifetime !== this.lifetime) { return; }
       this.pendingScan = parseOtpAuthUri(result.originalValue);
-      // Native scanner may background this ability. Review is deferred until system re-authentication.
+      // Native scanner may background this ability. Review is deferred until the app session is available again.
       this.pendingScanTimer = setTimeout(() => { this.clearPendingScan(); }, 120000);
       this.consumePendingScan();
     } catch (error) {
@@ -434,7 +457,11 @@ export struct AuthenticatorPage {
           List({ space: AppSpacing.sm, scroller: this.listScroller }) {
             ForEach(this.items, (item: OtpViewItem) => {
               ListItem() {
-                OtpCard({ item: item, onCopy: () => { this.copyItem(item.id); } })
+                OtpCard({
+                  item: item,
+                  onCopy: () => { this.copyItem(item.id); },
+                  onAdvance: () => { this.advanceHOTP(item.id); }
+                })
               }
               .swipeAction({
                 end: { builder: () => { this.SwipeActions(item); }, actionAreaDistance: 0 },

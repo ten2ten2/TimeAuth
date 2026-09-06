@@ -1,5 +1,6 @@
 import { common } from '@kit.AbilityKit';
 import { relationalStore } from '@kit.ArkData';
+import { OtpKind } from '../../models/AppModels';
 import { isAppSessionUnlocked } from '../../security/AppSession';
 import {
   accountFromDraft, credentialIdentity, OtpAccount, OtpDraft, OtpError, OtpErrorCode,
@@ -11,6 +12,7 @@ export interface OtpRepository {
   list(): Promise<OtpAccount[]>;
   add(draft: OtpDraft): Promise<OtpAccount>;
   update(id: string, draft: OtpDraft): Promise<OtpAccount>;
+  advanceCounter(id: string): Promise<OtpAccount>;
   remove(id: string): Promise<void>;
   close(): Promise<void>;
 }
@@ -89,6 +91,7 @@ export class EncryptedOtpRepository implements OtpRepository {
         if (payload.length > 8192) {
           throw new OtpError(OtpErrorCode.STORAGE);
         }
+        // validateDraft hydrates legacy TOTP/Steam rows that predate the counter field as counter=0.
         const parsed: OtpDraft = JSON.parse(payload) as OtpDraft;
         accounts.push(accountFromDraft(parsed,
           result.getString(result.getColumnIndex('id')),
@@ -158,6 +161,34 @@ export class EncryptedOtpRepository implements OtpRepository {
       };
       this.requireUnlocked();
       const rows: number = await store.update(values, new relationalStore.RdbPredicates(TABLE).equalTo('id', id));
+      if (rows !== 1) {
+        throw new OtpError(OtpErrorCode.NOT_FOUND);
+      }
+      return updated;
+    });
+  }
+
+  advanceCounter(id: string): Promise<OtpAccount> {
+    return this.enqueue(async (): Promise<OtpAccount> => {
+      const store: relationalStore.RdbStore = await this.database();
+      const accounts: OtpAccount[] = await this.readAll(store);
+      const previous: OtpAccount | undefined = accounts.find((account: OtpAccount) => account.id === id);
+      if (previous === undefined) {
+        throw new OtpError(OtpErrorCode.NOT_FOUND);
+      }
+      if (previous.kind !== OtpKind.HOTP || previous.counter >= Number.MAX_SAFE_INTEGER) {
+        throw new OtpError(OtpErrorCode.INVALID_PARAMETERS);
+      }
+      const draft: OtpDraft = validateDraft({
+        issuer: previous.issuer, account: previous.account, secret: previous.secret,
+        kind: previous.kind, algorithm: previous.algorithm, digits: previous.digits,
+        period: previous.period, counter: previous.counter + 1
+      });
+      const updated: OtpAccount = accountFromDraft(draft, id, previous.createdAt);
+      this.requireUnlocked();
+      // Counter advances only after this single persistent update succeeds. Copying never calls this method.
+      const rows: number = await store.update({ payload: JSON.stringify(draft) },
+        new relationalStore.RdbPredicates(TABLE).equalTo('id', id));
       if (rows !== 1) {
         throw new OtpError(OtpErrorCode.NOT_FOUND);
       }

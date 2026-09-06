@@ -2,7 +2,7 @@ import { OtpKind } from '../../models/AppModels';
 import { displayOtp } from './OtpCore';
 import { OtpSnapshot } from './OtpSession';
 
-// Stable observed instances keep countdown updates from rebuilding ListItems / closing swipe actions.
+// Stable observed instances keep countdown/counter updates from rebuilding ListItems / closing swipe actions.
 @Observed
 export class OtpViewItem {
   id: string = '';
@@ -12,6 +12,7 @@ export class OtpViewItem {
   code: string = '';
   remainingSeconds: number = 30;
   periodSeconds: number = 30;
+  counter: number = 0;
   failed: boolean = false;
 
   constructor(snapshot: OtpSnapshot) {
@@ -26,6 +27,7 @@ export class OtpViewItem {
     this.code = displayOtp(snapshot.code);
     this.remainingSeconds = snapshot.remaining;
     this.periodSeconds = snapshot.period;
+    this.counter = snapshot.counter;
     this.failed = snapshot.failed;
   }
 }

@@ -21,6 +21,7 @@ export struct OtpEditor {
   @State private algorithm: OtpAlgorithm = OtpAlgorithm.SHA1;
   @State private digits: number = 6;
   @State private period: string = '30';
+  @State private counter: string = '0';
   @State private replaceSecret: boolean = false;
   @State private base64Steam: boolean = false;
   @State private advanced: boolean = false;
@@ -33,10 +34,12 @@ export struct OtpEditor {
     this.algorithm = this.initial.algorithm;
     this.digits = this.initial.digits;
     this.period = `${this.initial.period}`;
+    this.counter = `${this.initial.counter ?? 0}`;
     this.replaceSecret = !this.editing;
     this.secret = this.editing ? '' : this.initial.secret;
     this.base64Steam = this.kind === OtpKind.STEAM && this.initial.secret.length === 0;
-    this.advanced = this.algorithm !== OtpAlgorithm.SHA1 || this.digits === 8 || this.period !== '30';
+    this.advanced = this.algorithm !== OtpAlgorithm.SHA1 || this.digits === 8 ||
+      (this.kind === OtpKind.TOTP && this.period !== '30');
     this.localError = '';
   }
 
@@ -45,16 +48,34 @@ export struct OtpEditor {
     this.initial = emptyOtpDraft();
   }
 
+  private kindIndex(): number {
+    if (this.kind === OtpKind.HOTP) { return 1; }
+    return this.kind === OtpKind.STEAM ? 2 : 0;
+  }
+
+  private kindLabel(): string {
+    if (this.kind === OtpKind.HOTP) { return 'HOTP'; }
+    return this.kind === OtpKind.STEAM ? 'Steam Guard' : 'TOTP';
+  }
+
   private chooseKind(index: number): void {
-    this.kind = index === 1 ? OtpKind.STEAM : OtpKind.TOTP;
+    this.kind = index === 2 ? OtpKind.STEAM : index === 1 ? OtpKind.HOTP : OtpKind.TOTP;
     this.algorithm = OtpAlgorithm.SHA1;
-    this.digits = index === 1 ? 5 : 6;
+    this.digits = this.kind === OtpKind.STEAM ? 5 : 6;
     this.period = '30';
+    this.counter = '0';
     this.secret = '';
-    this.base64Steam = index === 1;
-    if (index === 1 && this.issuer.trim().length === 0) {
+    this.base64Steam = this.kind === OtpKind.STEAM;
+    this.advanced = false;
+    if (this.kind === OtpKind.STEAM && this.issuer.trim().length === 0) {
       this.issuer = 'Steam';
     }
+  }
+
+  private parsedCounter(): number {
+    if (this.kind !== OtpKind.HOTP) { return 0; }
+    if (!/^[0-9]{1,16}$/.test(this.counter)) { return -1; }
+    return Number(this.counter);
   }
 
   private submit(): void {
@@ -67,7 +88,8 @@ export struct OtpEditor {
       const draft: OtpDraft = validateDraft({
         issuer: this.issuer, account: this.account, secret: secret, kind: this.kind,
         algorithm: this.algorithm, digits: this.digits,
-        period: /^[0-9]{1,5}$/.test(this.period) ? Number(this.period) : 0
+        period: this.kind === OtpKind.HOTP ? 30 : /^[0-9]{1,5}$/.test(this.period) ? Number(this.period) : 0,
+        counter: this.parsedCounter()
       });
       this.localError = '';
       this.onSave(draft);
@@ -82,6 +104,22 @@ export struct OtpEditor {
       .fontSize(AppTypography.label)
       .fontColor($r('app.color.text_secondary'))
       .width('100%')
+  }
+
+  @Builder
+  AlgorithmAndDigits() {
+    this.Label($r('app.string.auth_live_algorithm'))
+    Select([{ value: 'SHA1' }, { value: 'SHA256' }, { value: 'SHA512' }])
+      .selected(this.algorithm === OtpAlgorithm.SHA512 ? 2 : this.algorithm === OtpAlgorithm.SHA256 ? 1 : 0)
+      .value(this.algorithm)
+      .onSelect((index: number) => {
+        this.algorithm = index === 2 ? OtpAlgorithm.SHA512 : index === 1 ? OtpAlgorithm.SHA256 : OtpAlgorithm.SHA1;
+      })
+    this.Label($r('app.string.auth_live_digits'))
+    Select([{ value: '6' }, { value: '8' }])
+      .selected(this.digits === 8 ? 1 : 0)
+      .value(`${this.digits}`)
+      .onSelect((index: number) => { this.digits = index === 1 ? 8 : 6; })
   }
 
   build() {
@@ -125,9 +163,9 @@ export struct OtpEditor {
             .accessibilityText($r('app.string.auth_account_label'))
             .onChange((value: string) => { this.account = value; })
           this.Label($r('app.string.auth_type_label'))
-          Select([{ value: 'TOTP' }, { value: 'Steam Guard' }])
-            .selected(this.kind === OtpKind.STEAM ? 1 : 0)
-            .value(this.kind === OtpKind.STEAM ? 'Steam Guard' : 'TOTP')
+          Select([{ value: 'TOTP' }, { value: 'HOTP' }, { value: 'Steam Guard' }])
+            .selected(this.kindIndex())
+            .value(this.kindLabel())
             .enabled(!this.editing)
             .fontColor($r('app.color.text_primary'))
             .backgroundColor($r('app.color.surface_secondary'))
@@ -181,36 +219,46 @@ export struct OtpEditor {
               .fontColor($r('app.color.text_secondary'))
               .lineHeight(22)
           } else {
+            if (this.kind === OtpKind.HOTP) {
+              this.Label($r('app.string.auth_live_hotp_counter'))
+              TextInput({ text: this.counter })
+                .type(InputType.Number)
+                .maxLength(16)
+                .fontColor($r('app.color.text_primary'))
+                .backgroundColor($r('app.color.surface_secondary'))
+                .accessibilityText($r('app.string.auth_live_hotp_counter'))
+                .onChange((value: string) => { this.counter = value; })
+              Text($r('app.string.auth_live_hotp_counter_notice'))
+                .fontSize(AppTypography.caption)
+                .fontColor($r('app.color.warning'))
+                .lineHeight(20)
+            }
             Button($r('app.string.auth_live_advanced'))
               .backgroundColor(Color.Transparent)
               .fontColor($r('app.color.brand'))
               .height(AppLayout.minimumTouchTarget)
               .onClick(() => { this.advanced = !this.advanced; })
             if (this.advanced) {
-              this.Label($r('app.string.auth_live_algorithm'))
-              Select([{ value: 'SHA1' }, { value: 'SHA256' }, { value: 'SHA512' }])
-                .selected(this.algorithm === OtpAlgorithm.SHA512 ? 2 : this.algorithm === OtpAlgorithm.SHA256 ? 1 : 0)
-                .value(this.algorithm)
-                .onSelect((index: number) => {
-                  this.algorithm = index === 2 ? OtpAlgorithm.SHA512 : index === 1 ? OtpAlgorithm.SHA256 : OtpAlgorithm.SHA1;
-                })
-              this.Label($r('app.string.auth_live_digits'))
-              Select([{ value: '6' }, { value: '8' }])
-                .selected(this.digits === 8 ? 1 : 0)
-                .value(`${this.digits}`)
-                .onSelect((index: number) => { this.digits = index === 1 ? 8 : 6; })
-              this.Label($r('app.string.auth_live_period'))
-              TextInput({ text: this.period })
-                .type(InputType.Number)
-                .maxLength(5)
-                .fontColor($r('app.color.text_primary'))
-                .backgroundColor($r('app.color.surface_secondary'))
-                .accessibilityText($r('app.string.auth_live_period'))
-                .onChange((value: string) => { this.period = value; })
-              Text($r('app.string.auth_live_parameters_notice'))
-                .fontSize(AppTypography.caption)
-                .fontColor($r('app.color.text_secondary'))
-                .lineHeight(20)
+              this.AlgorithmAndDigits()
+              if (this.kind === OtpKind.TOTP) {
+                this.Label($r('app.string.auth_live_period'))
+                TextInput({ text: this.period })
+                  .type(InputType.Number)
+                  .maxLength(5)
+                  .fontColor($r('app.color.text_primary'))
+                  .backgroundColor($r('app.color.surface_secondary'))
+                  .accessibilityText($r('app.string.auth_live_period'))
+                  .onChange((value: string) => { this.period = value; })
+                Text($r('app.string.auth_live_parameters_notice'))
+                  .fontSize(AppTypography.caption)
+                  .fontColor($r('app.color.text_secondary'))
+                  .lineHeight(20)
+              } else {
+                Text($r('app.string.auth_live_hotp_parameters_notice'))
+                  .fontSize(AppTypography.caption)
+                  .fontColor($r('app.color.text_secondary'))
+                  .lineHeight(20)
+              }
             }
           }
           if (this.localError !== '' || this.errorText !== '') {

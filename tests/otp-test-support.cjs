@@ -49,7 +49,7 @@ function load(extra = {}) {
 function draft(api, overrides = {}) {
   return { issuer: 'Example', account: 'demo@example.com',
     secret: api.encodeBase32(Buffer.from('12345678901234567890')),
-    kind: api.OtpKind.TOTP, algorithm: api.OtpAlgorithm.SHA1, digits: 6, period: 30, ...overrides };
+    kind: api.OtpKind.TOTP, algorithm: api.OtpAlgorithm.SHA1, digits: 6, period: 30, counter: 0, ...overrides };
 }
 const clone = value => JSON.parse(JSON.stringify(value));
 const deferred = () => { let resolve, reject; const promise = new Promise((a,b) => { resolve=a; reject=b; }); return {promise,resolve,reject}; };

@@ -39,12 +39,14 @@ export interface OtpDraft {
   kind: OtpKind;
   algorithm: OtpAlgorithm;
   digits: number;
-  period: number;
+  period: number; // Canonical 30 for HOTP; not used to generate HOTP codes.
+  counter?: number; // Required semantically for HOTP; omitted legacy TOTP rows hydrate as 0.
 }
 
 export interface OtpAccount extends OtpDraft {
   id: string;
   createdAt: number;
+  counter: number;
 }
 
 export const OTP_ISSUER_MAX_LENGTH: number = 128;
@@ -144,13 +146,17 @@ export function validateDraft(input: OtpDraft): OtpDraft {
     /[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/.test(input.issuer + input.account)) {
     throw new OtpError(OtpErrorCode.INVALID_LABEL);
   }
-  if ((input.kind !== OtpKind.TOTP && input.kind !== OtpKind.STEAM) ||
+  const counter: number = input.counter ?? 0;
+  if ((input.kind !== OtpKind.TOTP && input.kind !== OtpKind.HOTP && input.kind !== OtpKind.STEAM) ||
     (input.algorithm !== OtpAlgorithm.SHA1 && input.algorithm !== OtpAlgorithm.SHA256 &&
       input.algorithm !== OtpAlgorithm.SHA512) ||
     !Number.isInteger(input.period) || input.period < 1 || input.period > 86400 ||
-    (input.kind === OtpKind.TOTP && input.digits !== 6 && input.digits !== 8) ||
+    !Number.isSafeInteger(counter) || counter < 0 ||
+    ((input.kind === OtpKind.TOTP || input.kind === OtpKind.HOTP) && input.digits !== 6 && input.digits !== 8) ||
+    (input.kind === OtpKind.TOTP && counter !== 0) ||
+    (input.kind === OtpKind.HOTP && input.period !== 30) ||
     (input.kind === OtpKind.STEAM &&
-      (input.algorithm !== OtpAlgorithm.SHA1 || input.digits !== 5 || input.period !== 30))) {
+      (input.algorithm !== OtpAlgorithm.SHA1 || input.digits !== 5 || input.period !== 30 || counter !== 0))) {
     throw new OtpError(OtpErrorCode.INVALID_PARAMETERS);
   }
   const bytes: Uint8Array = decodeBase32(input.secret);
@@ -160,7 +166,8 @@ export function validateDraft(input: OtpDraft): OtpDraft {
     }
     return {
       issuer: input.issuer.trim(), account: input.account.trim(), secret: encodeBase32(bytes),
-      kind: input.kind, algorithm: input.algorithm, digits: input.digits, period: input.period
+      kind: input.kind, algorithm: input.algorithm, digits: input.digits, period: input.period,
+      counter: counter
     };
   } finally {
     bytes.fill(0);
@@ -175,10 +182,12 @@ export function accountFromDraft(draft: OtpDraft, id: string, createdAt: number)
   }
   return {
     id: id, createdAt: createdAt, issuer: checked.issuer, account: checked.account, secret: checked.secret,
-    kind: checked.kind, algorithm: checked.algorithm, digits: checked.digits, period: checked.period
+    kind: checked.kind, algorithm: checked.algorithm, digits: checked.digits, period: checked.period,
+    counter: checked.counter ?? 0
   };
 }
 
+// HOTP counter is mutable state, not credential identity. The same key/configuration must not be duplicated at another counter.
 export function credentialIdentity(value: OtpDraft): string {
   return `${value.kind}:${value.algorithm}:${value.digits}:${value.period}:${value.secret}`;
 }
@@ -201,6 +210,17 @@ function uriInteger(value: string | undefined, fallback: number): number {
   return Number(value);
 }
 
+function uriCounter(value: string | undefined): number {
+  if (value === undefined || !/^[0-9]{1,16}$/.test(value)) {
+    throw new OtpError(OtpErrorCode.INVALID_PARAMETERS);
+  }
+  const counter: number = Number(value);
+  if (!Number.isSafeInteger(counter) || counter < 0) {
+    throw new OtpError(OtpErrorCode.INVALID_PARAMETERS);
+  }
+  return counter;
+}
+
 export function parseOtpAuthUri(input: string): OtpDraft {
   if (typeof input !== 'string' || input.length > 8192) {
     throw new OtpError(OtpErrorCode.INVALID_URI);
@@ -213,9 +233,11 @@ export function parseOtpAuthUri(input: string): OtpDraft {
   if (match === null) {
     throw new OtpError(OtpErrorCode.INVALID_URI);
   }
-  if (match[1].toLowerCase() !== 'totp') {
+  const type: string = match[1].toLowerCase();
+  if (type !== 'totp' && type !== 'hotp') {
     throw new OtpError(OtpErrorCode.UNSUPPORTED_IMPORT);
   }
+  const hotp: boolean = type === 'hotp';
   const params: Map<string, string> = new Map<string, string>();
   const parts: string[] = match[3].split('&');
   for (let i: number = 0; i < parts.length; i++) {
@@ -229,8 +251,8 @@ export function parseOtpAuthUri(input: string): OtpDraft {
     }
     params.set(key, decodeUriPart(parts[i].substring(equal + 1), true));
   }
-  if (params.has('counter')) {
-    throw new OtpError(OtpErrorCode.UNSUPPORTED_IMPORT);
+  if ((!hotp && params.has('counter')) || (hotp && params.has('period'))) {
+    throw new OtpError(OtpErrorCode.INVALID_PARAMETERS);
   }
   const label: string = decodeUriPart(match[2], false);
   const separator: number = label.indexOf(':');
@@ -245,6 +267,9 @@ export function parseOtpAuthUri(input: string): OtpDraft {
   if (encoder !== '' && encoder !== 'steam') {
     throw new OtpError(OtpErrorCode.UNSUPPORTED_IMPORT);
   }
+  if (hotp && encoder.length > 0) {
+    throw new OtpError(OtpErrorCode.UNSUPPORTED_IMPORT);
+  }
   const steam: boolean = encoder === 'steam';
   const algorithm: string = (params.get('algorithm') ?? 'SHA1').toUpperCase();
   if (algorithm !== 'SHA1' && algorithm !== 'SHA256' && algorithm !== 'SHA512') {
@@ -252,9 +277,11 @@ export function parseOtpAuthUri(input: string): OtpDraft {
   }
   return validateDraft({
     issuer: issuer, account: account, secret: params.get('secret') ?? '',
-    kind: steam ? OtpKind.STEAM : OtpKind.TOTP, algorithm: algorithm as OtpAlgorithm,
+    kind: steam ? OtpKind.STEAM : hotp ? OtpKind.HOTP : OtpKind.TOTP,
+    algorithm: algorithm as OtpAlgorithm,
     digits: uriInteger(params.get('digits'), steam ? 5 : 6),
-    period: uriInteger(params.get('period'), 30)
+    period: hotp ? 30 : uriInteger(params.get('period'), 30),
+    counter: hotp ? uriCounter(params.get('counter')) : 0
   });
 }
 
@@ -298,7 +325,7 @@ export function truncateOtp(mac: Uint8Array, kind: OtpKind, digits: number): str
     }
     return result;
   }
-  if (kind !== OtpKind.TOTP || (digits !== 6 && digits !== 8)) {
+  if ((kind !== OtpKind.TOTP && kind !== OtpKind.HOTP) || (digits !== 6 && digits !== 8)) {
     throw new OtpError(OtpErrorCode.INVALID_PARAMETERS);
   }
   return (value % Math.pow(10, digits)).toString().padStart(digits, '0');
@@ -316,5 +343,5 @@ export function displayOtp(code: string): string {
 
 export function emptyOtpDraft(): OtpDraft {
   return { issuer: '', account: '', secret: '', kind: OtpKind.TOTP,
-    algorithm: OtpAlgorithm.SHA1, digits: 6, period: 30 };
+    algorithm: OtpAlgorithm.SHA1, digits: 6, period: 30, counter: 0 };
 }

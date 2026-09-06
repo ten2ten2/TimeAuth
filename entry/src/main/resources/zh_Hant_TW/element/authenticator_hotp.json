@@ -1,0 +1,16 @@
+{
+  "string": [
+    {"name":"auth_live_hotp_counter","value":"計數器"},
+    {"name":"auth_live_hotp_counter_notice","value":"HOTP 以計數器為基礎。請設定為服務端目前的計數值；向後修改或跳過計數可能造成本機與服務端不同步。"},
+    {"name":"auth_live_hotp_parameters_notice","value":"HOTP 不依賴系統時間。請使用服務要求的 HMAC 演算法與驗證碼位數；只有明確產生下一碼且計數器成功儲存後才會遞增。"},
+    {"name":"auth_live_hotp_advanced","value":"已產生下一組 HOTP 驗證碼"},
+    {"name":"auth_live_hotp_next_accessibility","value":"為 %s，%s 產生下一組 HOTP 驗證碼。目前計數器 %s。"},
+    {"name":"auth_live_invalid_uri_v2","value":"這不是有效的驗證器設定 QR Code（otpauth://totp 或 otpauth://hotp）。"},
+    {"name":"auth_live_invalid_parameters_v2","value":"請檢查演算法、驗證碼位數、TOTP 週期或 HOTP 計數器。HOTP 計數器必須是非負安全整數。Steam 固定為 SHA1、5 字元、30 秒。最多儲存 500 個帳號。"},
+    {"name":"auth_live_unsupported_import_v2","value":"尚不支援此匯入格式。請使用單一標準 TOTP 或 HOTP 設定 QR Code；尚不支援 Google Authenticator 批次移轉 QR Code。"},
+    {"name":"auth_live_privacy_body_v2","value":"驗證器的服務名稱、帳號、設定金鑰及參數儲存在本機 ArkData 加密資料庫中，加密金鑰由系統管理。TimeAuth 不將這些記錄上傳至自己的伺服器，也不連網下載服務圖示。\n\n驗證解鎖預設關閉，可在設定中開啟。開啟後，由系統身分驗證控制存取，TimeAuth 不取得鎖定畫面密碼或生物特徵資料。無論是否開啟驗證解鎖，應用程式進入背景時都會關閉目前驗證器工作階段並釋放活動工作階段中的已解密金鑰及驗證碼；關閉驗證解鎖時，回到前景會自動重新開啟工作階段。無法保證 JavaScript 記憶體被實體抹除。\n\nTOTP 與 Steam 驗證碼以時間為基礎；HOTP 以計數器為基礎。複製目前 HOTP 驗證碼不會推進計數器，只有你明確點選下一碼且計數器成功寫入加密儲存後才會遞增。掃描使用系統 Scan Kit 介面及其相機、相簿控制項；辨識到支援的 TOTP 或 HOTP QR Code 後，由你核對並儲存。點選驗證碼會將其寫入系統剪貼簿，自動清除遵循你的設定。\n\n目前尚未實作備份、匯出、雲端同步及 Google Authenticator 批次移轉。解除安裝、清除資料或遺失裝置可能導致金鑰遺失，請保存服務復原碼。密碼庫仍是獨立的預覽功能；密碼產生及驗證器已接入實際功能。"},
+    {"name":"auth_live_invalid_secret_v2","value":"金鑰無效，請檢查 Base32/Base64 格式。TOTP 與 HOTP 金鑰須為 10–512 位元組，Steam 必須為 20 位元組。"},
+    {"name":"auth_live_crypto_error_v2","value":"暫時無法產生驗證碼，受影響的驗證碼已隱藏。請重試；已儲存帳號與 HOTP 計數器未被刪除。"},
+    {"name":"auth_live_onboarding_local_v2","value":"驗證金鑰與 HOTP 計數器儲存在本機加密資料庫中。TOTP/Steam 依裝置時間產生，HOTP 使用已儲存的計數器。"}
+  ]
+}

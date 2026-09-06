@@ -14,6 +14,7 @@ export interface OtpSnapshot {
   code: string; // Ungrouped display data only. Never contains a seed.
   remaining: number;
   period: number;
+  counter: number;
   failed: boolean;
 }
 
@@ -86,6 +87,10 @@ export class OtpSession {
     }
   }
 
+  private generationCounter(account: OtpAccount): number {
+    return account.kind === OtpKind.HOTP ? account.counter : otpCounter(this.now(), account.period);
+  }
+
   draft(id: string): OtpDraft {
     this.requireActive();
     const found: OtpAccount | undefined = this.accounts.find((item: OtpAccount) => item.id === id);
@@ -94,7 +99,7 @@ export class OtpSession {
     }
     return {
       issuer: found.issuer, account: found.account, secret: found.secret, kind: found.kind,
-      algorithm: found.algorithm, digits: found.digits, period: found.period
+      algorithm: found.algorithm, digits: found.digits, period: found.period, counter: found.counter
     };
   }
 
@@ -106,12 +111,16 @@ export class OtpSession {
     const snapshots: OtpSnapshot[] = [];
     for (let i: number = 0; i < this.accounts.length; i++) {
       const account: OtpAccount = this.accounts[i];
+      const generationCounter: number = account.kind === OtpKind.HOTP ?
+        account.counter : otpCounter(now, account.period);
       const cached: CachedOtp | undefined = this.cache.get(account.id);
-      const current: boolean = cached !== undefined && cached.counter === otpCounter(now, account.period);
+      const current: boolean = cached !== undefined && cached.counter === generationCounter;
       snapshots.push({
         id: account.id, issuer: account.issuer, account: account.account, kind: account.kind,
         code: current && cached !== undefined ? cached.code : '',
-        remaining: remainingSeconds(now, account.period), period: account.period,
+        remaining: account.kind === OtpKind.HOTP ? 0 : remainingSeconds(now, account.period),
+        period: account.kind === OtpKind.HOTP ? 0 : account.period,
+        counter: account.counter,
         failed: current && cached !== undefined ? cached.failed : false
       });
     }
@@ -122,7 +131,7 @@ export class OtpSession {
     if (!this.active) {
       return;
     }
-    // Immediately hide codes from a previous time step, even while native HMAC is in flight.
+    // Immediately hide codes from a previous TOTP step or HOTP counter before native HMAC is in flight.
     this.emit();
     if (this.refreshing) {
       return;
@@ -135,7 +144,7 @@ export class OtpSession {
           return;
         }
         const account: OtpAccount = this.accounts[i];
-        const counter: number = otpCounter(this.now(), account.period);
+        const counter: number = this.generationCounter(account);
         const previous: CachedOtp | undefined = this.cache.get(account.id);
         if (previous !== undefined && previous.counter === counter && !previous.failed) {
           continue;
@@ -166,6 +175,13 @@ export class OtpSession {
     const account: OtpAccount | undefined = this.accounts.find((item: OtpAccount) => item.id === id);
     if (account === undefined) {
       throw new OtpError(OtpErrorCode.NOT_FOUND);
+    }
+    if (account.kind === OtpKind.HOTP) {
+      const code: string = await this.crypto.generate(account, account.counter);
+      if (!this.active || revision !== this.revision) {
+        throw new OtpError(OtpErrorCode.LOCKED);
+      }
+      return code;
     }
     for (let attempt: number = 0; attempt < 3; attempt++) {
       const counter: number = otpCounter(this.now(), account.period);
@@ -206,6 +222,44 @@ export class OtpSession {
         this.accounts[index].secret = '';
         this.accounts[index] = stored;
       }
+      this.emit();
+      await this.refresh();
+    } finally {
+      if (ticket === this.mutationTicket) { this.mutating = false; }
+    }
+  }
+
+  async advanceHOTP(id: string): Promise<void> {
+    this.requireActive();
+    if (this.mutating) {
+      throw new OtpError(OtpErrorCode.BUSY);
+    }
+    const current: OtpAccount | undefined = this.accounts.find((account: OtpAccount) => account.id === id);
+    if (current === undefined) {
+      throw new OtpError(OtpErrorCode.NOT_FOUND);
+    }
+    if (current.kind !== OtpKind.HOTP) {
+      throw new OtpError(OtpErrorCode.INVALID_PARAMETERS);
+    }
+    this.mutating = true;
+    const ticket: number = ++this.mutationTicket;
+    const revision: number = this.revision;
+    try {
+      const stored: OtpAccount = await this.repository.advanceCounter(id);
+      if (!this.active || revision !== this.revision) {
+        stored.secret = '';
+        return;
+      }
+      this.revision += 1;
+      this.refreshing = false;
+      this.cache.delete(id);
+      const index: number = this.accounts.findIndex((account: OtpAccount) => account.id === id);
+      if (index < 0) {
+        stored.secret = '';
+        throw new OtpError(OtpErrorCode.NOT_FOUND);
+      }
+      this.accounts[index].secret = '';
+      this.accounts[index] = stored;
       this.emit();
       await this.refresh();
     } finally {

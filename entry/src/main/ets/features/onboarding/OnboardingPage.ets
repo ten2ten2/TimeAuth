@@ -16,7 +16,7 @@ export struct OnboardingPage {
   }
 
   private message(index: number): ResourceStr {
-    if (index === 0) { return $r('app.string.auth_live_onboarding_local'); }
+    if (index === 0) { return $r('app.string.auth_live_onboarding_local_v2'); }
     if (index === 1) { return $r('app.string.auth_live_onboarding_separate'); }
     return $r('app.string.auth_live_onboarding_control');
   }

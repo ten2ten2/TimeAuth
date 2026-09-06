@@ -2,13 +2,14 @@
 // Executes the actual session/controller logic with fault-injectable I/O, not native ArkUI rendering.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { load, draft, clone, deferred, read, corePath } = require('./otp-test-support.cjs');
+const { load, draft, clone, deferred } = require('./otp-test-support.cjs');
 
 function setup(options = {}) {
   const a = load();
   let time = options.time ?? 29000;
   const id = 'a'.repeat(32), other = 'b'.repeat(32);
-  let stored = options.empty ? [] : [a.accountFromDraft(draft(a), id, 100)];
+  const initial = options.hotp ? draft(a,{kind:a.OtpKind.HOTP,counter:options.counter ?? 0}) : draft(a);
+  let stored = options.empty ? [] : [a.accountFromDraft(initial, id, 100)];
   const updates = [], calls = [];
   const hooks = {};
   const repo = {
@@ -21,6 +22,13 @@ function setup(options = {}) {
       if (hooks.update) return hooks.update(key,value);
       const item = a.accountFromDraft(value,key,100);
       stored = stored.map(x => x.id === key ? clone(item) : x); return item;
+    },
+    advanceCounter: async key => {
+      if (hooks.advanceCounter) return hooks.advanceCounter(key);
+      const index=stored.findIndex(x=>x.id===key); if(index<0) throw new Error('missing');
+      const previous=stored[index];
+      const item=a.accountFromDraft({...previous,counter:previous.counter+1},key,previous.createdAt);
+      stored[index]=clone(item); return item;
     },
     remove: async key => {
       if (hooks.remove) return hooks.remove(key);
@@ -39,9 +47,9 @@ function setup(options = {}) {
 test('new install is empty; no preview accounts are created', async () => {
   const e=setup({empty:true}); await e.session.open(); assert.deepEqual(e.last(),[]); assert.deepEqual(e.stored(),[]);
 });
-test('snapshots expose labels and codes, never secrets or credential identities', async () => {
+test('snapshots expose labels, counter and codes, never secrets or credential identities', async () => {
   const e=setup(); await e.session.open();
-  assert.equal(e.last()[0].code,'000000'); assert.equal(e.last()[0].remaining,1);
+  assert.equal(e.last()[0].code,'000000'); assert.equal(e.last()[0].remaining,1); assert.equal(e.last()[0].counter,0);
   assert.doesNotMatch(JSON.stringify(e.updates),/secret|GEZDG|credential/);
 });
 test('HMAC is cached within a time step while countdown comes from absolute time', async () => {
@@ -49,6 +57,24 @@ test('HMAC is cached within a time step while countdown comes from absolute time
   e.setTime(14000); await e.session.refresh(); e.setTime(29000); await e.session.refresh();
   assert.equal(e.calls.filter(x=>typeof x==='number').length,1); assert.equal(e.last()[0].remaining,1);
   e.setTime(30000); await e.session.refresh(); assert.equal(e.last()[0].code,'000001');
+});
+test('HOTP uses its persisted counter, has no countdown, and ignores wall-clock changes', async () => {
+  const e=setup({hotp:true,counter:7,time:1000}); await e.session.open();
+  assert.equal(e.last()[0].code,'000007'); assert.equal(e.last()[0].counter,7);
+  assert.equal(e.last()[0].remaining,0); assert.equal(e.last()[0].period,0);
+  e.setTime(999999999); await e.session.refresh(); assert.equal(e.last()[0].code,'000007');
+  assert.equal(e.calls.filter(x=>x===7).length,1);
+});
+test('HOTP copy never advances; explicit advance persists before publishing the next code', async () => {
+  const e=setup({hotp:true,counter:3}); await e.session.open();
+  assert.equal(await e.session.freshCode(e.id),'000003'); assert.equal(e.stored()[0].counter,3);
+  await e.session.advanceHOTP(e.id);
+  assert.equal(e.stored()[0].counter,4); assert.equal(e.last()[0].counter,4); assert.equal(e.last()[0].code,'000004');
+});
+test('failed HOTP advance keeps the current counter and code usable', async () => {
+  const e=setup({hotp:true,counter:3}); await e.session.open(); const before=clone(e.last()[0]);
+  e.hooks.advanceCounter=async()=>{throw new Error('disk full');};
+  await assert.rejects(e.session.advanceHOTP(e.id)); assert.deepEqual(e.last()[0],before); assert.equal(e.stored()[0].counter,3);
 });
 test('expired codes disappear before slow new HMAC completes', async () => {
   const e=setup(); await e.session.open();
@@ -133,8 +159,8 @@ test('an old refresh cannot overwrite a code after its seed was edited', async (
   const old=e.session.refresh();await e.session.save(e.id,draft(e.a,{issuer:'Changed'}));
   wait.resolve('111111');await old;assert.equal(e.last()[0].code,'888888');
 });
-test('view items update in place, leaving list IDs stable across second/period changes', () => {
-  const a=load();const snapshot={id:'x',issuer:'Example',account:'user',kind:a.OtpKind.TOTP,code:'001234',remaining:30,period:30,failed:false};
-  const item=new a.OtpViewItem(snapshot);item.update({...snapshot,code:'005678',remaining:29});
-  assert.equal(item.id,'x');assert.equal(item.code,'005 678');assert.equal(item.remainingSeconds,29);
+test('view items update in place, leaving list IDs stable across second/counter changes', () => {
+  const a=load();const snapshot={id:'x',issuer:'Example',account:'user',kind:a.OtpKind.TOTP,code:'001234',remaining:30,period:30,counter:0,failed:false};
+  const item=new a.OtpViewItem(snapshot);item.update({...snapshot,code:'005678',remaining:29,counter:1});
+  assert.equal(item.id,'x');assert.equal(item.code,'005 678');assert.equal(item.remainingSeconds,29);assert.equal(item.counter,1);
 });

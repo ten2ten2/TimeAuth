@@ -24,8 +24,9 @@ for (const [algorithm, length, column] of [['SHA1',20,1],['SHA256',32,2],['SHA51
 }
 const hotp = ['755224','287082','359152','969429','338314','254676','287922','162583','399871','520489'];
 for (let counter = 0; counter < hotp.length; counter++) {
-  test(`RFC 4226 dynamic truncation vector ${counter}`, async () => {
-    assert.equal(await new a.NativeOtpCrypto().generate(draft(a), counter), hotp[counter]);
+  test(`RFC 4226 HOTP vector ${counter}`, async () => {
+    const account = draft(a, { kind: a.OtpKind.HOTP, counter });
+    assert.equal(await new a.NativeOtpCrypto().generate(account, counter), hotp[counter]);
   });
 }
 for (const [text, encoded] of [['f','MY======'],['fo','MZXQ===='],['foo','MZXW6==='],
@@ -91,35 +92,50 @@ test('countdown derives from absolute time including exact boundaries and non-30
   }
   assert.equal(a.otpCounter(30000,30),1);
 });
-test('display grouping preserves leading zeros, Steam letters and 8-digit lengths', () => {
+test('display grouping preserves leading zeros, HOTP digits, Steam letters and 8-digit lengths', () => {
   assert.equal(a.displayOtp('001234'),'001 234');
   assert.equal(a.displayOtp('00123456'),'0012 3456');
   assert.equal(a.displayOtp('R9K4Q'),'R9K4Q');
 });
-test('draft validation enforces real parameters and rejects short or noncanonical seeds', () => {
+test('draft validation enforces TOTP/HOTP/Steam parameters and canonical counters', () => {
   for (const overrides of [{digits:7},{period:0},{period:1.5},{period:86401},{algorithm:'MD5'},
     {secret:'MY======'},{issuer:' '},{issuer:'X'.repeat(129)},{account:'X'.repeat(257)},
-    {issuer:'name\u202Eabc'},{kind:'HOTP'},{kind:'STEAM',digits:6}]) {
+    {issuer:'name\u202Eabc'},{kind:'UNKNOWN'},{kind:'STEAM',digits:6},{counter:1},
+    {kind:a.OtpKind.HOTP,counter:-1},{kind:a.OtpKind.HOTP,counter:1.5},
+    {kind:a.OtpKind.HOTP,counter:Number.MAX_SAFE_INTEGER+1},{kind:a.OtpKind.HOTP,counter:2,period:60},
+    {kind:a.OtpKind.STEAM,digits:5,counter:1}]) {
     assert.throws(() => a.validateDraft(draft(a, overrides)));
   }
   assert.equal(a.validateDraft(draft(a, {issuer:' Example ',account:' '})).issuer,'Example');
+  assert.equal(a.validateDraft(draft(a,{kind:a.OtpKind.HOTP,counter:42})).counter,42);
 });
 const uri = 'otpauth://totp/Example:demo%40example.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=Example';
-test('URI parses UTF-8 labels and preserves all explicitly provisioned parameters', () => {
+test('TOTP URI parses UTF-8 labels and preserves explicitly provisioned parameters', () => {
   const result = a.parseOtpAuthUri('otpauth://totp/%E9%98%BF%E9%87%8C%E4%BA%91%3Auser%2Btest%40example.com'+
     '?issuer=%E9%98%BF%E9%87%8C%E4%BA%91&secret='+draft(a).secret+'&algorithm=SHA512&digits=8&period=60');
   assert.equal(result.issuer,'阿里云'); assert.equal(result.account,'user+test@example.com');
-  assert.equal(result.algorithm,'SHA512'); assert.equal(result.digits,8); assert.equal(result.period,60);
+  assert.equal(result.algorithm,'SHA512'); assert.equal(result.digits,8); assert.equal(result.period,60); assert.equal(result.counter,0);
 });
-test('URI defaults and labels with no issuer work without guessing from account email domains', () => {
+test('TOTP URI defaults and labels with no issuer work without guessing from account email domains', () => {
   const result = a.parseOtpAuthUri('otpauth://totp/user%40example.com?secret='+draft(a).secret);
   assert.equal(result.issuer,'user@example.com'); assert.equal(result.algorithm,'SHA1');
-  assert.equal(result.digits,6); assert.equal(result.period,30);
+  assert.equal(result.digits,6); assert.equal(result.period,30); assert.equal(result.counter,0);
+});
+test('HOTP URI requires and preserves a non-negative counter and ignores wall clock', async () => {
+  const result = a.parseOtpAuthUri('otpauth://hotp/Example%3Auser?secret='+draft(a).secret+
+    '&issuer=Example&counter=7&algorithm=SHA1&digits=6');
+  assert.equal(result.kind,a.OtpKind.HOTP); assert.equal(result.counter,7); assert.equal(result.period,30);
+  assert.equal(await new a.NativeOtpCrypto().generate(result,result.counter),'162583');
+});
+test('HOTP URI rejects missing/unsafe counters, period and Steam encoder', () => {
+  const base='otpauth://hotp/Example:user?secret='+draft(a).secret+'&issuer=Example';
+  for(const value of [base,base+'&counter=-1',base+'&counter=1.5',base+'&counter=9999999999999999',
+    base+'&counter=1&period=30',base+'&counter=1&encoder=steam']) assert.throws(()=>a.parseOtpAuthUri(value));
 });
 test('URI issuer conflicts, repeated params, malformed percentages, unsupported schemes and imports fail explicitly', () => {
   const cases = [uri+'&issuer=Other', uri+'&secret='+draft(a).secret, uri.replace('issuer=Example','issuer=Other'),
     uri+'&period=30junk',uri+'&digits=7',uri+'&algorithm=MD5',uri+'&encoder=unknown',uri+'&counter=1',
-    uri.replace('totp/','hotp/'),uri.replace('Example:','%ZZ:'),'https://example.com/'+uri,
+    uri.replace('Example:','%ZZ:'),'https://example.com/'+uri,
     'otpauth-migration://offline?data=abc',uri+'#secret=else',uri.replace(/secret=[^&]+/,'secret=')];
   for (const value of cases) assert.throws(() => a.parseOtpAuthUri(value), undefined, value.slice(0,45));
 });

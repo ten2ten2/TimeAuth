@@ -11,7 +11,7 @@ export struct AboutPage {
   private privacyDialogController: CustomDialogController = new CustomDialogController({
     builder: CustomContentDialog({
       primaryTitle: $r('app.string.about_privacy_title'),
-      contentBuilder: () => { this.DialogBody($r('app.string.auth_live_privacy_body')); },
+      contentBuilder: () => { this.DialogBody($r('app.string.auth_live_privacy_body_v2')); },
       buttons: [{ value: $r('app.string.common_close'), action: () => { this.privacyDialogController.close(); } }]
     }), autoCancel: true
   });

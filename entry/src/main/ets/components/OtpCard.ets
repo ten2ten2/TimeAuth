@@ -1,4 +1,4 @@
-import { AppRadius, AppSpacing, AppTypography } from '../design/Tokens';
+import { AppLayout, AppRadius, AppSpacing, AppTypography } from '../design/Tokens';
 import {
   resolveServiceIcon, ServiceIconKey, ServiceIconMatch, serviceInitial
 } from '../features/authenticator/ServiceIconRegistry';
@@ -9,6 +9,7 @@ import { OtpViewItem } from '../features/authenticator/OtpViewItem';
 export struct OtpCard {
   @ObjectLink item: OtpViewItem;
   onCopy: (code: string, issuer: string) => void = () => {};
+  onAdvance: (id: string) => void = () => {};
 
   private serviceIconMatch(): ServiceIconMatch | undefined {
     return resolveServiceIcon(this.item.issuer);
@@ -102,65 +103,109 @@ export struct OtpCard {
     .accessibilityLevel('no')
   }
 
+  @Builder
+  HOTPAdvanceButton() {
+    Button({ type: ButtonType.Circle, stateEffect: true }) {
+      Image($r('app.media.action_next'))
+        .width(22)
+        .height(22)
+        .objectFit(ImageFit.Contain)
+        .fillColor($r('app.color.brand'))
+        .draggable(false)
+        .accessibilityLevel('no')
+    }
+    .width(AppLayout.minimumTouchTarget)
+    .height(AppLayout.minimumTouchTarget)
+    .padding(0)
+    .margin({ top: AppSpacing.md, right: AppSpacing.md })
+    .backgroundColor($r('app.color.brand_soft'))
+    .enabled(this.item.code.length > 0 && !this.item.failed)
+    .accessibilityText($r('app.string.auth_live_hotp_next_accessibility',
+      this.item.issuer, this.item.account, `${this.item.counter}`))
+    .onClick(() => { this.onAdvance(this.item.id); })
+  }
+
   build() {
-    // The outer container owns the shape; a single transparent button owns copy semantics.
+    // Outer container owns the rounded shape. The HOTP next button is a sibling overlay, never nested in the copy button.
     Column() {
-      Button({ type: ButtonType.Normal, stateEffect: true }) {
-        Column({ space: AppSpacing.md }) {
-          Row({ space: AppSpacing.sm }) {
-            this.ServiceBadge()
-            Column({ space: AppSpacing.xxs }) {
-              Row({ space: AppSpacing.xs }) {
-                Text(this.item.issuer)
-                  .fontSize(AppTypography.body)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor($r('app.color.text_primary'))
+      Stack({ alignContent: Alignment.TopEnd }) {
+        Button({ type: ButtonType.Normal, stateEffect: true }) {
+          Column({ space: AppSpacing.md }) {
+            Row({ space: AppSpacing.sm }) {
+              this.ServiceBadge()
+              Column({ space: AppSpacing.xxs }) {
+                Row({ space: AppSpacing.xs }) {
+                  Text(this.item.issuer)
+                    .fontSize(AppTypography.body)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor($r('app.color.text_primary'))
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .layoutWeight(1)
+                  if (this.item.kind === OtpKind.STEAM) {
+                    Text('STEAM')
+                      .fontSize(10)
+                      .fontWeight(FontWeight.Bold)
+                      .fontColor($r('app.color.brand'))
+                      .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+                      .backgroundColor($r('app.color.brand_soft'))
+                      .borderRadius(AppRadius.pill)
+                  } else if (this.item.kind === OtpKind.HOTP) {
+                    Text(`HOTP #${this.item.counter}`)
+                      .fontSize(10)
+                      .fontWeight(FontWeight.Bold)
+                      .fontColor($r('app.color.brand'))
+                      .maxLines(1)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+                      .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+                      .backgroundColor($r('app.color.brand_soft'))
+                      .borderRadius(AppRadius.pill)
+                  }
+                }
+                .width('100%')
+                Text(this.item.account)
+                  .fontSize(AppTypography.label)
+                  .fontColor($r('app.color.text_secondary'))
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  .layoutWeight(1)
-                if (this.item.kind === OtpKind.STEAM) {
-                  Text('STEAM')
-                    .fontSize(10)
-                    .fontWeight(FontWeight.Bold)
-                    .fontColor($r('app.color.brand'))
-                    .padding({ left: 7, right: 7, top: 3, bottom: 3 })
-                    .backgroundColor($r('app.color.brand_soft'))
-                    .borderRadius(AppRadius.pill)
-                }
               }
-              .width('100%')
-              Text(this.item.account)
-                .fontSize(AppTypography.label)
-                .fontColor($r('app.color.text_secondary'))
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .layoutWeight(1)
+              .alignItems(HorizontalAlign.Start)
+              if (this.item.kind === OtpKind.HOTP) {
+                Blank().width(AppLayout.minimumTouchTarget).height(AppLayout.minimumTouchTarget)
+              } else {
+                this.Countdown()
+              }
             }
-            .layoutWeight(1)
-            .alignItems(HorizontalAlign.Start)
-            this.Countdown()
+            .width('100%')
+            Text(this.item.code.length > 0 ? this.item.code : '—')
+              .fontSize(AppTypography.otp)
+              .fontFamily('monospace')
+              .fontWeight(FontWeight.Medium)
+              .letterSpacing(1.5)
+              .fontColor(this.item.kind !== OtpKind.HOTP && this.item.remainingSeconds <= 5 ?
+                $r('app.color.warning') : $r('app.color.brand'))
+              .width('100%')
+              .maxLines(1)
+              .textAlign(TextAlign.Start)
           }
           .width('100%')
-          Text(this.item.code.length > 0 ? this.item.code : '—')
-            .fontSize(AppTypography.otp)
-            .fontFamily('monospace')
-            .fontWeight(FontWeight.Medium)
-            .letterSpacing(1.5)
-            .fontColor(this.item.remainingSeconds <= 5 ? $r('app.color.warning') : $r('app.color.brand'))
-            .width('100%')
-            .maxLines(1)
-            .textAlign(TextAlign.Start)
         }
         .width('100%')
+        .padding(AppSpacing.md)
+        .backgroundColor(Color.Transparent)
+        .enabled(this.item.code.length > 0 && !this.item.failed)
+        .accessibilityGroup(true)
+        .accessibilityText($r('app.string.auth_card_accessibility',
+          this.item.issuer, this.item.account, this.item.code))
+        .accessibilityDescription($r('app.string.auth_card_hint'))
+        .onClick(() => { this.onCopy(this.item.code, this.item.issuer); })
+
+        if (this.item.kind === OtpKind.HOTP) {
+          this.HOTPAdvanceButton()
+        }
       }
       .width('100%')
-      .padding(AppSpacing.md)
-      .backgroundColor(Color.Transparent)
-      .enabled(this.item.code.length > 0 && !this.item.failed)
-      .accessibilityGroup(true)
-      .accessibilityText($r('app.string.auth_card_accessibility',
-        this.item.issuer, this.item.account, this.item.code))
-      .accessibilityDescription($r('app.string.auth_card_hint'))
-      .onClick(() => { this.onCopy(this.item.code, this.item.issuer); })
     }
     .width('100%')
     .backgroundColor($r('app.color.surface'))

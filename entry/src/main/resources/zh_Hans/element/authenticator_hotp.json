@@ -1,0 +1,16 @@
+{
+  "string": [
+    {"name":"auth_live_hotp_counter","value":"计数器"},
+    {"name":"auth_live_hotp_counter_notice","value":"HOTP 基于计数器。请设置为服务端当前计数值；向后修改或跳过计数可能导致本机与服务端不同步。"},
+    {"name":"auth_live_hotp_parameters_notice","value":"HOTP 不依赖系统时间。请使用服务要求的 HMAC 算法和验证码位数；只有明确生成下一码且计数器成功保存后才会递增。"},
+    {"name":"auth_live_hotp_advanced","value":"已生成下一组 HOTP 验证码"},
+    {"name":"auth_live_hotp_next_accessibility","value":"为 %s，%s 生成下一组 HOTP 验证码。当前计数器 %s。"},
+    {"name":"auth_live_invalid_uri_v2","value":"这不是有效的验证器设置二维码（otpauth://totp 或 otpauth://hotp）。"},
+    {"name":"auth_live_invalid_parameters_v2","value":"请检查算法、验证码位数、TOTP 周期或 HOTP 计数器。HOTP 计数器必须是非负安全整数。Steam 固定为 SHA1、5 字符、30 秒。最多保存 500 个账号。"},
+    {"name":"auth_live_unsupported_import_v2","value":"暂不支持这种导入格式。请使用单个标准 TOTP 或 HOTP 设置二维码；暂不支持 Google Authenticator 批量迁移二维码。"},
+    {"name":"auth_live_privacy_body_v2","value":"验证器的服务名称、账号、设置密钥和参数保存在本机 ArkData 加密数据库中，加密密钥由系统管理。TimeAuth 不将这些记录上传到自己的服务器，也不联网下载服务图标。\n\n验证解锁默认关闭，可在设置中开启。开启后，由系统身份验证控制访问，TimeAuth 不获取锁屏密码或生物特征数据。无论是否开启验证解锁，应用进入后台时都会关闭当前验证器会话并释放活动会话中的已解密密钥和验证码；关闭验证解锁时，回到前台会自动重新打开会话。无法保证 JavaScript 内存被物理擦除。\n\nTOTP 与 Steam 验证码基于时间；HOTP 基于计数器。复制当前 HOTP 验证码不会推进计数器，只有你明确点击“下一码”且计数器成功写入加密存储后才会递增。扫码使用系统 Scan Kit 界面及其相机、相册控件；识别到支持的 TOTP 或 HOTP 二维码后，由你核对并保存。点击验证码会将其写入系统剪贴板，自动清除遵循你的设置。\n\n当前未实现备份、导出、云同步和 Google Authenticator 批量迁移。卸载应用、清除数据或丢失设备可能导致密钥丢失，请保存服务恢复码。密码库仍是独立的预览功能；密码生成和验证器已接入真实功能。"},
+    {"name":"auth_live_invalid_secret_v2","value":"密钥无效，请检查 Base32/Base64 格式。TOTP 和 HOTP 密钥需为 10–512 字节，Steam 必须为 20 字节。"},
+    {"name":"auth_live_crypto_error_v2","value":"暂时无法生成验证码，受影响的验证码已隐藏。请重试；已保存账号和 HOTP 计数器未被删除。"},
+    {"name":"auth_live_onboarding_local_v2","value":"验证密钥和 HOTP 计数器保存在本机加密数据库中。TOTP/Steam 根据设备时间生成，HOTP 使用已保存的计数器。"}
+  ]
+}

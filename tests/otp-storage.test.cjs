@@ -45,10 +45,15 @@ test('native store is always encrypted, S3, and initially empty',async()=>{
   assert.equal(e.configs[0].encrypt,true);assert.equal(e.configs[0].securityLevel,3);
   assert.equal(e.rows.length,0);assert.ok(e.sql.every(x=>!/(DROP|REPLACE)/.test(x)));
 });
-test('saved account survives repository close and reload; IDs and time metadata persist',async()=>{
+test('saved account survives repository close and reload; IDs, counters and time metadata persist',async()=>{
   const e=setup();const item=await e.repo.add(draft(e.a));await e.repo.close();
   assert.deepEqual(clone(await e.repo.list()),[clone(item)]);assert.match(item.id,/^[a-f0-9]{32}$/);
-  assert.equal(e.configs.length,2);
+  assert.equal(item.counter,0);assert.equal(e.configs.length,2);
+});
+test('legacy TOTP/Steam payloads without a counter hydrate as counter zero without rewriting storage',async()=>{
+  const e=setup();await e.repo.add(draft(e.a));const parsed=JSON.parse(e.rows[0].payload);delete parsed.counter;
+  e.rows[0].payload=JSON.stringify(parsed);const before=e.rows[0].payload;const loaded=await e.repo.list();
+  assert.equal(loaded[0].counter,0);assert.equal(e.rows[0].payload,before);
 });
 test('duplicate seed/settings cannot create a second account even with a different display name',async()=>{
   const e=setup();await e.repo.add(draft(e.a));
@@ -57,6 +62,27 @@ test('duplicate seed/settings cannot create a second account even with a differe
 test('concurrent duplicate adds are serialized before uniqueness checks',async()=>{
   const e=setup();const outcomes=await Promise.allSettled([e.repo.add(draft(e.a)),e.repo.add(draft(e.a))]);
   assert.equal(outcomes.filter(x=>x.status==='fulfilled').length,1);assert.equal(e.rows.length,1);
+});
+test('HOTP counter is mutable state, not duplicate identity',async()=>{
+  const e=setup();await e.repo.add(draft(e.a,{kind:e.a.OtpKind.HOTP,counter:7}));
+  await assert.rejects(e.repo.add(draft(e.a,{kind:e.a.OtpKind.HOTP,counter:9,issuer:'Other'})),{code:'DUPLICATE'});
+});
+test('HOTP advance persists exactly one counter increment without changing credential identity or ID',async()=>{
+  const e=setup();const item=await e.repo.add(draft(e.a,{kind:e.a.OtpKind.HOTP,counter:7}));
+  const credential=e.rows[0].credential_key;const next=await e.repo.advanceCounter(item.id);
+  assert.equal(next.id,item.id);assert.equal(next.counter,8);assert.equal(e.rows[0].credential_key,credential);
+  await e.repo.close();assert.equal((await e.repo.list())[0].counter,8);
+});
+test('HOTP advance rejects non-HOTP and maximum safe counter without modifying storage',async()=>{
+  let e=setup();const totp=await e.repo.add(draft(e.a));let before=clone(e.rows);
+  await assert.rejects(e.repo.advanceCounter(totp.id),{code:'INVALID_PARAMETERS'});assert.deepEqual(e.rows,before);
+  e=setup();const max=await e.repo.add(draft(e.a,{kind:e.a.OtpKind.HOTP,counter:Number.MAX_SAFE_INTEGER}));before=clone(e.rows);
+  await assert.rejects(e.repo.advanceCounter(max.id),{code:'INVALID_PARAMETERS'});assert.deepEqual(e.rows,before);
+});
+test('failed HOTP counter write does not advance memory or persistent state',async()=>{
+  const e=setup();const item=await e.repo.add(draft(e.a,{kind:e.a.OtpKind.HOTP,counter:3}));e.failWrite=true;
+  await assert.rejects(e.repo.advanceCounter(item.id),{code:'STORAGE'});e.failWrite=false;
+  assert.equal((await e.repo.list())[0].counter,3);
 });
 test('duplicate edit is rejected without changing either account',async()=>{
   const e=setup();const one=await e.repo.add(draft(e.a));const two=await e.repo.add(draft(e.a,{period:60}));
