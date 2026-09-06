@@ -23,10 +23,11 @@ export function readSecuritySettings(context: common.Context): SecuritySettings 
     };
   } catch (error) {
     console.error(`Failed to read TimeAuth security settings: ${JSON.stringify(error)}`);
+    // Missing preference => off by default. A storage/read exception is different: fail closed so an existing opt-in cannot be bypassed.
     return {
       hideTaskPreview: true,
       clearClipboard: true,
-      appUnlockEnabled: false
+      appUnlockEnabled: true
     };
   }
 }

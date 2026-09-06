@@ -25,6 +25,7 @@ function loadSession() {
 function loadSettings() {
   const values = new Map();
   let flushFails = false;
+  let openFails = false;
   const store = {
     getSync(key, fallback) { return values.has(key) ? values.get(key) : fallback; },
     putSync(key, value) { values.set(key, value); },
@@ -37,13 +38,18 @@ function loadSettings() {
     }
   };
   const sandbox = {
-    preferences: { getPreferencesSync(_context, options) { assert.equal(options.name, 'timeauth_preferences'); return store; } },
+    preferences: { getPreferencesSync(_context, options) {
+      assert.equal(options.name, 'timeauth_preferences');
+      if (openFails) throw new Error('storage');
+      return store;
+    } },
     console: { error() {} }
   };
   const source = clean(read('entry/src/main/ets/security/SecuritySettingsManager.ets')) +
     '\nglobalThis.api={readSecuritySettings,saveAppUnlockEnabled};';
   vm.runInNewContext(stripTypeScriptTypes(source, { mode: 'transform' }), sandbox);
-  return { ...sandbox.api, values, setFlushFailure: value => { flushFails = value; } };
+  return { ...sandbox.api, values,
+    setFlushFailure: value => { flushFails = value; }, setOpenFailure: value => { openFails = value; } };
 }
 
 test('App unlock preference defaults off while other security defaults stay on', () => {
@@ -51,6 +57,12 @@ test('App unlock preference defaults off while other security defaults stay on',
   assert.deepEqual(JSON.parse(JSON.stringify(e.readSecuritySettings({}))), {
     hideTaskPreview: true, clearClipboard: true, appUnlockEnabled: false
   });
+});
+
+test('security-setting read failure fails closed instead of bypassing a previous App-unlock opt-in', () => {
+  const e = loadSettings();
+  e.setOpenFailure(true);
+  assert.equal(e.readSecuritySettings({}).appUnlockEnabled, true);
 });
 
 test('App unlock preference persists and a failed flush reports failure', async () => {
